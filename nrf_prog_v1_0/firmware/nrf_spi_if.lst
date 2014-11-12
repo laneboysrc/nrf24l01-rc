@@ -1,0 +1,3245 @@
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE  1
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00001 ; nRF24LE1 SPI programmer hardware interface.  File: nrf_spi_if.asm
+                      00002 ;
+                      00003 ;
+                      00004 ; Global Assembler directives
+                      00005         list            c=132, n=80
+                      00006         list            p=16F1825
+                      00007         errorlevel      -302    ; Disable messages for register banking
+                      00008         errorlevel      -306    ; Disable messages for page crossing
+                      00009 
+                      00010 #include        p16f1825.inc
+                      00001         LIST
+                      00002 
+                      00003 ;==========================================================================
+                      00004 ;  MPASM PIC16F1825 processor include
+                      00005 ; 
+                      00006 ;  (c) Copyright 1999-2012 Microchip Technology, All rights reserved
+                      00007 ;==========================================================================
+                      00008 
+                      01216         LIST
+                      00011 
+                      00012 ;
+                      00013 ; Uncomment the #define USE_INT_CLOCK to use the internal oscillator instead of an
+                      00014 ; external 8 MHz crystal.
+                      00015 ;
+                      00016 #define USE_INT_CLOCK   1
+                      00017 
+                      00018 ;
+                      00019 ; This program provides the interface between software running on a PC and a target
+                      00020 ; nRF24LE1 chip.  The PC communciates with this program via a serial interface and
+                      00021 ; the program interfaces with the nRF24LE1 through the programming SPI port (and
+                      00022 ; associated control signals).
+                      00023 ;
+                      00024 ; Serial communication occurs at 115.2 Kbaud (8N1).  The program interprets a simple ASCII-
+                      00025 ; based command set with two command encoding forms (allowing use of a simple terminal).
+                      00026 ; Each command generates a response.  Only one command may be issued at a time or bad
+                      00027 ; things will happen.
+                      00028 ;
+                      00029 ;   Form 1: For use by programming software
+                      00030 ;
+                      00031 ;      'H'<HexCommand>[HexData]'T'<HexChecksum>
+                      00032 ;
+                      00033 ;     - The ASCII character 'H' is the packet start marker
+                      00034 ;     - <HexCommand> is a two ASCII-character hex command
+                      00035 ;     - HexData is the optional command data representing one or more bytes (up to 256)
+                      00036 ;       comprised of two ASCII-character hex numbers for each data byte
+                      00037 ;     - The ASCII character 'T' is the packet end marker.  It indicates this is Form 1
+                      00038 ;       and requires a checksum byte to follow.
+                      00039 ;     - <HexChecksum> is a two ASCII-character hex checksum (the SUM of all bytes 'H' to
+                      00040 ;      'T' inclusive).
+                      00041 ;     - No other characters should included in the packet for performance reasons.  The
+                      00042 ;       firmware will ignore ASCII space characters and <CR> (carriage return) characters.
+                      00043 ;
+                      00044 ;   Form 2: For use via a terminal
+                      00045 ;
+                      00046 ;      'H' <HexCommand> [HexData][<CR>] <LF>
+                      00047 ;
+                      00048 ;     - The ASCII character 'H' is the packet start marker
+                      00049 ;     - <HexCommand> is a two ASCII-character hex command
+                      00050 ;     - HexData is the optional command data representing one or more bytes (up to 256)
+                      00051 ;       comprised of two ASCII-character hex numbers for each data byte
+                      00052 ;     - The ASCII character <LF> (linefeed - 0x0A - Ctrl-J) is the packet end marker.  It
+                      00053 ;       indicates this is Form 2 and does not require a checksum to follow.
+                      00054 ;     - ASCII space characters and <CR> (carriage return - 0x0D - Ctrl-L) characters are
+                      00055 ;       ignored between 'H' and <LF>.
+                      00056 ;
+                      00057 ;   All hex values are expressed as two-character strings comprised of the ASCII characters
+                      00058 ;   '0' - '9' and 'A' - 'F' or 'a' - 'f'.
+                      00059 ;
+                      00060 ;   All characters between the end of packet (or checksum for Form 1) and the next start of
+                      00061 ;   packet character 'H' are ignored.
+                      00062 ;
+                      00063 ;   HexCommand values
+                      00064 ;   -----------------
+                      00065 ;
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE  2
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00066 ;    0x00 ("00"): Version. Firmware identifier and version.
+                      00067 ;           - No data bytes
+                      00068 ;           - Returns three bytes <FIRMWARE_TYPE><MAJOR VERSION><MINOR VERSION> with ACK
+                      00069 ;
+                      00070 ;    0x01 ("01"): Access Mode.  Controls entry and exit from program mode.  Entering access
+                      00071 ;           mode causes the following actions to occur:
+                      00072 ;             1. Assert the PROG signal to the nRF24LE1
+                      00073 ;             2. Assert the nRESET signal to the nRF24LE1 for > 0.2 uSec
+                      00074 ;             3. Enables the SPI interface to the nRF24LE1
+                      00075 ;             4. Waits 1.5 mSec before returning a response
+                      00076 ;           Exiting access mode causes the following actions to occur:
+                      00077 ;             1. Disables (tri-states) the SPI interface to the nRF24LE1
+                      00078 ;             2. De-asserts the PROG signal to the nRF24LE1
+                      00079 ;
+                      00080 ;           - One data byte: AccessMode
+                      00081 ;              7:1: Reserved
+                      00082 ;                0: Set Program Mode (1 = enter program mode, 0 = exit program mode)
+                      00083 ;           - Returns zero response bytes with ACK
+                      00084 ;
+                      00085 ;    0x02 ("02"): SPI Command.
+                      00086 ;           - 1 - 256 data bytes.  First data byte is the nRF24LE1 SPI Command.
+                      00087 ;             Subsequent bytes are any required data for the command.
+                      00088 ;           - Returns an equal number of response bytes, one for each data byte, with ACK.
+                      00089 ;
+                      00090 ;    0x03 ("03"): Set Address.  Set the starting address for subsequent Program or Read
+                      00091 ;           Memory commands.
+                      00092 ;           - 2 data bytes: <Address[15:8]><Address[7:0]>
+                      00093 ;           - Returns zero response bytes with ACK
+                      00094 ;
+                      00095 ;    0x04 ("04"): Program. Program and verify a series of data bytes starting with the
+                      00096 ;           current address.  Executes the following sequence of operations:
+                      00097 ;             1. Execute the WREN SPI Command sequence.
+                      00098 ;             2. Execute the PROGRAM SPI Command with data bytes
+                      00099 ;             3. Poll FSR using RDSR SPI Command for write to finish
+                      00100 ;             4. Verify data using the READ SPI Command
+                      00101 ;             5. Update current address to point to next address location past data bytes
+                      00102 ;           - 1-256 data bytes
+                      00103 ;           - Returns one byte, Status, with ACK
+                      00104 ;                0x00 "00": Success
+                      00105 ;                0x01 "01": Verify failed
+                      00106 ;
+                      00107 ;    0x05 ("05"): Read Memory.  Read a series of data bytes starting with the current
+                      00108 ;           address.
+                      00109 ;           - 1 data byte indicating read length (256, 1-255)
+                      00110 ;           - Returns 1-256 read data bytes with ACK
+                      00111 ;           - Update current address to point to next address location past read length
+                      00112 ;
+                      00113 ;    0x06 ("06"): Reset.  Pulse the reset signal.  Designed to be used with the programmer
+                      00114 ;           attached to a functioning device (not in program mode).
+                      00115 ;           - No data bytes
+                      00116 ;           - Returns zero response bytes with ACK
+                      00117 ;
+                      00118 ;
+                      00119 ;    Responses
+                      00120 ;    ---------
+                      00121 ;
+                      00122 ;    There are two different response forms.  The NACK and ACK response form operate
+                      00123 ;    slightly differently depending if the original command was Form 1 or Form 2.
+                      00124 ;
+                      00125 ;       1. NACK response for commands that have failed.
+                      00126 ;
+                      00127 ;          'X'<HexNackCode>'T'<HexChecksum>                  (for Form 1)
+                      00128 ;          'X' <HexNackCode><CR><LF>                         (for Form 2)
+                      00129 ;
+                      00130 ;          <HexNackCode> is one of the following strings:
+                      00131 ;              "00": Unknown command
+                      00132 ;              "01": Not in access mode
+                      00133 ;              "02": Command packet checksum failure
+                      00134 ;              "03": Malformed command packet
+                      00135 ;              "04": Illegal number of arguments
+                      00136 ;
+                      00137 ;       2. ACK response for commands that have succeeded.
+                      00138 ;
+                      00139 ;          'R'[HexData]'T'<HexChecksum>                      (for Form 1)
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE  3
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00140 ;          'R' [HexData]<CR><LF>                             (for Form 2)
+                      00141 ;
+                      00142 ;             HexData bytes are separated by space characters for Form 2
+                      00143 ;
+                      00144 ;       <HexChecksum> is a two ASCII-character hex checksum (the SUM of all bytes ACK
+                      00145 ;         or NACK code to 'T' inclusive).
+                      00146 ;
+                      00147 ;    Notes
+                      00148 ;    -----
+                      00149 ;      1. Access mode must be enabled before executing any commands that use the SPI
+                      00150 ;         interface.  A NACK response is generated otherwise.
+                      00151 ;      2. Configuring reads/programming writes to InfoPage must be configured through
+                      00152 ;         a SPI Command to execute the WRSR SPI command.
+                      00153 ;
+                      00154 ; The SPI Interface runs at 2 MHz.
+                      00155 ;
+                      00156 ;
+                      00157 ; Revision History
+                      00158 ;   10/09/11 Revision 1.0  DJJ  Initial version.
+                      00159 ;   02/02/12 Revision 2.0  DJJ  Revamped communication protocol to speed programming.
+                      00160 ;   08/15/13 Revision 2.1  DJJ  Added WPU to RX input for circuit change when designing PCB.
+                      00161 ;   08/18/13 Revision 2.2  DJJ  Added RESET command.  Added GPL V3 license.
+                      00162 ;
+                      00163 ;
+                      00164 ; Copyright (c) 2011-2013 Dan Julio.  All rights reserved.
+                      00165 ;
+                      00166 ; This program is free software: you can redistribute it and/or modify
+                      00167 ; it under the terms of the GNU General Public License as published by
+                      00168 ; the Free Software Foundation, either version 3 of the License, or
+                      00169 ; (at your option) any later version.
+                      00170 ;
+                      00171 ; This program is distributed in the hope that it will be useful,
+                      00172 ; but WITHOUT ANY WARRANTY; without even the implied warranty of
+                      00173 ; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+                      00174 ; GNU General Public License for more details.
+                      00175 ;
+                      00176 ; You should have received a copy of the GNU General Public License
+                      00177 ; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+                      00178 ;
+                      00179 ;
+                      00180 ; ------------------------------------------------------------------------
+                      00181 ; Processor Information:
+                      00182 ;
+                      00183 ; Target processor: PIC 16F1825
+                      00184 ; Processor frequency: Internal 32 MHz (125 ns instruction cycle) from external 8 MHz crystal
+                      00185 ;
+                      00186 ; Memory Layout
+                      00187 ;    Page 0: 0x0000 - 0x07FF    Main code, ISR and subroutines
+                      00188 ;    Page 1: 0x0800 - 0x0FFF    Unused
+                      00189 ;    Page 2: 0x1000 - 0x17FF    Unused
+                      00190 ;    Page 3: 0x1800 - 0x1FFF    Unused
+                      00191 ;
+                      00192 ; Operating voltage : 3.3 volts
+                      00193 ;
+                      00194 ;   Pin     Signal                       Pol  I/O  default
+                      00195 ;   --------------------------------------------------------
+                      00196 ;   13 RA0  PROG (ICSP DATA)              H    O    0
+                      00197 ;   12 RA1  nCSN (ICSP CLK)               L    O    1 (WPU when tri-stated)
+                      00198 ;   11 RA2  nRESET                        L    O    1 WPU
+                      00199 ;    4 RA3  MCLR / (VPP)                  -    -    - (external pull-up)
+                      00200 ;    3 RA4  OSC2 / CLKOUT                 -    -    -
+                      00201 ;    2 RA5  OSC1 / CLKIN                  -    -    -
+                      00202 ;   10 RC0  SCLK                          H    O    0 (WPU when tri-stated)
+                      00203 ;    9 RC1  SDI                           H    I    0 WPU
+                      00204 ;    8 RC2  SDO                           H    O    0 (WPU when tri-stated)
+                      00205 ;    7 RC3  nACTIVITY (LED indicator)     L    O    1
+                      00206 ;    6 RC4  TX                            -    O    0
+                      00207 ;    5 RC5  RX                            -    I    0 WPU
+                      00208 ;
+                      00209 ; PIC Timer Utilization
+                      00210 ;   TIMER0 - not used
+                      00211 ;   TIMER1 - PROG Sequence timer
+                      00212 ;   TIMER2 - not used
+                      00213 ;
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE  4
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00214 ; PIC Memory layout
+                      00215 ;   Bank 0 - Operating Variables
+                      00216 ;   Linear Addressed Memory
+                      00217 ;      256 byte Command FIFO : 0x2100 - 0x21FF
+                      00218 ;      256 byte Response FIFO : 0x2200 - 0x22FF
+                      00219 ;   FSR utilization
+                      00220 ;      FSR0 used by ISR and main code for accessing Command FIFO
+                      00221 ;      FSR1 used by main code for accessing Response FIFO
+                      00222 ;
+                      00223 ;
+                      00224 ; ------------------------------------------------------------------------
+                      00225 ; File Layout:
+                      00226 ;
+                      00227 ;    1. Configuration Bits
+                      00228 ;    2. Program Constants
+                      00229 ;    3. Macro definitions
+                      00230 ;    4. Main code
+                      00231 ;    5. Main code subroutines
+                      00232 ;
+                      00233 ;
+                      00234 ; ------------------------------------------------------------------------
+                      00235 ; Set the device configuration bits
+                      00236 ;  CONFIG1
+                      00237 ;    FCMEN = 0 (Fail-safe clock monitor disabled)
+                      00238 ;    IESO = 0 (Internal/External switchover mode disabled)
+                      00239 ;    nCLKOUTEN = 1 (CLKOUT function disabled.  I/O function on I/O pin)
+                      00240 ;    BOREN = 10 (Brown-out detection enabled during operation, disabled during sleep)
+                      00241 ;    nCPD = 1 (Data memory code protection disabled)
+                      00242 ;    nCP = 1 (Program memory code protection disabled)
+                      00243 ;    MCLRE = 1 (MCLR/VPP pin is MCLR; digital IO disabled)
+                      00244 ;    nPWRTE = 0 (Power-up timer enabled)
+                      00245 ;    WDTE = 10 (Watchdog timer enabled while running, disabled while sleeping)
+                      00246 ;    FOSC2:0 = 010 (HS oscillator)
+                      00247 ;  CONFIG2
+                      00248 ;    LVP = 0 (High-voltage on MCLR used for programming)
+                      00249 ;    nDEBUG = 1 (ICSPCLK/ICSPDATA are general purpose IO)
+                      00250 ;    BORV = 1 (Brown-out voltage = 1.9V)
+                      00251 ;    STVREN = 0 (Stack overflow/underflow will not cause a reset)
+                      00252 ;    PLLEN = 1 (4xPLL enabled)
+                      00253 ;    WRT1:0 = 11 (Write protection off)
+                      00254 ;
+                      00255  ifdef USE_INT_CLOCK
+                      00256 
+8007   CDD4           00257         __config _CONFIG1, _FCMEN_OFF & _IESO_OFF & _CLKOUTEN_OFF & _BOREN_NSLEEP & _CPD_OFF & _CP_OFF &
+                             _MCLRE_ON & _PWRTE_ON & _WDTE_NSLEEP & _FOSC_INTOSC
+                      00258 
+                      00259  else
+                      00260 
+                      00261         __config _CONFIG1, _FCMEN_OFF & _IESO_OFF & _CLKOUTEN_OFF & _BOREN_NSLEEP & _CPD_OFF & _CP_OFF &
+                             _MCLRE_ON & _PWRTE_ON & _WDTE_NSLEEP & _FOSC_HS
+                      00262 
+                      00263  endif
+8008   DDFF           00264         __config _CONFIG2, _LVP_OFF & _BORV_19 & _STVREN_OFF & _PLLEN_ON & _WRT_OFF
+                      00265 
+                      00266 
+                      00267 ; ------------------------------------------------------------------------
+                      00268 ; Program Constants
+                      00269 ;
+                      00270 
+                      00271 ;
+                      00272 ; External device bits (port number bits)
+  00000000            00273 PROG            equ     .0
+  00000001            00274 N_CSN           equ     .1
+  00000002            00275 N_RESET         equ     .2
+  00000003            00276 N_ACTIVITY      equ     .3
+                      00277 ;
+                      00278 ; CmdFlags variable bits (all active true)
+  00000000            00279 CmdInProcess    equ     .0              ; Set while processing a command
+  00000001            00280 Form2Cmd        equ     .1              ; Set with CmdInProcess when a Form 2 command is
+                      00281                                         ;   detected (clear for Form 1)
+  00000002            00282 ChksumError     equ     .2              ; Set with CmdInProcess when a checksum error is
+                      00283                                         ;   detected
+  00000003            00284 BadCmdErr       equ     .3              ; Set with CmdInProcess when a malformed command is
+                      00285                                         ;   detected (extraneous/illegal characters)
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE  5
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+  00000004            00286 ReadInProcess   equ     .4              ; Read Memory command in process
+  00000006            00287 SpiEnabled      equ     .6              ; Set when the SPI interface is enabled
+  00000007            00288 IsHexChar       equ     .7              ; Set by CheckIfHexChar subroutine for a legal
+                      00289                                         ;   hex character
+                      00290 ;
+                      00291 ;
+                      00292 ; SifRxState variable bits (all active true and mutually exclusive)
+  00000000            00293 RxIdleState     equ     .0              ; RX decode idle
+  00000001            00294 RxCmdStateH     equ     .1              ; RX decode awaiting command byte
+  00000002            00295 RxCmdStateL     equ     .2
+  00000003            00296 RxDataStateH    equ     .3              ; RX decode awaiting data bytes
+  00000004            00297 RxDataStateL    equ     .4
+  00000005            00298 RxChksumStateH  equ     .5              ; RX decode awaiting checksum byte
+  00000006            00299 RxChksumStateL  equ     .6
+                      00300 ;
+  00000001            00301 RX_IDLE_STATE   equ     0x01
+  00000002            00302 RX_CMD_STATE_H  equ     0x02
+  00000004            00303 RX_CMD_STATE_L  equ     0x04
+  00000008            00304 RX_DATA_STATE_H equ     0x08
+  00000010            00305 RX_DATA_STATE_L equ     0x10
+  00000020            00306 RX_CHK_STATE_H  equ     0x20
+  00000040            00307 RX_CHK_STATE_L  equ     0x40
+                      00308 ;
+                      00309 ;
+                      00310 ; SifTxState variable bits (all active true and mutually exclusive; idle is no bits set)
+  00000000            00311 TxAckState      equ     .0              ; TX send ACK start-of-packet character
+  00000001            00312 TxNackState     equ     .1              ; TX send NACK start-of-packet character
+  00000002            00313 TxData1State    equ     .2              ; TX send <Space>
+  00000003            00314 TxData2State    equ     .3              ; TX send High Hex ASCII Data Byte
+  00000004            00315 TxData3State    equ     .4              ; TX send Low Hex ASCII Data Byte
+  00000005            00316 TxTerm1State    equ     .5              ; TX send 'T' or <CR>
+  00000006            00317 TxTerm2State    equ     .6              ; TX send High Checksum HEX ASCII Data Byte or <LF>
+  00000007            00318 TxTerm3State    equ     .7              ; TX send Low Checksum HEX ASCII Data Byte
+                      00319 ;
+  00000000            00320 TX_IDLE_STATE   equ     0x00
+  00000001            00321 TX_ACK_STATE    equ     0x01
+  00000002            00322 TX_NACK_STATE   equ     0x02
+  00000004            00323 TX_DATA_1_STATE equ     0x04
+  00000008            00324 TX_DATA_2_STATE equ     0x08
+  00000010            00325 TX_DATA_3_STATE equ     0x10
+  00000020            00326 TX_TERM_1_STATE equ     0x20
+  00000040            00327 TX_TERM_2_STATE equ     0x40
+  00000080            00328 TX_TERM_3_STATE equ     0x80
+                      00329 ;
+                      00330 ; Bank 0 Variable register equates
+                      00331 ;
+  00000020            00332 NumBytes        equ     0x20            ; Loop counter for access routines
+  00000021            00333 CmdByte         equ     0x21            ; HexCommand byte
+  00000022            00334 CmdCount        equ     0x22            ; # of valid bytes in CMD FIFO (0-255 -> 256,1-255)
+  00000023            00335 CmdAddrHi       equ     0x23
+  00000024            00336 CmdAddrLo       equ     0x24
+  00000025            00337 SifRxState      equ     0x25            ; RX State used by ISR
+  00000026            00338 SifRxChar       equ     0x26            ; Incoming character from serial interface
+                      00339                                         ;   Commands with no data ignore this variable
+  00000027            00340 SifTempData     equ     0x27            ; Temporary byte used to build hex data bytes
+  00000028            00341 SifRxChecksum   equ     0x28            ; Sum of incoming bytes
+  00000029            00342 SifCmdPushPtr   equ     0x29            ; External command push pointer, set when a complete
+                      00343                                         ;   command has been pushed into the Cmd Fifo
+  0000002A            00344 SifCmdPopPtr    equ     0x2A            ; Command pop pointer
+                      00345 ;
+                      00346 ; Registers located in common region for access from any bank
+                      00347 ;
+  00000070            00348 TempReg         equ     0x70
+  00000071            00349 CmdFlags        equ     0x71
+  00000072            00350 SifTxState      equ     0x72            ; TX State used by response mechanism
+  00000073            00351 SifTxChecksum   equ     0x73            ; Sum of outgoing bytes
+  00000074            00352 RspCount        equ     0x74            ; # of valid bytes in RSP FIFO (0-255 -> 256,1-255)
+  00000075            00353 SifRspPushPtr   equ     0x75            ; Response push pointer
+  00000076            00354 SifRspPopPtr    equ     0x76            ; Response pop pointer
+                      00355 
+                      00356 ;
+                      00357 ; High address bytes for the fifos: loaded into FSRH (specific pointer is loaded
+                      00358 ; into FSRL)
+  00000021            00359 CMD_FIFO_HI     equ     0x21
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE  6
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+  00000022            00360 RSP_FIFO_HI     equ     0x22
+                      00361 
+                      00362 ;
+                      00363 ; PIC Initialization constants
+  000000F0            00364 OSCCON_SETUP    equ     B'11110000'     ; 7: SPLLEN = 1 (4x PLL enabled)
+                      00365                                         ; 6:3: IRCF3:0 = 1110 (8 MHz for 32 MHz operation)
+                      00366                                         ; 2: Unimplemented
+                      00367                                         ; 1:0: SCS1:0 = 00 (Use Config Word 1 FOSC bits)
+                      00368 
+  00000007            00369 OPTION_SETUP    equ     B'00000111'     ; 7: WPUEN = 0 (enable pull-ups)
+                      00370                                         ; 6: INTEDG = 0 (Int on falling edge RB0/INT)
+                      00371                                         ; 5: T0CS = 0 (internal TMR0 clock)
+                      00372                                         ; 4: T0SE = 0 (rising TMR0 clock)
+                      00373                                         ; 3: PSA = 0 (prescaler to TMR0)
+                      00374                                         ; 2:0: prescaler = 111b (1:256) for every 32 uSec
+                      00375 
+  000000C0            00376 INTCON_SETUP    equ     B'11000000'     ; 7: GIE = 1 (interrupts enabled)
+                      00377                                         ; 6: PEIE = 1 (Peripheral ints enabled)
+                      00378                                         ; 5: T0IE = 0 (TMR0 ints disabled)
+                      00379                                         ; 4: INTE = 0 (INT ints disabled)
+                      00380                                         ; 3: IOCIE = 0 (Interrupt-on-change disabled)
+                      00381                                         ; 2: T0IF = 0
+                      00382                                         ; 1: INTF = 0
+                      00383                                         ; 0: RBIF = 0
+                      00384 
+  00000031            00385 T1CON_INIT      equ     B'00110001'     ; 7:6: TMR1CS1:0 = 00 (Timer1 clock = Fosc/4)
+                      00386                                         ; 5:4: T1CKPS1:0 = 11 (1:8 prescale)
+                      00387                                         ; 3: T1OSCEN = 0 (Oscillator shut off)
+                      00388                                         ; 2: T1SYNC = 0 (Sync control unused)
+                      00389                                         ; 1: Unimplemented
+                      00390                                         ; 0: TMR1ON = 1 (Enable timer)
+                      00391                                         ; (Increments every 1 uSec)
+                      00392 
+  00000000            00393 T1GCON_INIT     equ     B'00000000'     ; 7: TMR1GE = 0 (Timer1 always counts)
+                      00394                                         ; 6: T1GPOL = 0
+                      00395                                         ; 5: T1GTM = 0
+                      00396                                         ; 4: T1GSPM = 0
+                      00397                                         ; 3: T1GGO/DONE = 0
+                      00398                                         ; 2: T1GVAL = 0
+                      00399                                         ; 1:0: T1GSS1:0 = 00
+                      00400 
+  00000020            00401 PIE1_SETUP      equ     B'00100000'     ; 7: TMR1GIE = 0 (Timer 1 Gate Enable)
+                      00402                                         ; 6: ADIE = 0 (A/D converter)
+                      00403                                         ; 5: RCIE = 1 (USART RX Enable)
+                      00404                                         ; 4: TXIE = 0 (USART TX Enable)
+                      00405                                         ; 3: SSPIE = 0 (Sync Serial Port)
+                      00406                                         ; 2: CCP1IE = 0 (CCPQ Int enable)
+                      00407                                         ; 1: TMR2IE = 0 (TMR2 to PR2 match)
+                      00408                                         ; 0: TMR1IE = 0 (TMR1 Overflow)
+                      00409 
+  00000006            00410 PORTA_INIT      equ     B'00000110'
+  00000008            00411 PORTC_INIT      equ     B'00001000'
+  00000000            00412 PORTA_OE_EN     equ     B'00000000'
+  00000022            00413 PORTC_OE_EN     equ     B'00100010'
+  00000002            00414 PORTA_OE_DIS    equ     B'00000010'     ; Tri-state SPI IF when disabled
+  00000027            00415 PORTC_OE_DIS    equ     B'00100111'
+                      00416 
+  00000000            00417 ANSELA_INIT     equ     B'00000000'     ; All PORT bits are digital I/O
+  00000000            00418 ANSELC_INIT     equ     B'00000000'
+                      00419 
+  00000004            00420 WPUA_INIT_EN    equ     B'00000100'     ; Pull-up's when enabled
+  00000022            00421 WPUC_INIT_EN    equ     B'00100010'
+  00000006            00422 WPUA_INIT_DIS   equ     B'00000110'     ; Pull-up's when disabled
+  00000027            00423 WPUC_INIT_DIS   equ     B'00100111'
+                      00424 
+  00000000            00425 INLVLA_INIT     equ     B'00000000'     ; TTL levels on all pins
+  00000000            00426 INLVLC_INIT     equ     B'00000000'
+                      00427 
+  00000024            00428 TXSTA_INIT      equ     B'00100100'     ; 7: CSRC = 0 (Clock Source Select)
+                      00429                                         ; 6: TX9 = 0 (9-bit transmit enable)
+                      00430                                         ; 5: TXEN = 1 (Transmit enable)
+                      00431                                         ; 4: SYNC = 0 (Mode select bit)
+                      00432                                         ; 3: SENDB = 0 (Send Break Character bit)
+                      00433                                         ; 2: BRGH = 1 (High Baud Rate Select)
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE  7
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00434                                         ; 1: TRMT = 0 (Transmit Shift Register Status)
+                      00435                                         ; 0: TX9D = 0 (Ninth bit of transmit data)
+                      00436 
+  00000090            00437 RCSTA_INIT      equ     B'10010000'     ; 7: SPEN = 1 (Serial Port Enable)
+                      00438                                         ; 6: RX9 = 0 (9-bit Receive Enable)
+                      00439                                         ; 5: SREN = 0 (Single Receive Enable)
+                      00440                                         ; 4: CREN = 1 (Continuous Receive Enable)
+                      00441                                         ; 3: ADDEN = 0 (Address Detect Enable)
+                      00442                                         ; 2: FERR = 0 (Framing Error)
+                      00443                                         ; 1: OERR = 0 (Overrun Error)
+                      00444                                         ; 0: RX9D = 0 (Ninth bit of Received Data)
+                      00445 
+  00000008            00446 BAUDCON_INIT    equ     B'00001000'     ; 7: ABDOVF = 0 (Auto_baud Detect Overflow)
+                      00447                                         ; 6: RCIDL = 0 (Receive Idle Flag)
+                      00448                                         ; 5: Unimplemented
+                      00449                                         ; 4: SCKP = 0 (Sync Clock Polarity)
+                      00450                                         ; 3: BRG16 = 1 (16-bit baud rate generator)
+                      00451                                         ; 2: Unimplemented
+                      00452                                         ; 1: WUE = 0 (Wake-up Enable)
+                      00453                                         ; 0: ABDEN = 0 (Auto-Baud Detect mode)
+                      00454 
+  00000044            00455 SPBRG_INIT      equ     .68             ; Async 115200 baud w/ BRG16=1, BRGH=1
+                      00456 
+  00000001            00457 SSP1CON1_INIT   equ     B'00000001'     ; 7: WCOL = 0 (Write Collision)
+                      00458                                         ; 6: SSPOV = 0 (Recieve Overflow indicator)
+                      00459                                         ; 5: SSPEN = 0 (Synchronous Serial Port Disable)
+                      00460                                         ; 4: CKP = 0 (Clock Polarity bit)
+                      00461                                         ; 3:0: SSPM = 0001 (Synchronous Serial Port Mode)
+                      00462                                         ;      (Fosc/16 = 2 Mhz)
+                      00463 
+  00000000            00464 SSP1CON2_INIT   equ     B'00000000'     ; 7: GCEN = 0 (General Call Enable)
+                      00465                                         ; 6: ACKSTAT = 0 (Acknowledge Status bit)
+                      00466                                         ; 5: ACKDT = 0 (Acknowledge Data bit)
+                      00467                                         ; 4: ACKEN = 0 (Acknowledge Sequence Enable bit)
+                      00468                                         ; 3: RCEN = 0 (Receive Enable bit)
+                      00469                                         ; 2: PEN = 0 (Stop Condition enable bit)
+                      00470                                         ; 1: RSEN = 0 (Repeated Start Condition Enabled bit)
+                      00471                                         ; 0: SEN = 0 (Start Condition enable bit)
+                      00472 
+  00000000            00473 SSP1CON3_INIT   equ     B'00000000'     ; 7: ACKTIM = 0 (Acknowledge Time status bit)
+                      00474                                         ; 6: PCIE = 0 (Stop Condition Interrupt Enable)
+                      00475                                         ; 5: SCIE = 0 (Start Condition Interrupt Enable)
+                      00476                                         ; 4: BOEN = 0 (Buffer Overwrite Enable bit)
+                      00477                                         ; 3: SDAHT = 0 (SDAx HOlde Time Selection)
+                      00478                                         ; 2: SBCDE = 0 (Slave Mode Bus Collision Detect Enable)
+                      00479                                         ; 1: AHEN = 0 (Address Hold Enable)
+                      00480                                         ; 0: DHEN = 0 (Data Hold Enable)
+                      00481 
+  00000040            00482 SSP1STAT_INIT   equ     B'01000000'     ; 7: SMP = 0 (SPI Data Input Sample)
+                      00483                                         ; 6: CKE = 1 (SPI Clock Edge Select)
+                      00484                                         ; 5: D/A = 0 (Data/nAddress)
+                      00485                                         ; 4: P = 0 (Stop bit)
+                      00486                                         ; 3: S = 0 (Start bit)
+                      00487                                         ; 2: R/W = 0 (Read/nWrite)
+                      00488                                         ; 1: UA = 0 (Update Address)
+                      00489                                         ; 0: BF = 0 (Buffer Full Status)
+                      00490 
+                      00491 ;
+                      00492 ; PROG assertion timer setup
+                      00493 ;
+  0000F9F2            00494 PROG_TIMEOUT    equ     0xF9F2          ; 1550 uSec (0x10000 - 1550)
+                      00495 
+                      00496 ;
+                      00497 ; Command characters
+                      00498 ;
+  00000048            00499 START_CMD_CHAR  equ     'H'
+  00000054            00500 STOP_CMD_CHAR   equ     'T'
+  00000052            00501 ACK_CHAR        equ     'R'
+  00000058            00502 NACK_CHAR       equ     'X'
+  0000000A            00503 LF_CHAR         equ     0x0A
+  0000000D            00504 CR_CHAR         equ     0x0D
+  00000020            00505 SPACE_CHAR      equ     ' '
+                      00506 ;
+                      00507 ; Command bytes (should be contiguous starting with 0x00)
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE  8
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00508 ;
+  00000000            00509 CMD_VERSION     equ     0x00
+  00000001            00510 CMD_ACCESS_MODE equ     0x01
+  00000002            00511 CMD_SPI         equ     0x02
+  00000003            00512 CMD_SET_ADDR    equ     0x03
+  00000004            00513 CMD_PROG        equ     0x04
+  00000005            00514 CMD_READ        equ     0x05
+  00000006            00515 CMD_RESET       equ     0x06
+  00000007            00516 NUM_CMD_BYTES   equ     .7
+                      00517 ;
+                      00518 ; Program Command response bytes
+                      00519 ;
+  00000000            00520 PROG_SUCCESS    equ     0x00
+  00000001            00521 PROG_FAILED     equ     0x01
+                      00522 ;
+                      00523 ; NACK Response codes
+                      00524 ;
+  00000000            00525 NACK_UNKNOWN    equ     0x00
+  00000001            00526 NACK_NOT_ACCESS equ     0x01
+  00000002            00527 NACK_CHECKSUM   equ     0x02
+  00000003            00528 NACK_MALFORMED  equ     0x03
+  00000004            00529 NACK_NUM_ARGS   equ     0x04
+                      00530 ;
+                      00531 ; Current version information
+                      00532 ;
+  00000001            00533 FIRMWARE_TYPE   equ     0x01
+  00000002            00534 VER_MAJOR       equ     0x02
+  00000002            00535 VER_MINOR       equ     0x02
+                      00536 ;
+                      00537 ; nRF24LE1 SPI command encodings
+                      00538 ;
+  00000006            00539 NRF_WREN        equ     0x06
+  00000004            00540 NRF_WRDIS       equ     0x04
+  00000005            00541 NRF_RDSR        equ     0x05
+  00000001            00542 NRF_WRSR        equ     0x01
+  00000003            00543 NRF_READ        equ     0x03
+  00000002            00544 NRF_PROG        equ     0x02
+  00000052            00545 NRF_ERASE_PG    equ     0x52
+  00000062            00546 NRF_ERASE_ALL   equ     0x62
+  00000089            00547 NRF_RDFPCR      equ     0x89
+  00000085            00548 NRF_RDISMB      equ     0x85
+  00000086            00549 NRF_ENDEBUG     equ     0x86
+                      00550 
+                      00551 
+                      00552 
+                      00553 ; ------------------------------------------------------------------------
+                      00554 ; Macro Definitions
+                      00555 ;
+                      00556 
+                      00557 ASSERT_PROG     macro
+                      00558                 bsf     PORTA,PROG
+                      00559                 endm
+                      00560 
+                      00561 DEASSERT_PROG   macro
+                      00562                 bcf     PORTA,PROG
+                      00563                 endm
+                      00564 
+                      00565 ASSERT_RESET    macro
+                      00566                 bcf     PORTA,N_RESET
+                      00567                 endm
+                      00568 
+                      00569 DEASSERT_RESET  macro
+                      00570                 bsf     PORTA,N_RESET
+                      00571                 endm
+                      00572 
+                      00573 ASSERT_CSN      macro
+                      00574                 bcf     PORTA,N_CSN
+                      00575                 endm
+                      00576 
+                      00577 DEASSERT_CSN    macro
+                      00578                 bsf     PORTA,N_CSN
+                      00579                 endm
+                      00580 
+                      00581 SET_ACTIVITY    macro
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE  9
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00582                 bcf     PORTC,N_ACTIVITY
+                      00583                 endm
+                      00584 
+                      00585 CLR_ACTIVITY    macro
+                      00586                 bsf     PORTC,N_ACTIVITY
+                      00587                 endm
+                      00588 
+                      00589 SET_RX_STATE    macro   value
+                      00590                 movlw   value
+                      00591                 movwf   SifRxState
+                      00592                 endm
+                      00593 
+                      00594 SET_TX_STATE    macro   value
+                      00595                 movlw   value
+                      00596                 movwf   SifTxState
+                      00597                 endm
+                      00598 
+                      00599 
+                      00600 
+                      00601 ; ------------------------------------------------------------------------
+                      00602 ; Code Block - Vector table
+                      00603 ;
+                      00604 
+                      00605         ; Reset Vector
+0000                  00606         org             0x0
+0000   2806           00607         goto            MAIN_VECTOR
+                      00608 
+                      00609 ; ------------------------------------------------------------------------
+                      00610 ; Interrupt Service Routine
+                      00611 ;
+                      00612 
+                      00613         ; Interrupt Vector
+0004                  00614         org             0x4
+                      00615 
+                      00616         ; Interrupt Service Routine for RX Serial Data
+0004   21F6           00617         call            ProcessRxChar
+0005   0009           00618         retfie
+                      00619 
+                      00620 
+                      00621 ; ------------------------------------------------------------------------
+                      00622 ; Main Code Block
+                      00623 ;
+0006                  00624 MAIN_VECTOR
+0006   200E           00625         call            InitSystem
+                      00626 
+0007                  00627 MAIN_LOOP
+0007   0064           00628         clrwdt
+                      00629 
+                      00630         ; Look for a command to process
+0008   1871           00631         btfsc           CmdFlags,CmdInProcess
+0009   205F           00632         call            EvalCommand
+                      00633 
+                      00634         ; Look for data to send from the RSP FIFO
+000A   0872           00635         movf            SifTxState,W
+000B   1D03           00636         btfss           STATUS,Z
+000C   217F           00637         call            ProcessTxData
+000D   2807           00638         goto            MAIN_LOOP
+                      00639 
+                      00640 
+                      00641 
+                      00642 ; ------------------------------------------------------------------------
+                      00643 ; Subroutines
+                      00644 ;
+                      00645 
+                      00646 ; InitSystem: Power-on initialization of the processor, peripherals and variables
+                      00647 ;
+                      00648 ; On entry: none
+                      00649 ;
+                      00650 ; On exit: System ready for operation
+                      00651 ;
+000E                  00652 InitSystem
+                      00653         ; Initialize the processor IO first (at slow clock)
+000E   0020           00654         BANKSEL         PORTA
+000F   3006           00655         movlw           PORTA_INIT
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE 10
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+0010   008C           00656         movwf           PORTA
+0011   3008           00657         movlw           PORTC_INIT
+0012   008E           00658         movwf           PORTC
+                      00659 
+0013   0021           00660         BANKSEL         TRISA
+0014   3002           00661         movlw           PORTA_OE_DIS
+0015   008C           00662         movwf           TRISA
+0016   3027           00663         movlw           PORTC_OE_DIS
+0017   008E           00664         movwf           TRISC
+                      00665 
+0018   0023           00666         BANKSEL         ANSELA
+0019   3000           00667         movlw           ANSELA_INIT
+001A   008C           00668         movwf           ANSELA
+001B   3000           00669         movlw           ANSELC_INIT
+001C   008E           00670         movwf           ANSELC
+                      00671 
+001D   0024           00672         BANKSEL         WPUA
+001E   3006           00673         movlw           WPUA_INIT_DIS
+001F   008C           00674         movwf           WPUA
+0020   3027           00675         movlw           WPUC_INIT_DIS
+0021   008E           00676         movwf           WPUC
+                      00677 
+0022   0027           00678         BANKSEL         INLVLA
+0023   3000           00679         movlw           INLVLA_INIT
+0024   008C           00680         movwf           INLVLA
+0025   3000           00681         movlw           INLVLC_INIT
+0026   008E           00682         movwf           INLVLC
+                      00683 
+                      00684  ifdef USE_INT_CLOCK
+                      00685         ; Initialize the processor internal clock
+0027   0021           00686         BANKSEL         OSCCON
+0028   30F0           00687         movlw           OSCCON_SETUP
+0029   0099           00688         movwf           OSCCON
+                      00689         ; Spin waiting for the High Frequency Internal Oscillator to report ready
+002A   1E1A           00690         btfss           OSCSTAT,HFIOFR
+002B   282A           00691         goto            $-1
+                      00692  endif
+                      00693 
+                      00694         ; Processor core init
+002C   0021           00695         BANKSEL         OPTION_REG
+002D   3007           00696         movlw           OPTION_SETUP
+002E   0095           00697         movwf           OPTION_REG
+002F   3020           00698         movlw           PIE1_SETUP
+0030   0091           00699         movwf           PIE1
+                      00700 
+                      00701         ; Initialize TIMER1
+0031   0020           00702         BANKSEL         T1CON
+0032   3031           00703         movlw           T1CON_INIT
+0033   0098           00704         movwf           T1CON
+0034   3000           00705         movlw           T1GCON_INIT
+0035   0099           00706         movwf           T1GCON
+                      00707 
+                      00708         ; Initialize the serial port
+0036   0023           00709         BANKSEL         TXSTA
+0037   3024           00710         movlw           TXSTA_INIT
+0038   009E           00711         movwf           TXSTA
+0039   3090           00712         movlw           RCSTA_INIT
+003A   009D           00713         movwf           RCSTA
+003B   3008           00714         movlw           BAUDCON_INIT
+003C   009F           00715         movwf           BAUDCON
+003D   3000           00716         movlw           (SPBRG_INIT >> 8)
+003E   009C           00717         movwf           SPBRGH
+003F   3044           00718         movlw           (SPBRG_INIT & 0xFF)
+0040   009B           00719         movwf           SPBRGL
+                      00720 
+                      00721         ; Initialize SPI
+0041   0024           00722         BANKSEL         SSP1CON1
+0042   3001           00723         movlw           SSP1CON1_INIT
+0043   0095           00724         movwf           SSP1CON1
+0044   3000           00725         movlw           SSP1CON2_INIT
+0045   0096           00726         movwf           SSP1CON2
+0046   3000           00727         movlw           SSP1CON3_INIT
+0047   0097           00728         movwf           SSP1CON3
+0048   3040           00729         movlw           SSP1STAT_INIT
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE 11
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+0049   0094           00730         movwf           SSP1STAT
+                      00731 
+                      00732         ; Initialize pointers
+004A   3021           00733         movlw           CMD_FIFO_HI
+004B   0085           00734         movwf           FSR0H
+004C   3022           00735         movlw           RSP_FIFO_HI
+004D   0087           00736         movwf           FSR1H
+                      00737 
+                      00738         ; Initialize variables
+004E   0020           00739         BANKSEL         0
+004F   01F1           00740         clrf            CmdFlags
+0050   01A2           00741         clrf            CmdCount
+0051   01A3           00742         clrf            CmdAddrHi
+0052   01A4           00743         clrf            CmdAddrLo
+                      00744         SET_RX_STATE    RX_IDLE_STATE
+0053   3001               M                 movlw   RX_IDLE_STATE
+0054   00A5               M                 movwf   SifRxState
+0055   01A9           00745         clrf            SifCmdPushPtr
+0056   01AA           00746         clrf            SifCmdPopPtr
+                      00747         SET_TX_STATE    TX_IDLE_STATE
+0057   3000               M                 movlw   TX_IDLE_STATE
+0058   00F2               M                 movwf   SifTxState
+0059   01F4           00748         clrf            RspCount
+005A   01F5           00749         clrf            SifRspPushPtr
+005B   01F6           00750         clrf            SifRspPopPtr
+                      00751 
+                      00752         ; Finally, enable interrupts
+005C   30C0           00753         movlw           INTCON_SETUP
+005D   008B           00754         movwf           INTCON
+005E   0008           00755         return
+                      00756 
+                      00757 
+                      00758 ; EvalCommand: Process or continue processing the current command from the Command FIFO.
+                      00759 ;
+                      00760 ; On entry: CmdFlags.CmdInProcess set
+                      00761 ;           CmdFlags.{Form2Cmd, ChksumError, BadCmdErr, ReadInProcess, SpiEnabled}
+                      00762 ;             contain additional command information
+                      00763 ;           CmdByte contains the current command
+                      00764 ;           CmdCount contains the number of argument bytes in the Command FIFO
+                      00765 ;
+                      00766 ; On exit: Command processed (output signals may be modified by the command)
+                      00767 ;          SifCmdPopPtr incremented
+                      00768 ;          CmdFlags.CmdInProcess may be clear
+                      00769 ;          CmdFlags.SpiEnabled may be set or cleared
+                      00770 ;
+005F                  00771 EvalCommand
+                      00772         ; Look for indication of an error associated with the command
+005F   1971           00773         btfsc           CmdFlags,ChksumError
+0060   28FD           00774         goto            EVAL_CMD_CHECKSUM_ERR
+0061   19F1           00775         btfsc           CmdFlags,BadCmdErr
+0062   2902           00776         goto            EVAL_CMD_MALFORMED
+                      00777         ; Jump to command handler
+0063   3007           00778         movlw           NUM_CMD_BYTES
+0064   0221           00779         subwf           CmdByte,W               ; W = CmdByte - NUM_CMD_BYTES
+0065   1803           00780         btfsc           STATUS,C                ; C = 0 if CmdByte < NUM_CMD_BYTES
+0066   2907           00781         goto            EVAL_CMD_ILL_CMD        ;   C=1: Unknown command
+0067   0821           00782         movf            CmdByte,W               ;   C=0: Legal command
+0068   000B           00783         brw
+0069   2870           00784         goto            EVAL_CMD_VERSION
+006A   287A           00785         goto            EVAL_CMD_ACCESS_MODE
+006B   2895           00786         goto            EVAL_CMD_SPI
+006C   28A1           00787         goto            EVAL_CMD_SET_ADDR
+006D   28AA           00788         goto            EVAL_CMD_PROG
+006E   28D1           00789         goto            EVAL_CMD_READ
+006F   28F8           00790         goto            EVAL_CMD_RESET
+                      00791 
+                      00792 
+                      00793 ; --------------
+                      00794 ; Version Command
+                      00795 ;
+0070                  00796 EVAL_CMD_VERSION
+                      00797         ; Validate the argument count
+0070   0822           00798         movf            CmdCount,W
+0071   1D03           00799         btfss           STATUS,Z
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE 12
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+0072   2911           00800         goto            EVAL_CMD_ILL_ARGS
+                      00801 
+                      00802         ; Load the response
+0073   3001           00803         movlw           FIRMWARE_TYPE
+0074   2121           00804         call            PushRspFifo
+0075   3002           00805         movlw           VER_MAJOR
+0076   2121           00806         call            PushRspFifo
+0077   3002           00807         movlw           VER_MINOR
+0078   2121           00808         call            PushRspFifo
+0079   2916           00809         goto            EVAL_CMD_SUCCESS
+                      00810 
+                      00811 
+                      00812 ; --------------
+                      00813 ; Access Mode Command
+                      00814 ;
+007A                  00815 EVAL_CMD_ACCESS_MODE
+                      00816         ; Validate the argument count
+007A   3001           00817         movlw           .1
+007B   0222           00818         subwf           CmdCount,W
+007C   1D03           00819         btfss           STATUS,Z
+007D   2911           00820         goto            EVAL_CMD_ILL_ARGS
+                      00821 
+                      00822         ; Get the argument byte
+007E   211C           00823         call            PopCmdFifo
+007F   00F0           00824         movwf           TempReg
+0080   1C70           00825         btfss           TempReg,.0              ; Bit 0 set?
+0081   2892           00826         goto            EVAL_CMD_ACCESS_DIS     ;   N: Disable Access mode
+                      00827                                                 ;   Y: Enable Access mode
+                      00828         ; ------------- HACK ----------------
+                      00829         ; Assert PROG: A single bsf of PORTA does not work here, but two do.  Why????
+                      00830         ASSERT_PROG
+0082   140C               M                 bsf     PORTA,PROG
+                      00831         ASSERT_PROG
+0083   140C               M                 bsf     PORTA,PROG
+                      00832         ; -----------END HACK ---------------
+                      00833 
+                      00834         ; Reset the device
+0084   2129           00835         call            AssertReset
+                      00836 
+                      00837         ; Enable the SPI Interface
+0085   2139           00838         call            EnableSpi
+                      00839 
+                      00840         ; Configure the timeout
+0086   1018           00841         bcf             T1CON,TMR1ON
+0087   30F9           00842         movlw           (PROG_TIMEOUT >> 8)
+0088   0097           00843         movwf           TMR1H
+0089   30F2           00844         movlw           (PROG_TIMEOUT & 0xFF)
+008A   0096           00845         movwf           TMR1L
+008B   1011           00846         bcf             PIR1,TMR1IF
+008C   1418           00847         bsf             T1CON,TMR1ON
+                      00848 
+                      00849         ; Spin waiting for the timeout
+008D   0064           00850         clrwdt
+008E   1C11           00851         btfss           PIR1,TMR1IF             ; Timer1 expired?
+008F   288D           00852         goto            $-2                     ;   N: Spin
+                      00853                                                 ;   Y: Command done
+0090   1018           00854         bcf             T1CON,TMR1ON
+0091   2916           00855         goto            EVAL_CMD_SUCCESS
+                      00856 
+                      00857 
+0092                  00858 EVAL_CMD_ACCESS_DIS
+                      00859         ; Disable the SPI Interface
+0092   2148           00860         call            DisableSpi
+                      00861 
+                      00862         ; De-assert PROG
+                      00863         DEASSERT_PROG
+0093   100C               M                 bcf     PORTA,PROG
+0094   2916           00864         goto            EVAL_CMD_SUCCESS
+                      00865 
+                      00866 
+                      00867 ; --------------
+                      00868 ; SPI Command
+                      00869 ;
+0095                  00870 EVAL_CMD_SPI
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE 13
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00871         ; Make sure the SPI interface is enabled
+0095   1F71           00872         btfss           CmdFlags,SpiEnabled
+0096   290C           00873         goto            EVAL_CMD_NOT_ACCESS
+                      00874 
+                      00875         ; Indicate a command is in progress
+                      00876         SET_ACTIVITY
+0097   118E               M                 bcf     PORTC,N_ACTIVITY
+                      00877         ASSERT_CSN
+0098   108C               M                 bcf     PORTA,N_CSN
+                      00878 
+0099                  00879 EVAL_CMD_SPI_LOOP
+                      00880         ; Peform a SPI operation
+0099   211C           00881         call            PopCmdFifo
+009A   2157           00882         call            DoSpiWrite
+009B   2121           00883         call            PushRspFifo
+                      00884 
+                      00885         ; Evaluate loop control
+009C   0BA2           00886         decfsz          CmdCount,F
+009D   2899           00887         goto            EVAL_CMD_SPI_LOOP
+                      00888 
+                      00889         ; Clear indication that command is in progress
+                      00890         CLR_ACTIVITY
+009E   158E               M                 bsf     PORTC,N_ACTIVITY
+                      00891         DEASSERT_CSN
+009F   148C               M                 bsf     PORTA,N_CSN
+00A0   2916           00892         goto            EVAL_CMD_SUCCESS
+                      00893 
+                      00894 
+                      00895 ; --------------
+                      00896 ; Set Address Command
+                      00897 ;
+00A1                  00898 EVAL_CMD_SET_ADDR
+                      00899         ; Validate the argument count
+00A1   3002           00900         movlw           .2
+00A2   0222           00901         subwf           CmdCount,W
+00A3   1D03           00902         btfss           STATUS,Z
+00A4   2911           00903         goto            EVAL_CMD_ILL_ARGS
+                      00904 
+                      00905         ; Unpack the address
+00A5   211C           00906         call            PopCmdFifo
+00A6   00A3           00907         movwf           CmdAddrHi
+00A7   211C           00908         call            PopCmdFifo
+00A8   00A4           00909         movwf           CmdAddrLo
+00A9   2916           00910         goto            EVAL_CMD_SUCCESS
+                      00911 
+                      00912 
+                      00913 ; --------------
+                      00914 ; Program Command
+                      00915 ;
+00AA                  00916 EVAL_CMD_PROG
+                      00917         ; Make sure the SPI interface is enabled
+00AA   1F71           00918         btfss           CmdFlags,SpiEnabled
+00AB   290C           00919         goto            EVAL_CMD_NOT_ACCESS
+                      00920 
+                      00921         ; Execute the program sequence
+                      00922         SET_ACTIVITY                            ; Indicate a command is in progress
+00AC   118E               M                 bcf     PORTC,N_ACTIVITY
+00AD   0822           00923         movf            CmdCount,W
+00AE   00A0           00924         movwf           NumBytes
+00AF   2161           00925         call            WriteEnableDevice
+00B0   2166           00926         call            ProgramDevice
+00B1   2173           00927         call            PollProgramCompletion
+                      00928 
+                      00929         ; Verify the data, breaking on the first mismatch
+00B2   0822           00930         movf            CmdCount,W
+00B3   00A0           00931         movwf           NumBytes
+00B4   01AA           00932         clrf            SifCmdPopPtr            ; Reset pointer
+                      00933         ; Start the SPI Read operation
+                      00934         ASSERT_CSN
+00B5   108C               M                 bcf     PORTA,N_CSN
+00B6   3003           00935         movlw           NRF_READ                ; Command
+00B7   2157           00936         call            DoSpiWrite
+00B8   0823           00937         movf            CmdAddrHi,W             ; Address
+00B9   2157           00938         call            DoSpiWrite
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE 14
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+00BA   0824           00939         movf            CmdAddrLo,W
+00BB   2157           00940         call            DoSpiWrite
+00BC                  00941 EVAL_CMD_PROG_READ_LOOP
+00BC   211C           00942         call            PopCmdFifo              ; Get the original data
+00BD   00F0           00943         movwf           TempReg
+00BE   2157           00944         call            DoSpiWrite              ; Get data from the device to verify
+00BF   0270           00945         subwf           TempReg,W               ; W = Original Data - Verify Data
+00C0   1D03           00946         btfss           STATUS,Z                ; W = 0?
+00C1   28CC           00947         goto            EVAL_CMD_PROG_FAIL      ;   N: Verification failure
+00C2   0BA0           00948         decfsz          NumBytes,F              ; Loop counter
+00C3   28BC           00949         goto            EVAL_CMD_PROG_READ_LOOP
+                      00950 
+                      00951         ; Programming successful: Terminate the read
+                      00952         CLR_ACTIVITY
+00C4   158E               M                 bsf     PORTC,N_ACTIVITY
+                      00953         DEASSERT_CSN
+00C5   148C               M                 bsf     PORTA,N_CSN
+                      00954         ; Update the address to point to the first byte past the programmed
+                      00955         ; region for a successful programming
+00C6   0822           00956         movf            CmdCount,W
+00C7   00A0           00957         movwf           NumBytes
+00C8   2132           00958         call            UpdateAddr
+                      00959         ; Load success status
+00C9   3000           00960         movlw           PROG_SUCCESS
+00CA   2121           00961         call            PushRspFifo
+00CB   2916           00962         goto            EVAL_CMD_SUCCESS
+                      00963 
+00CC                  00964 EVAL_CMD_PROG_FAIL
+                      00965         ; Terminate the read
+                      00966         CLR_ACTIVITY
+00CC   158E               M                 bsf     PORTC,N_ACTIVITY
+                      00967         DEASSERT_CSN
+00CD   148C               M                 bsf     PORTA,N_CSN
+                      00968         ; Load failure status
+00CE   3001           00969         movlw           PROG_FAILED
+00CF   2121           00970         call            PushRspFifo
+00D0   2916           00971         goto            EVAL_CMD_SUCCESS
+                      00972 
+                      00973 
+                      00974 
+                      00975 ; --------------
+                      00976 ; Read Memory Command
+                      00977 ;  Note: The Read Memory Command operates in an interleaved fashion (sending data back
+                      00978 ;        through the serial interface while it is still reading the device).  It reads
+                      00979 ;        one byte of data for each call to EvalCommand and assumes that SPI reads operate
+                      00980 ;        faster than sending data on the serial interface so that this process is always
+                      00981 ;        ahead of the ProcessTxData process.
+                      00982 ;
+00D1                  00983 EVAL_CMD_READ
+                      00984         ; Make sure the SPI interface is enabled
+00D1   1F71           00985         btfss           CmdFlags,SpiEnabled
+00D2   290C           00986         goto            EVAL_CMD_NOT_ACCESS
+                      00987 
+                      00988         ; Determine if we are just starting this command or it is ongoing
+00D3   1A71           00989         btfsc           CmdFlags,ReadInProcess
+00D4   28EC           00990         goto            EVAL_CMD_READ_CONT
+                      00991         ; Start read command
+                      00992         ;
+                      00993         ; Validate the argument count
+00D5   3001           00994         movlw           .1
+00D6   0222           00995         subwf           CmdCount,W
+00D7   1D03           00996         btfss           STATUS,Z
+00D8   2911           00997         goto            EVAL_CMD_ILL_ARGS
+                      00998 
+                      00999         ; Get number of bytes to read
+00D9   1671           01000         bsf             CmdFlags,ReadInProcess
+00DA   211C           01001         call            PopCmdFifo
+00DB   00A0           01002         movwf           NumBytes
+                      01003 
+                      01004         ; Indicate a command is in progress
+                      01005         SET_ACTIVITY
+00DC   118E               M                 bcf     PORTC,N_ACTIVITY
+                      01006 
+                      01007         ; Start the SPI Read operation
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE 15
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      01008         ;   nRF24LE1 READ: 0x03 <addr_hi> <addr_lo> [byte0] [byte1] ... [byteN]
+                      01009         ASSERT_CSN
+00DD   108C               M                 bcf     PORTA,N_CSN
+00DE   3003           01010         movlw           NRF_READ
+00DF   2157           01011         call            DoSpiWrite
+00E0   0823           01012         movf            CmdAddrHi,W
+00E1   2157           01013         call            DoSpiWrite
+00E2   0824           01014         movf            CmdAddrLo,W
+00E3   2157           01015         call            DoSpiWrite
+                      01016 
+                      01017         ; Update the address to point one byte beyond this range (for any subsequent
+                      01018         ; reads)
+00E4   2132           01019         call            UpdateAddr
+                      01020 
+                      01021         ; Get the first data byte
+00E5   0103           01022         clrw
+00E6   2157           01023         call            DoSpiWrite
+00E7   2121           01024         call            PushRspFifo
+00E8   03A0           01025         decf            NumBytes,F
+                      01026 
+                      01027         ; Trigger the response machine by indiating we have response data now
+                      01028         SET_TX_STATE    TX_ACK_STATE
+00E9   3001               M                 movlw   TX_ACK_STATE
+00EA   00F2               M                 movwf   SifTxState
+00EB   291B           01029         goto            EVAL_CMD_RET
+                      01030 
+00EC                  01031 EVAL_CMD_READ_CONT
+                      01032         ; Check to see if we are done
+00EC   0820           01033         movf            NumBytes,W
+00ED   1903           01034         btfsc           STATUS,Z
+00EE   28F4           01035         goto            EVAL_CMD_READ_DONE
+                      01036 
+                      01037         ; Get the next data byte
+00EF   0103           01038         clrw
+00F0   2157           01039         call            DoSpiWrite
+00F1   2121           01040         call            PushRspFifo
+00F2   03A0           01041         decf            NumBytes,F
+00F3   291B           01042         goto            EVAL_CMD_RET
+                      01043 
+00F4                  01044 EVAL_CMD_READ_DONE
+                      01045         CLR_ACTIVITY
+00F4   158E               M                 bsf     PORTC,N_ACTIVITY
+                      01046         DEASSERT_CSN
+00F5   148C               M                 bsf     PORTA,N_CSN
+00F6   1271           01047         bcf             CmdFlags,ReadInProcess
+00F7   2918           01048         goto            EVAL_CMD_DONE
+                      01049 
+                      01050 
+                      01051 ; --------------
+                      01052 ; Reset Command
+                      01053 ;
+00F8                  01054 EVAL_CMD_RESET
+                      01055         ; Validate the argument count
+00F8   0822           01056         movf            CmdCount,W
+00F9   1D03           01057         btfss           STATUS,Z
+00FA   2911           01058         goto            EVAL_CMD_ILL_ARGS
+                      01059 
+                      01060         ; Reset the device
+00FB   2129           01061         call            AssertReset
+                      01062 
+00FC   2916           01063         goto            EVAL_CMD_SUCCESS
+                      01064 
+                      01065 
+                      01066 ; --------------
+                      01067 ; Checksum error with command
+                      01068 ;
+00FD                  01069 EVAL_CMD_CHECKSUM_ERR
+                      01070         SET_TX_STATE    TX_NACK_STATE
+00FD   3002               M                 movlw   TX_NACK_STATE
+00FE   00F2               M                 movwf   SifTxState
+00FF   3002           01071         movlw           NACK_CHECKSUM
+0100   2121           01072         call            PushRspFifo
+0101   2918           01073         goto            EVAL_CMD_DONE
+                      01074 
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE 16
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      01075 
+                      01076 ; --------------
+                      01077 ; Malformed command
+                      01078 ;
+0102                  01079 EVAL_CMD_MALFORMED
+                      01080         SET_TX_STATE    TX_NACK_STATE
+0102   3002               M                 movlw   TX_NACK_STATE
+0103   00F2               M                 movwf   SifTxState
+0104   3003           01081         movlw           NACK_MALFORMED
+0105   2121           01082         call            PushRspFifo
+0106   2918           01083         goto            EVAL_CMD_DONE
+                      01084 
+                      01085 
+                      01086 ; --------------
+                      01087 ; Unknown command
+                      01088 ;
+0107                  01089 EVAL_CMD_ILL_CMD
+                      01090         SET_TX_STATE    TX_NACK_STATE
+0107   3002               M                 movlw   TX_NACK_STATE
+0108   00F2               M                 movwf   SifTxState
+0109   3000           01091         movlw           NACK_UNKNOWN
+010A   2121           01092         call            PushRspFifo
+010B   2918           01093         goto            EVAL_CMD_DONE
+                      01094 
+                      01095 
+                      01096 ; --------------
+                      01097 ; Not in access mode
+                      01098 ;
+010C                  01099 EVAL_CMD_NOT_ACCESS
+                      01100         SET_TX_STATE    TX_NACK_STATE
+010C   3002               M                 movlw   TX_NACK_STATE
+010D   00F2               M                 movwf   SifTxState
+010E   3001           01101         movlw           NACK_NOT_ACCESS
+010F   2121           01102         call            PushRspFifo
+0110   2918           01103         goto            EVAL_CMD_DONE
+                      01104 
+                      01105 
+                      01106 ; --------------
+                      01107 ; Illegal number of arguments
+                      01108 ;
+0111                  01109 EVAL_CMD_ILL_ARGS
+                      01110         SET_TX_STATE    TX_NACK_STATE
+0111   3002               M                 movlw   TX_NACK_STATE
+0112   00F2               M                 movwf   SifTxState
+0113   3004           01111         movlw           NACK_NUM_ARGS
+0114   2121           01112         call            PushRspFifo
+0115   2918           01113         goto            EVAL_CMD_DONE
+                      01114 
+                      01115 
+                      01116 ; --------------
+                      01117 ; Entry point for command completions generating an ACK
+                      01118 ;
+0116                  01119 EVAL_CMD_SUCCESS
+                      01120         SET_TX_STATE    TX_ACK_STATE
+0116   3001               M                 movlw   TX_ACK_STATE
+0117   00F2               M                 movwf   SifTxState
+                      01121 
+                      01122 
+                      01123 ; --------------
+                      01124 ; Note command done
+                      01125 ;
+0118                  01126 EVAL_CMD_DONE
+0118   1071           01127         bcf             CmdFlags,CmdInProcess
+                      01128         ; Reset pointers for the next command
+0119   01AA           01129         clrf            SifCmdPopPtr
+011A   01F5           01130         clrf            SifRspPushPtr
+                      01131 
+011B                  01132 EVAL_CMD_RET
+011B   0008           01133         return
+                      01134 
+                      01135 
+                      01136 ; PopCmdFifo: Pop a byte from the Command FIFO.
+                      01137 ;
+                      01138 ; On entry: SifCmdPopPtr points to the current location to read
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE 17
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      01139 ;           FSR0H points to the CMD FIFO page
+                      01140 ;
+                      01141 ; On exit: W contains the data from the Command FIFO
+                      01142 ;          SifCmdPopPtr incremented
+                      01143 ;
+011C                  01144 PopCmdFifo
+011C   082A           01145         movf            SifCmdPopPtr,W
+011D   0084           01146         movwf           FSR0L
+011E   0AAA           01147         incf            SifCmdPopPtr,F
+011F   0800           01148         movf            INDF0,W
+0120   0008           01149         return
+                      01150 
+                      01151 
+                      01152 ; PushRspFifo: Push a byte into the Response FIFO.
+                      01153 ;
+                      01154 ; On entry: W contains the value to push
+                      01155 ;           SifRspPushPtr points to the current location to load
+                      01156 ;           RspCount contains the number of bytes in the Response FIFO
+                      01157 ;           FSR1H points to the RSP FIFO page
+                      01158 ;
+                      01159 ; On exit: W loaded into the Response FIFO
+                      01160 ;          SifRspPushPtr incremented
+                      01161 ;          RspCount incremented
+                      01162 ;
+0121                  01163 PushRspFifo
+0121   00F0           01164         movwf           TempReg
+0122   0875           01165         movf            SifRspPushPtr,W
+0123   0086           01166         movwf           FSR1L
+0124   0870           01167         movf            TempReg,W
+0125   0081           01168         movwf           INDF1
+0126   0AF5           01169         incf            SifRspPushPtr,F
+0127   0AF4           01170         incf            RspCount,F
+0128   0008           01171         return
+                      01172 
+                      01173 
+                      01174 ; AssertReset: Assert the reset signal and then de-assert it
+                      01175 ;
+                      01176 ; On entry: none
+                      01177 ;
+                      01178 ; On exit: none
+                      01179 ;
+0129                  01180 AssertReset
+                      01181         ; Assert RESET For > 0.2 uSec (We do 8 instructions for 1.0 uSec)
+                      01182         ASSERT_RESET
+0129   110C               M                 bcf     PORTA,N_RESET
+012A   0000           01183         nop
+012B   0000           01184         nop
+012C   0000           01185         nop
+012D   0000           01186         nop
+012E   0000           01187         nop
+012F   0000           01188         nop
+0130   0000           01189         nop
+                      01190         DEASSERT_RESET
+0131   150C               M                 bsf     PORTA,N_RESET
+                      01191 
+                      01192 
+                      01193 ; UpdateAddr: Update the current address to the next address for the calling operation
+                      01194 ;
+                      01195 ; On entry: NumBytes contains the number of bytes the operation spans
+                      01196 ;              0 = 256
+                      01197 ;           CmdAddr{Hi,Lo} contain the current address
+                      01198 ;
+                      01199 ; On exit: CmdAddr{Hi,Lo} incremented by NumBytes (incremented by 256 if NumBytes = 0)
+                      01200 ;
+0132                  01201 UpdateAddr
+0132   0820           01202         movf            NumBytes,W
+0133   1903           01203         btfsc           STATUS,Z                ; NumBytes = 0?
+0134   2937           01204         goto            UPDATE_ADDR_HIGH        ;   Y: Just bump the high half
+0135   07A4           01205         addwf           CmdAddrLo,F             ;   N: Add to low half
+0136   1803           01206         btfsc           STATUS,C                ;      And check for carry out
+0137                  01207 UPDATE_ADDR_HIGH
+0137   0AA3           01208         incf            CmdAddrHi,F
+0138   0008           01209         return
+                      01210 
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE 18
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      01211 
+                      01212 ; EnableSpi: Enable the SPI interface and associated IO ports.
+                      01213 ;
+                      01214 ; On entry: none
+                      01215 ;
+                      01216 ; On exit: SPI enabled
+                      01217 ;          CmdFlags.SpiEnabled set
+                      01218 ;
+0139                  01219 EnableSpi
+0139   0024           01220         BANKSEL         SSP1CON1
+013A   1695           01221         bsf             SSP1CON1,SSPEN
+013B   0021           01222         BANKSEL         TRISA
+013C   3000           01223         movlw           PORTA_OE_EN
+013D   008C           01224         movwf           TRISA
+013E   3022           01225         movlw           PORTC_OE_EN
+013F   008E           01226         movwf           TRISC
+0140   0024           01227         BANKSEL         WPUA
+0141   3004           01228         movlw           WPUA_INIT_EN
+0142   008C           01229         movwf           WPUA
+0143   3022           01230         movlw           WPUC_INIT_EN
+0144   008E           01231         movwf           WPUC
+0145   0020           01232         BANKSEL         0
+0146   1771           01233         bsf             CmdFlags,SpiEnabled
+0147   0008           01234         return
+                      01235 
+                      01236 
+                      01237 ; DisableSpi: Disable the SPI interface and associated IO ports.
+                      01238 ;
+                      01239 ; On entry: none
+                      01240 ;
+                      01241 ; On exit: SPI disabled
+                      01242 ;          CmdFlags.SpiEnabled clear
+                      01243 ;
+0148                  01244 DisableSpi
+0148   0024           01245         BANKSEL         SSP1CON1
+0149   1295           01246         bcf             SSP1CON1,SSPEN
+014A   0021           01247         BANKSEL         TRISA
+014B   3002           01248         movlw           PORTA_OE_DIS
+014C   008C           01249         movwf           TRISA
+014D   3027           01250         movlw           PORTC_OE_DIS
+014E   008E           01251         movwf           TRISC
+014F   0024           01252         BANKSEL         WPUA
+0150   3006           01253         movlw           WPUA_INIT_DIS
+0151   008C           01254         movwf           WPUA
+0152   3027           01255         movlw           WPUC_INIT_DIS
+0153   008E           01256         movwf           WPUC
+0154   0020           01257         BANKSEL         0
+0155   1371           01258         bcf             CmdFlags,SpiEnabled
+0156   0008           01259         return
+                      01260 
+                      01261 
+                      01262 ; DoSpiWrite: Perform a single SPI operation
+                      01263 ;
+                      01264 ; On entry: W contains the byte to write to the SPI device
+                      01265 ;
+                      01266 ; On exit: W contains the received data byte
+                      01267 ;
+0157                  01268 DoSpiWrite
+                      01269         ; Trigger the SPI operation and wait until it is done
+0157   0024           01270         BANKSEL         SSP1BUF
+0158   0091           01271         movwf           SSP1BUF
+                      01272 
+                      01273         ; Poll for completion
+0159   0020           01274         BANKSEL         PIR1
+015A   1D91           01275         btfss           PIR1,SSP1IF
+015B   295A           01276         goto            $-1
+015C   1191           01277         bcf             PIR1,SSP1IF
+                      01278 
+                      01279         ; Store the received data in the RSP FIFO
+015D   0024           01280         BANKSEL         SSP1BUF
+015E   0811           01281         movf            SSP1BUF,W
+015F   0020           01282         BANKSEL         0
+0160   0008           01283         return
+                      01284 
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE 19
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      01285 
+                      01286 ; WriteEnableDevice: Execute the WREN SPI Command sequence to enable the device
+                      01287 ; for programming.
+                      01288 ;
+                      01289 ; On entry: PROG asserted to the device
+                      01290 ;
+                      01291 ; On exit: WREN SPI sequence completed
+                      01292 ;
+0161                  01293 WriteEnableDevice
+                      01294         ASSERT_CSN
+0161   108C               M                 bcf     PORTA,N_CSN
+0162   3006           01295         movlw           NRF_WREN
+0163   2157           01296         call            DoSpiWrite
+                      01297         DEASSERT_CSN
+0164   148C               M                 bsf     PORTA,N_CSN
+0165   0008           01298         return
+                      01299 
+                      01300 
+                      01301 ; ProgramDevice: Program up to 256 bytes
+                      01302 ;
+                      01303 ; On entry: SifCmdPopPtr points to the beginning of the CMD FIFO
+                      01304 ;           NumBytes contains the number of valid bytes (0=256 bytes)
+                      01305 ;           CmdAddr{Hi,Lo} contain the starting address in the Device to program
+                      01306 ;           Device has been enabled to be programmed
+                      01307 ;
+                      01308 ; On exit: Device programmed
+                      01309 ;          SifCmdPopPtr points one past the last valid byte in the CMD FIFO
+                      01310 ;          NumBytes = 0
+                      01311 ;
+0166                  01312 ProgramDevice
+                      01313         ASSERT_CSN
+0166   108C               M                 bcf     PORTA,N_CSN
+0167   3002           01314         movlw           NRF_PROG                ; Command
+0168   2157           01315         call            DoSpiWrite
+0169   0823           01316         movf            CmdAddrHi,W             ; Address
+016A   2157           01317         call            DoSpiWrite
+016B   0824           01318         movf            CmdAddrLo,W
+016C   2157           01319         call            DoSpiWrite
+016D                  01320 PROG_DEV_LOOP
+016D   211C           01321         call            PopCmdFifo
+016E   2157           01322         call            DoSpiWrite
+016F   0BA0           01323         decfsz          NumBytes,F
+0170   296D           01324         goto            PROG_DEV_LOOP
+                      01325         DEASSERT_CSN
+0171   148C               M                 bsf     PORTA,N_CSN
+0172   0008           01326         return
+                      01327 
+                      01328 
+                      01329 ; PollProgramCompletion: Poll the Device FSR register using the SPI RDSR command until the
+                      01330 ; FSR.WEN bit is clear (Bit 5).
+                      01331 ;
+                      01332 ; On entry: none
+                      01333 ;
+                      01334 ; On exit: FSR.WEN clear
+                      01335 ;
+0173                  01336 PollProgramCompletion
+0173                  01337 POLL_PROG_LOOP
+0173   0064           01338         clrwdt
+                      01339         ; Read the FSR register
+                      01340         ASSERT_CSN
+0174   108C               M                 bcf     PORTA,N_CSN
+0175   3005           01341         movlw           NRF_RDSR
+0176   2157           01342         call            DoSpiWrite              ; Load Command
+0177   2157           01343         call            DoSpiWrite              ; Get read data
+0178   3920           01344         andlw           (1 << .5)               ; AND with WEN bit
+0179   1903           01345         btfsc           STATUS,Z                ; WEN = 0?
+017A   297D           01346         goto            POLL_PROG_DONE          ;   Y: Done polling
+                      01347         DEASSERT_CSN                            ;   N: Read again
+017B   148C               M                 bsf     PORTA,N_CSN
+017C   2973           01348         goto            POLL_PROG_LOOP
+                      01349 
+017D                  01350 POLL_PROG_DONE
+                      01351         DEASSERT_CSN
+017D   148C               M                 bsf     PORTA,N_CSN
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE 20
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+017E   0008           01352         return
+                      01353 
+                      01354 
+                      01355 ; ProcessTxData: Load one ASCII character from the Response FIFO to the serial port to
+                      01356 ; transmit back to the host.
+                      01357 ;
+                      01358 ; On entry: RSP FIFO has a data to send
+                      01359 ;           SifTxState contains the current SIF TX state
+                      01360 ;           SifRspPopPtr points to the next data byte to send
+                      01361 ;           RspCount contains the number of valid data bytes in the Response FIFO
+                      01362 ;           SifTxChecksum contains the current response packet checksum
+                      01363 ;           CmdFlags.Form2Cmd indicates the command form
+                      01364 ;           FSR1H points to the RSP FIFO page
+                      01365 ;
+                      01366 ; On exit: EUSART TXREG may be loaded
+                      01367 ;          SifTxState may be updated to a new state
+                      01368 ;          SifRspPopPtr may be incremented
+                      01369 ;          RspCount may be decremented
+                      01370 ;          SifTxChecksum may be updated
+                      01371 ;
+017F                  01372 ProcessTxData
+                      01373         ; Make sure the EUSART TXREG is available
+017F   0023           01374         BANKSEL         TXSTA
+0180   1C9E           01375         btfss           TXSTA,TRMT                      ; EUSART TX buffer empty?
+0181   29E2           01376         goto            PROC_TX_RET                     ;   N: Skip looking for new data to TX
+                      01377 
+                      01378         ; Select a character to send based on the current TX state
+0182   1872           01379         btfsc           SifTxState,TxAckState
+0183   2993           01380         goto            PROC_TX_ACK
+0184   18F2           01381         btfsc           SifTxState,TxNackState
+0185   2997           01382         goto            PROC_TX_NACK
+0186   1972           01383         btfsc           SifTxState,TxData1State
+0187   29A9           01384         goto            PROC_TX_DATA_1
+0188   19F2           01385         btfsc           SifTxState,TxData2State
+0189   29AF           01386         goto            PROC_TX_DATA_2
+018A   1A72           01387         btfsc           SifTxState,TxData3State
+018B   29B8           01388         goto            PROC_TX_DATA_3
+018C   1AF2           01389         btfsc           SifTxState,TxTerm1State
+018D   29C8           01390         goto            PROC_TX_TERM_1
+018E   1B72           01391         btfsc           SifTxState,TxTerm2State
+018F   29D0           01392         goto            PROC_TX_TERM_2
+0190   1BF2           01393         btfsc           SifTxState,TxTerm3State
+0191   29DD           01394         goto            PROC_TX_TERM_3
+0192   29E2           01395         goto            PROC_TX_RET             ; Do nothing for idle
+                      01396 
+                      01397 ; --------------
+                      01398 ; TxAckState
+                      01399 ;
+0193                  01400 PROC_TX_ACK
+                      01401         ; Load the ACK character
+0193   3052           01402         movlw           'R'
+0194   009A           01403         movwf           TXREG
+                      01404         ; Initialize TX checksum
+0195   00F3           01405         movwf           SifTxChecksum
+0196   299A           01406         goto            PROC_TX_CHK_FOR_DATA    ; Check if there is any data to send
+                      01407 
+                      01408 
+                      01409 ; --------------
+                      01410 ; TxNackState
+                      01411 ;
+0197                  01412 PROC_TX_NACK
+                      01413         ; Load the NACK character
+0197   3058           01414         movlw           'X'
+0198   009A           01415         movwf           TXREG
+                      01416         ; Initialize TX checksum
+0199   00F3           01417         movwf           SifTxChecksum
+                      01418 
+019A                  01419 PROC_TX_CHK_FOR_DATA
+                      01420         ; See if there is data to send and we should move to a data state
+019A   0874           01421         movf            RspCount,W
+019B   1903           01422         btfsc           STATUS,Z                ; RspCount = 0?
+019C   29A5           01423         goto            PROC_TX_SETUP_TERM      ;   Y: No data, just send term
+                      01424                                                 ;   N: Setup to send data
+                      01425         ; We send space characters for Form 2 responses
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE 21
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+019D   1CF1           01426         btfss           CmdFlags,Form2Cmd
+019E   29A2           01427         goto            PROC_TX_SETUP_DATA_1
+                      01428         SET_TX_STATE    TX_DATA_1_STATE         ; Setup for data with spaces
+019F   3004               M                 movlw   TX_DATA_1_STATE
+01A0   00F2               M                 movwf   SifTxState
+01A1   29E2           01429         goto            PROC_TX_RET
+                      01430 
+01A2                  01431 PROC_TX_SETUP_DATA_1
+                      01432         ; Setup for data without spaces
+                      01433         SET_TX_STATE    TX_DATA_2_STATE
+01A2   3008               M                 movlw   TX_DATA_2_STATE
+01A3   00F2               M                 movwf   SifTxState
+01A4   29E2           01434         goto            PROC_TX_RET
+                      01435 
+01A5                  01436 PROC_TX_SETUP_TERM
+                      01437         ; Always reset the pop pointer for the next response
+01A5   01F6           01438         clrf            SifRspPopPtr
+                      01439         ; Setup for the first packet termination character
+                      01440         SET_TX_STATE    TX_TERM_1_STATE
+01A6   3020               M                 movlw   TX_TERM_1_STATE
+01A7   00F2               M                 movwf   SifTxState
+01A8   29E2           01441         goto            PROC_TX_RET
+                      01442 
+                      01443 
+                      01444 ; --------------
+                      01445 ; TxData1State
+                      01446 ;
+01A9                  01447 PROC_TX_DATA_1
+                      01448         ; Send a SPACE character
+01A9   3020           01449         movlw           SPACE_CHAR
+01AA   009A           01450         movwf           TXREG
+01AB   07F3           01451         addwf           SifTxChecksum,F
+                      01452         SET_TX_STATE    TX_DATA_2_STATE
+01AC   3008               M                 movlw   TX_DATA_2_STATE
+01AD   00F2               M                 movwf   SifTxState
+01AE   29E2           01453         goto            PROC_TX_RET
+                      01454 
+                      01455 
+                      01456 ; --------------
+                      01457 ; TxData2State
+                      01458 ;
+01AF                  01459 PROC_TX_DATA_2
+                      01460         ; Send the high nibble of a data byte
+01AF   0876           01461         movf            SifRspPopPtr,W
+01B0   0086           01462         movwf           FSR1L
+01B1   0E01           01463         swapf           INDF1,W
+01B2   21E4           01464         call            GetHexAsciiChar
+01B3   009A           01465         movwf           TXREG
+01B4   07F3           01466         addwf           SifTxChecksum,F
+                      01467         SET_TX_STATE    TX_DATA_3_STATE
+01B5   3010               M                 movlw   TX_DATA_3_STATE
+01B6   00F2               M                 movwf   SifTxState
+01B7   29E2           01468         goto            PROC_TX_RET
+                      01469 
+                      01470 
+                      01471 ; --------------
+                      01472 ; TxData3State
+                      01473 ;
+01B8                  01474 PROC_TX_DATA_3
+                      01475         ; Send the low nibble of a data byte
+01B8   0876           01476         movf            SifRspPopPtr,W
+01B9   0086           01477         movwf           FSR1L
+01BA   0801           01478         movf            INDF1,W
+01BB   21E4           01479         call            GetHexAsciiChar
+01BC   009A           01480         movwf           TXREG
+01BD   07F3           01481         addwf           SifTxChecksum,F
+                      01482         ; Check if there is more data to send
+01BE   0AF6           01483         incf            SifRspPopPtr,F
+01BF   03F4           01484         decf            RspCount,F
+01C0   0874           01485         movf            RspCount,W
+01C1   1903           01486         btfsc           STATUS,Z                ; RspCount = 0?
+01C2   29A5           01487         goto            PROC_TX_SETUP_TERM      ;   Y: No more data, setup to send term
+                      01488                                                 ;   N: More data
+                      01489         ; Select the appropriate next data state
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE 22
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+01C3   1CF1           01490         btfss           CmdFlags,Form2Cmd
+01C4   29A2           01491         goto            PROC_TX_SETUP_DATA_1
+                      01492         SET_TX_STATE    TX_DATA_1_STATE         ; Setup for data with spaces
+01C5   3004               M                 movlw   TX_DATA_1_STATE
+01C6   00F2               M                 movwf   SifTxState
+01C7   29E2           01493         goto            PROC_TX_RET
+                      01494 
+                      01495 
+                      01496 ; --------------
+                      01497 ; TxTerm1State
+                      01498 ;
+01C8                  01499 PROC_TX_TERM_1
+                      01500         ; Send the first termination character based on command form
+01C8   300D           01501         movlw           CR_CHAR                 ; Will be overwritten if necessary
+01C9   1CF1           01502         btfss           CmdFlags,Form2Cmd
+01CA   3054           01503         movlw           'T'
+01CB   009A           01504         movwf           TXREG
+01CC   07F3           01505         addwf           SifTxChecksum,F
+                      01506         SET_TX_STATE    TX_TERM_2_STATE
+01CD   3040               M                 movlw   TX_TERM_2_STATE
+01CE   00F2               M                 movwf   SifTxState
+01CF   29E2           01507         goto            PROC_TX_RET
+                      01508 
+                      01509 
+                      01510 ; --------------
+                      01511 ; TxTerm2State
+                      01512 ;
+01D0                  01513 PROC_TX_TERM_2
+                      01514         ; Send the second termination character based on command form
+01D0   18F1           01515         btfsc           CmdFlags,Form2Cmd
+01D1   29D8           01516         goto            PROC_TX_TERM_2_FORM2
+                      01517         ; Form 1: high nibble of the response checksum
+01D2   0E73           01518         swapf           SifTxChecksum,W
+01D3   21E4           01519         call            GetHexAsciiChar
+01D4   009A           01520         movwf           TXREG
+                      01521         SET_TX_STATE    TX_TERM_3_STATE
+01D5   3080               M                 movlw   TX_TERM_3_STATE
+01D6   00F2               M                 movwf   SifTxState
+01D7   29E2           01522         goto            PROC_TX_RET
+                      01523 
+01D8                  01524 PROC_TX_TERM_2_FORM2
+                      01525         ; Form 2: last character of response
+01D8   300A           01526         movlw           LF_CHAR
+01D9   009A           01527         movwf           TXREG
+                      01528         SET_TX_STATE    TX_IDLE_STATE
+01DA   3000               M                 movlw   TX_IDLE_STATE
+01DB   00F2               M                 movwf   SifTxState
+01DC   29E2           01529         goto            PROC_TX_RET
+                      01530 
+                      01531 
+                      01532 ; --------------
+                      01533 ; TxTerm3State
+                      01534 ;
+01DD                  01535 PROC_TX_TERM_3
+                      01536         ; Send the low nibble of the response checksum
+01DD   0873           01537         movf            SifTxChecksum,W
+01DE   21E4           01538         call            GetHexAsciiChar
+01DF   009A           01539         movwf           TXREG
+                      01540         SET_TX_STATE    TX_IDLE_STATE
+01E0   3000               M                 movlw   TX_IDLE_STATE
+01E1   00F2               M                 movwf   SifTxState
+                      01541 
+                      01542 
+01E2                  01543 PROC_TX_RET
+01E2   0020           01544         BANKSEL         0
+01E3   0008           01545         return
+                      01546 
+                      01547 
+                      01548 ; GetHexAsciiChar: Convert a 4-bit nibble into the equivalent ASCII character
+                      01549 ;
+                      01550 ; On entry: W[3:0] contains the nibble to convert to ASCII
+                      01551 ;
+                      01552 ; On exit: W contains the equivalent ASCII character
+                      01553 ;
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE 23
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+01E4                  01554 GetHexAsciiChar
+01E4   390F           01555         andlw           0x0F
+01E5   000B           01556         brw
+01E6   3430           01557         retlw           '0'
+01E7   3431           01558         retlw           '1'
+01E8   3432           01559         retlw           '2'
+01E9   3433           01560         retlw           '3'
+01EA   3434           01561         retlw           '4'
+01EB   3435           01562         retlw           '5'
+01EC   3436           01563         retlw           '6'
+01ED   3437           01564         retlw           '7'
+01EE   3438           01565         retlw           '8'
+01EF   3439           01566         retlw           '9'
+01F0   3441           01567         retlw           'A'
+01F1   3442           01568         retlw           'B'
+01F2   3443           01569         retlw           'C'
+01F3   3444           01570         retlw           'D'
+01F4   3445           01571         retlw           'E'
+01F5   3446           01572         retlw           'F'
+                      01573 
+                      01574 
+                      01575 ; ProcessRxChar: ISR handler to process a character received from the serial port.
+                      01576 ;
+                      01577 ; On entry: RCREG may have one or more characters
+                      01578 ;           SifTempData may contain the high half of a data byte
+                      01579 ;           SifRxState contains current state
+                      01580 ;
+                      01581 ; On exit: The character (if it is a command) or a data byte may be pushed into
+                      01582 ;            the Command Fifo.
+                      01583 ;          SifTempData may be updated with a partially built data byte
+                      01584 ;          SifRxState updated
+                      01585 ;
+01F6                  01586 ProcessRxChar
+01F6                  01587 PROC_RX_LOOP
+                      01588         ; Process received characters until the RCREG FIFO is empty
+01F6   0020           01589         BANKSEL         PIR1
+01F7   1E91           01590         btfss           PIR1,RCIF
+01F8   0008           01591         return
+                      01592 
+                      01593         ; Check the RX status
+01F9   0023           01594         BANKSEL         RCSTA
+01FA   191D           01595         btfsc           RCSTA,FERR      ; Framing error?
+01FB   29FF           01596         goto            PROC_RX_RST     ;   Y: Discard this character
+01FC   1C9D           01597         btfss           RCSTA,OERR      ; Overrun?
+01FD   2A06           01598         goto            PROC_RX_GET_CH  ;   N: Process this character
+01FE   0819           01599         movf            RCREG,W         ;   Y: Drain entry 1 of the RX FIFO
+                      01600 
+01FF                  01601 PROC_RX_RST
+                      01602         ; Drain entry 2 of the EUSART RX FIFO or clear a badly framed character
+01FF   0819           01603         movf            RCREG,W
+0200   121D           01604         bcf             RCSTA,CREN      ; Reset the RX port and clear errors
+0201   161D           01605         bsf             RCSTA,CREN
+0202   0020           01606         BANKSEL         SifRxState
+                      01607         SET_RX_STATE    RX_IDLE_STATE
+0203   3001               M                 movlw   RX_IDLE_STATE
+0204   00A5               M                 movwf   SifRxState
+0205   29F6           01608         goto            PROC_RX_LOOP
+                      01609 
+0206                  01610 PROC_RX_GET_CH
+                      01611         ; Read the EUSART FIFO only once
+0206   0819           01612         movf            RCREG,W
+0207   0020           01613         BANKSEL         SifRxChar
+0208   00A6           01614         movwf           SifRxChar
+                      01615 
+                      01616         ; Process the incoming character based on state:
+                      01617         ;
+                      01618         ;   Notes:
+                      01619         ;     1. Receiving a 'H' start-of-packet character always restarts the packet logic.
+                      01620         ;     2. Always skip <CR> characters
+                      01621         ;
+0209   300D           01622         movlw           CR_CHAR
+020A   0226           01623         subwf           SifRxChar,W
+020B   1903           01624         btfsc           STATUS,Z                ; <CR>?
+020C   29F6           01625         goto            PROC_RX_LOOP            ;   Y: Ignore
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE 24
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+020D   3048           01626         movlw           'H'
+020E   0226           01627         subwf           SifRxChar,W
+020F   1D03           01628         btfss           STATUS,Z                ; 'H' character?
+0210   2A1A           01629         goto            PROC_RX_SEL_STATE       ;   N: Evaluate based on state
+                      01630         SET_RX_STATE    RX_CMD_STATE_H          ;   Y: Move to RxCmdStateH
+0211   3002               M                 movlw   RX_CMD_STATE_H
+0212   00A5               M                 movwf   SifRxState
+0213   01A2           01631         clrf            CmdCount                ; Setup to receive data with the command
+0214   01A9           01632         clrf            SifCmdPushPtr
+0215   11F1           01633         bcf             CmdFlags,BadCmdErr
+0216   0826           01634         movf            SifRxChar,W             ; Initialize running checksum
+0217   00A8           01635         movwf           SifRxChecksum
+0218   1171           01636         bcf             CmdFlags,ChksumError
+0219   29F6           01637         goto            PROC_RX_LOOP
+                      01638 
+021A                  01639 PROC_RX_SEL_STATE
+021A   1825           01640         btfsc           SifRxState,RxIdleState  ; By this point, we've handled legal
+021B   29F6           01641         goto            PROC_RX_LOOP            ;   Idle state transitions
+021C   18A5           01642         btfsc           SifRxState,RxCmdStateH
+021D   2A29           01643         goto            PROC_RX_CMD_STATE_H
+021E   1925           01644         btfsc           SifRxState,RxCmdStateL
+021F   2A36           01645         goto            PROC_RX_CMD_STATE_L
+0220   19A5           01646         btfsc           SifRxState,RxDataStateH
+0221   2A59           01647         goto            PROC_RX_DATA_STATE_H
+0222   1A25           01648         btfsc           SifRxState,RxDataStateL
+0223   2A74           01649         goto            PROC_RX_DATA_STATE_L
+0224   1AA5           01650         btfsc           SifRxState,RxChksumStateH
+0225   2A99           01651         goto            PROC_RX_CHKSUM_H
+0226   1B25           01652         btfsc           SifRxState,RxChksumStateL
+0227   2AA5           01653         goto            PROC_RX_CHKSUM_L
+                      01654         ; Illegal RX State resets RX state machine
+0228   2AB2           01655         goto            PROC_RX_SET_IDLE
+                      01656 
+                      01657 ; --------------
+                      01658 ; RxCmdStateH
+                      01659 ;
+0229                  01660 PROC_RX_CMD_STATE_H
+0229   22B5           01661         call            UpdateRunningRxChksum
+022A   3020           01662         movlw           SPACE_CHAR
+022B   0226           01663         subwf           SifRxChar,W
+022C   1903           01664         btfsc           STATUS,Z                ; <SPACE>?
+022D   29F6           01665         goto            PROC_RX_LOOP            ;   Y: Ignore
+022E   22BF           01666         call            CheckIfHexChar          ; Check for Hex character
+022F   1FF1           01667         btfss           CmdFlags,IsHexChar      ; Legal Hex Char?
+0230   2AAE           01668         goto            PROC_RX_NOTE_BAD_CMD    ;   N: Unknown character
+0231   0826           01669         movf            SifRxChar,W             ;   Y: Store this nibble
+0232   00A7           01670         movwf           SifTempData
+                      01671         SET_RX_STATE    RX_CMD_STATE_L          ;      and move to RxCmdStateL
+0233   3004               M                 movlw   RX_CMD_STATE_L
+0234   00A5               M                 movwf   SifRxState
+0235   29F6           01672         goto            PROC_RX_LOOP
+                      01673 
+                      01674 ; --------------
+                      01675 ; RxCmdStateL
+                      01676 ;
+0236                  01677 PROC_RX_CMD_STATE_L
+0236   22B5           01678         call            UpdateRunningRxChksum
+0237   3020           01679         movlw           SPACE_CHAR
+0238   0226           01680         subwf           SifRxChar,W
+0239   1D03           01681         btfss           STATUS,Z                ; <SPACE>?
+023A   2A40           01682         goto            PROC_RX_CMD_STATE_L_1   ;   N: Check for Hex Char
+023B   0827           01683         movf            SifTempData,W           ;   Y: Use only hi-half as single-digit hex
+023C   00A1           01684         movwf           CmdByte                 ;      command
+                      01685         SET_RX_STATE    RX_DATA_STATE_H         ; and setup to get any data
+023D   3008               M                 movlw   RX_DATA_STATE_H
+023E   00A5               M                 movwf   SifRxState
+023F   29F6           01686         goto            PROC_RX_LOOP
+                      01687 
+0240                  01688 PROC_RX_CMD_STATE_L_1
+0240   22BF           01689         call            CheckIfHexChar          ; Check for Hex character
+0241   1FF1           01690         btfss           CmdFlags,IsHexChar      ; Legal Hex Char?
+0242   2A49           01691         goto            PROC_RX_CMD_STATE_L_2   ;   N: Check for command termination
+0243   0E27           01692         swapf           SifTempData,W           ;   Y: Load low-half of command byte
+0244   0426           01693         iorwf           SifRxChar,W
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE 25
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+0245   00A1           01694         movwf           CmdByte
+                      01695         SET_RX_STATE    RX_DATA_STATE_H         ; and setup to get any data
+0246   3008               M                 movlw   RX_DATA_STATE_H
+0247   00A5               M                 movwf   SifRxState
+0248   29F6           01696         goto            PROC_RX_LOOP
+                      01697 
+0249                  01698 PROC_RX_CMD_STATE_L_2
+0249   3054           01699         movlw           'T'                     ; Check 'T'(form 1 end of command)
+024A   0226           01700         subwf           SifRxChar,W
+024B   1D03           01701         btfss           STATUS,Z                ; Form 1 termination?
+024C   2A53           01702         goto            PROC_RX_CMD_STATE_L_3   ;   N: Check for form 2 termination
+024D   0827           01703         movf            SifTempData,W           ;   Y: Use only hi-half as single-digit hex
+024E   00A1           01704         movwf           CmdByte                 ;      command
+024F   10F1           01705         bcf             CmdFlags,Form2Cmd
+                      01706         SET_RX_STATE    RX_CHK_STATE_H          ; and setup to get checksum
+0250   3020               M                 movlw   RX_CHK_STATE_H
+0251   00A5               M                 movwf   SifRxState
+0252   29F6           01707         goto            PROC_RX_LOOP
+                      01708 
+0253                  01709 PROC_RX_CMD_STATE_L_3
+0253   300A           01710         movlw           LF_CHAR                 ; Check <LF> (form 2 end of command)
+0254   0226           01711         subwf           SifRxChar,W
+0255   1D03           01712         btfss           STATUS,Z                ; Form 2 termination?
+0256   2AAE           01713         goto            PROC_RX_NOTE_BAD_CMD    ;   N: Unknown character
+0257   14F1           01714         bsf             CmdFlags,Form2Cmd       ;   Y: Note form 2 command available
+0258   2AB1           01715         goto            PROC_RX_NOTE_CMD
+                      01716 
+                      01717 ; --------------
+                      01718 ; RxDataStateH
+                      01719 ;
+0259                  01720 PROC_RX_DATA_STATE_H
+0259   22B5           01721         call            UpdateRunningRxChksum
+025A   3020           01722         movlw           SPACE_CHAR
+025B   0226           01723         subwf           SifRxChar,W
+025C   1903           01724         btfsc           STATUS,Z                ; <SPACE>?
+025D   29F6           01725         goto            PROC_RX_LOOP            ;   Y: Ignore
+                      01726                                                 ;   N: Check for Hex Char
+025E   22BF           01727         call            CheckIfHexChar          ; Check for Hex character
+025F   1FF1           01728         btfss           CmdFlags,IsHexChar      ; Legal Hex Char?
+0260   2A66           01729         goto            PROC_RX_DATA_STATE_H_1  ;   N: Check for command termination
+0261   0E26           01730         swapf           SifRxChar,W             ;   Y: Save first nibble
+0262   00A7           01731         movwf           SifTempData             ;      in high part of SifTempData
+                      01732         SET_RX_STATE    RX_DATA_STATE_L         ; and setup to get low nibble
+0263   3010               M                 movlw   RX_DATA_STATE_L
+0264   00A5               M                 movwf   SifRxState
+0265   29F6           01733         goto            PROC_RX_LOOP
+                      01734 
+0266                  01735 PROC_RX_DATA_STATE_H_1
+0266   3054           01736         movlw           'T'                     ; Check 'T'(form 1 end of command)
+0267   0226           01737         subwf           SifRxChar,W
+0268   1D03           01738         btfss           STATUS,Z                ; Form 1 termination?
+0269   2A6E           01739         goto            PROC_RX_DATA_STATE_H_2  ;   N: Check for form 2 termination
+                      01740                                                 ;   Y: Setup to get checksum
+026A   10F1           01741         bcf             CmdFlags,Form2Cmd
+                      01742         SET_RX_STATE    RX_CHK_STATE_H
+026B   3020               M                 movlw   RX_CHK_STATE_H
+026C   00A5               M                 movwf   SifRxState
+026D   29F6           01743         goto            PROC_RX_LOOP
+                      01744 
+026E                  01745 PROC_RX_DATA_STATE_H_2
+026E   300A           01746         movlw           LF_CHAR                 ; Check <LF> (form 2 end of command)
+026F   0226           01747         subwf           SifRxChar,W
+0270   1D03           01748         btfss           STATUS,Z                ; Form 2 termination?
+0271   2AAE           01749         goto            PROC_RX_NOTE_BAD_CMD    ;   N: Unknown character
+0272   14F1           01750         bsf             CmdFlags,Form2Cmd       ;   Y: Note form 2 command available
+0273   2AB1           01751         goto            PROC_RX_NOTE_CMD
+                      01752 
+                      01753 
+                      01754 ; --------------
+                      01755 ; RxDataStateL
+                      01756 ;
+0274                  01757 PROC_RX_DATA_STATE_L
+0274   22B5           01758         call            UpdateRunningRxChksum
+0275   3020           01759         movlw           SPACE_CHAR
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE 26
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+0276   0226           01760         subwf           SifRxChar,W
+0277   1D03           01761         btfss           STATUS,Z                ; <SPACE>?
+0278   2A7E           01762         goto            PROC_RX_DATA_STATE_L_1  ;   N: Check for Hex Char
+                      01763                                                 ;   Y: Use first nibble as data
+0279   0EA7           01764         swapf           SifTempData,F           ; Swap hi-half to be a 4-bit value
+027A   22B8           01765         call            PushRxFifo              ; Push data
+                      01766         SET_RX_STATE    RX_DATA_STATE_H         ; Setup for another data byte
+027B   3008               M                 movlw   RX_DATA_STATE_H
+027C   00A5               M                 movwf   SifRxState
+027D   29F6           01767         goto            PROC_RX_LOOP
+                      01768 
+027E                  01769 PROC_RX_DATA_STATE_L_1
+027E   22BF           01770         call            CheckIfHexChar          ; Check for Hex character
+027F   1FF1           01771         btfss           CmdFlags,IsHexChar      ; Legal Hex Char?
+0280   2A87           01772         goto            PROC_RX_DATA_STATE_L_2  ;   N: Check for command termination
+0281   0826           01773         movf            SifRxChar,W             ;   Y: Load low nibble
+0282   04A7           01774         iorwf           SifTempData,F           ;      into low part of SifTempData
+0283   22B8           01775         call            PushRxFifo              ; Push data
+                      01776         SET_RX_STATE    RX_DATA_STATE_H         ; and setup to another data byte
+0284   3008               M                 movlw   RX_DATA_STATE_H
+0285   00A5               M                 movwf   SifRxState
+0286   29F6           01777         goto            PROC_RX_LOOP
+                      01778 
+0287                  01779 PROC_RX_DATA_STATE_L_2
+0287   3054           01780         movlw           'T'                     ; Check 'T'(form 1 end of command)
+0288   0226           01781         subwf           SifRxChar,W
+0289   1D03           01782         btfss           STATUS,Z                ; Form 1 termination?
+028A   2A91           01783         goto            PROC_RX_DATA_STATE_L_3  ;   N: Check for form 2 termination
+                      01784                                                 ;   Y: Use first nibble as data
+028B   0EA7           01785         swapf           SifTempData,F           ; Swap hi-half to be a 4-bit value
+028C   22B8           01786         call            PushRxFifo              ; Push data
+028D   10F1           01787         bcf             CmdFlags,Form2Cmd
+                      01788         SET_RX_STATE    RX_CHK_STATE_H          ; and setup to get checksum
+028E   3020               M                 movlw   RX_CHK_STATE_H
+028F   00A5               M                 movwf   SifRxState
+0290   29F6           01789         goto            PROC_RX_LOOP
+                      01790 
+0291                  01791 PROC_RX_DATA_STATE_L_3
+0291   300A           01792         movlw           LF_CHAR                 ; Check <LF> (form 2 end of command)
+0292   0226           01793         subwf           SifRxChar,W
+0293   1D03           01794         btfss           STATUS,Z                ; Form 2 termination?
+0294   2AAE           01795         goto            PROC_RX_NOTE_BAD_CMD    ;   N: Unknown character
+                      01796                                                 ;   Y: Use first nibble as data
+0295   0EA7           01797         swapf           SifTempData,F           ; Swap hi-half to be a 4-bit value
+0296   22B8           01798         call            PushRxFifo              ; Push data
+0297   14F1           01799         bsf             CmdFlags,Form2Cmd       ;  Note form 2 command available
+0298   2AB1           01800         goto            PROC_RX_NOTE_CMD
+                      01801 
+                      01802 ; --------------
+                      01803 ; RxChksumStateH
+                      01804 ;
+0299                  01805 PROC_RX_CHKSUM_H
+0299   3020           01806         movlw           SPACE_CHAR
+029A   0226           01807         subwf           SifRxChar,W
+029B   1903           01808         btfsc           STATUS,Z                ; <SPACE>?
+029C   29F6           01809         goto            PROC_RX_LOOP            ;   Y: Ignore
+                      01810                                                 ;   N: Check for Hex Char
+029D   22BF           01811         call            CheckIfHexChar          ; Check for Hex character
+029E   1FF1           01812         btfss           CmdFlags,IsHexChar      ; Legal Hex Char?
+029F   2AAE           01813         goto            PROC_RX_NOTE_BAD_CMD    ;   N: Throw this command away
+02A0   0E26           01814         swapf           SifRxChar,W             ;   Y: Save first nibble
+02A1   00A7           01815         movwf           SifTempData             ;      in high part of SifTempData
+                      01816         SET_RX_STATE    RX_CHK_STATE_L          ; and setup to get low nibble
+02A2   3040               M                 movlw   RX_CHK_STATE_L
+02A3   00A5               M                 movwf   SifRxState
+02A4   29F6           01817         goto            PROC_RX_LOOP
+                      01818 
+                      01819 ; --------------
+                      01820 ; RxChksumStateL
+                      01821 ;
+02A5                  01822 PROC_RX_CHKSUM_L
+02A5   22BF           01823         call            CheckIfHexChar          ; Check for Hex character
+02A6   1FF1           01824         btfss           CmdFlags,IsHexChar      ; Legal Hex Char?
+02A7   2AAE           01825         goto            PROC_RX_NOTE_BAD_CMD    ;   N: Throw this command away
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE 27
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+02A8   0826           01826         movf            SifRxChar,W             ;   Y: Get lo-half and then check
+02A9   0427           01827         iorwf           SifTempData,W
+02AA   0228           01828         subwf           SifRxChecksum,W         ; W = Running checksum - RX checksum
+02AB   1903           01829         btfsc           STATUS,Z                ; Running checksum = RX checksum?
+02AC   2AB1           01830         goto            PROC_RX_NOTE_CMD        ;   Y: Note completed command
+02AD   2AB0           01831         goto            PROC_RX_NOTE_CHKSUM_ERR ;   N: Note completed command w/ checksum err
+                      01832 
+                      01833 ; --------------
+                      01834 ; Indicate malformed command
+                      01835 ;
+02AE                  01836 PROC_RX_NOTE_BAD_CMD
+02AE   15F1           01837         bsf             CmdFlags,BadCmdErr
+02AF   2AB1           01838         goto            PROC_RX_NOTE_CMD
+                      01839 
+                      01840 ; --------------
+                      01841 ; Indicate checksum error
+                      01842 ;
+02B0                  01843 PROC_RX_NOTE_CHKSUM_ERR
+02B0   1571           01844         bsf             CmdFlags,ChksumError
+                      01845 
+                      01846 ; --------------
+                      01847 ; Indicate command ready
+                      01848 ;
+02B1                  01849 PROC_RX_NOTE_CMD
+02B1   1471           01850         bsf             CmdFlags,CmdInProcess
+                      01851 
+                      01852 ; --------------
+                      01853 ; Set RxIdleState
+                      01854 ;
+02B2                  01855 PROC_RX_SET_IDLE
+                      01856         SET_RX_STATE    RX_IDLE_STATE
+02B2   3001               M                 movlw   RX_IDLE_STATE
+02B3   00A5               M                 movwf   SifRxState
+02B4   29F6           01857         goto            PROC_RX_LOOP
+                      01858 
+                      01859 
+                      01860 ; UpdateRunningRxChksum: Update the running checksum
+                      01861 ;
+                      01862 ; On entry: SifRxChar contains the curreng RX character
+                      01863 ;
+                      01864 ; On exit: SifRxChecksum updated
+                      01865 ;
+02B5                  01866 UpdateRunningRxChksum
+02B5   0826           01867         movf            SifRxChar,W
+02B6   07A8           01868         addwf           SifRxChecksum,F
+02B7   0008           01869         return
+                      01870 
+                      01871 
+                      01872 ; PushRxFifo: Push a data byte into the CMD FIFO
+                      01873 ;
+                      01874 ; On entry: SifTempData has data to push
+                      01875 ;           CmdCount contains the current count in the CMD FIFO
+                      01876 ;           SifCmdPushPtr points to the next location in the CMD FIFO to load
+                      01877 ;           FSR0H points to the high address of the CMD FIFO
+                      01878 ;
+                      01879 ; On exit: SifTempData pushed
+                      01880 ;          CmdCount incremented
+                      01881 ;          SifCmdPushPtr incremented
+                      01882 ;
+02B8                  01883 PushRxFifo
+02B8   0829           01884         movf            SifCmdPushPtr,W
+02B9   0084           01885         movwf           FSR0L
+02BA   0827           01886         movf            SifTempData,W
+02BB   0080           01887         movwf           INDF0
+02BC   0AA9           01888         incf            SifCmdPushPtr,F
+02BD   0AA2           01889         incf            CmdCount,F
+02BE   0008           01890         return
+                      01891 
+                      01892 
+                      01893 ; CheckIfHexChar: Check if the current RX character is a hex ASCII number (0-9, a-f or A-F).
+                      01894 ;
+                      01895 ; On entry: SifRxChar contains the character to test
+                      01896 ;
+                      01897 ; On exit: CmdFlags.IsHexChar indicates if SifRxChar has been reloaded with a valid
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE 28
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      01898 ;            4-bit value
+                      01899 ;
+02BF                  01900 CheckIfHexChar
+                      01901         ; Look for characters in the ranges '0' - '9', 'A' - 'F' or 'a' - 'f'
+02BF   3030           01902         movlw           '0'
+02C0   0226           01903         subwf           SifRxChar,W             ; W = SifRxChar - '0'
+02C1   1C03           01904         btfss           STATUS,C                ; CARRY = 1 if SifRxChar >= '0'
+02C2   2AD7           01905         goto            CHECK_HEX_NOT_HEX       ;   C = 0: SifRxChar < '0'
+02C3   303A           01906         movlw           ':'                     ; ':' = '9' + 1
+02C4   0226           01907         subwf           SifRxChar,W
+02C5   1C03           01908         btfss           STATUS,C                ; CARRY = 0 if SifRxChar <= '9'
+02C6   2AD9           01909         goto            CHECK_HEX_HEX_0_9       ;   C = 0: '0' - '9' range
+02C7   3041           01910         movlw           'A'
+02C8   0226           01911         subwf           SifRxChar,W
+02C9   1C03           01912         btfss           STATUS,C                ; CARRY = 1 if SifRxChar >= 'A'
+02CA   2AD7           01913         goto            CHECK_HEX_NOT_HEX       ;   C = 0: SifRxChar < 'A'
+02CB   3047           01914         movlw           'G'                     ; 'G' = 'F' + 1
+02CC   0226           01915         subwf           SifRxChar,W
+02CD   1C03           01916         btfss           STATUS,C                ; CARRY = 0 if SifRxChar <= 'F'
+02CE   2ADC           01917         goto            CHECK_HEX_HEX_A_F       ;   C = 0: 'A' - 'F'
+02CF   3061           01918         movlw           'a'
+02D0   0226           01919         subwf           SifRxChar,W
+02D1   1C03           01920         btfss           STATUS,C                ; CARRY = 1 if SifRxChar >= 'a'
+02D2   2AD7           01921         goto            CHECK_HEX_NOT_HEX       ;   C = 0: SifRxChar < 'a'
+02D3   3067           01922         movlw           'g'                     ; 'g' = 'f' + 1
+02D4   0226           01923         subwf           SifRxChar,W
+02D5   1C03           01924         btfss           STATUS,C                ; CARRY = 0 if SifRxChar <= 'f'
+02D6   2AE1           01925         goto            CHECK_HEX_HEX_a_f       ;   C = 0: 'a' - 'f'
+                      01926                                                 ;   C = 1: Above 'f'
+                      01927 
+02D7                  01928 CHECK_HEX_NOT_HEX
+02D7   13F1           01929         bcf             CmdFlags,IsHexChar
+02D8   0008           01930         return
+                      01931 
+02D9                  01932 CHECK_HEX_HEX_0_9
+                      01933         ; Convert to a real hex value
+02D9   3030           01934         movlw           '0'
+02DA   02A6           01935         subwf           SifRxChar,F             ; SifRxChar = SifRxChar - '0'
+02DB   2AE5           01936         goto            CHECK_HEX_VALID
+                      01937 
+02DC                  01938 CHECK_HEX_HEX_A_F
+02DC   3041           01939         movlw           'A'
+02DD   0226           01940         subwf           SifRxChar,W             ; W = SifRxChar - 'A'
+02DE   3E0A           01941         addlw           0x0A                    ; W += 10
+02DF   00A6           01942         movwf           SifRxChar
+02E0   2AE5           01943         goto            CHECK_HEX_VALID
+                      01944 
+02E1                  01945 CHECK_HEX_HEX_a_f
+02E1   3061           01946         movlw           'a'
+02E2   0226           01947         subwf           SifRxChar,W             ; W = SifRxChar - 'a'
+02E3   3E0A           01948         addlw           0x0A                    ; W += 10
+02E4   00A6           01949         movwf           SifRxChar
+                      01950 
+02E5                  01951 CHECK_HEX_VALID
+02E5   17F1           01952         bsf             CmdFlags,IsHexChar
+02E6   0008           01953         return
+                      01954 
+                      01955 
+                      01956         end
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE 29
+
+
+SYMBOL TABLE
+  LABEL                             VALUE
+
+ABDEN                             00000000
+ABDOVF                            00000007
+ACKDT                             00000005
+ACKEN                             00000004
+ACKSTAT                           00000006
+ACKTIM                            00000007
+ACK_CHAR                          00000052
+ADCON0                            0000009D
+ADCON1                            0000009E
+ADCS0                             00000004
+ADCS1                             00000005
+ADCS2                             00000006
+ADDEN                             00000003
+ADFM                              00000007
+ADFVR0                            00000000
+ADFVR1                            00000001
+ADGO                              00000001
+ADIE                              00000006
+ADIF                              00000006
+ADNREF                            00000002
+ADON                              00000000
+ADPREF0                           00000000
+ADPREF1                           00000001
+ADRES                             0000009B
+ADRESH                            0000009C
+ADRESL                            0000009B
+AHEN                              00000001
+ANSA0                             00000000
+ANSA1                             00000001
+ANSA2                             00000002
+ANSA4                             00000004
+ANSC0                             00000000
+ANSC1                             00000001
+ANSC2                             00000002
+ANSC3                             00000003
+ANSELA                            0000018C
+ANSELA_INIT                       00000000
+ANSELC                            0000018E
+ANSELC_INIT                       00000000
+APFCON0                           0000011D
+APFCON1                           0000011E
+ASSERT_CSN                        
+ASSERT_PROG                       
+ASSERT_RESET                      
+AssertReset                       00000129
+BAUDCON                           0000019F
+BAUDCON_INIT                      00000008
+BCL1IE                            00000003
+BCL1IF                            00000003
+BF                                00000000
+BOEN                              00000004
+BORCON                            00000116
+BORRDY                            00000000
+BRG16                             00000003
+BRGH                              00000002
+BSR                               00000008
+BSR0                              00000000
+BSR1                              00000001
+BSR2                              00000002
+BSR3                              00000003
+BSR4                              00000004
+BSR_SHAD                          00000FE6
+BadCmdErr                         00000003
+C                                 00000000
+C1HYS                             00000001
+C1IE                              00000005
+C1IF                              00000005
+C1INTN                            00000006
+C1INTP                            00000007
+C1NCH0                            00000000
+C1NCH1                            00000001
+C1OE                              00000005
+C1ON                              00000007
+C1OUT                             00000006
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE 30
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+C1PCH0                            00000004
+C1PCH1                            00000005
+C1POL                             00000004
+C1SP                              00000002
+C1SYNC                            00000000
+C1TSEL0                           00000000
+C1TSEL1                           00000001
+C2HYS                             00000001
+C2IE                              00000006
+C2IF                              00000006
+C2INTN                            00000006
+C2INTP                            00000007
+C2NCH0                            00000000
+C2NCH1                            00000001
+C2OE                              00000005
+C2ON                              00000007
+C2OUT                             00000006
+C2PCH0                            00000004
+C2PCH1                            00000005
+C2POL                             00000004
+C2SP                              00000002
+C2SYNC                            00000000
+C2TSEL0                           00000002
+C2TSEL1                           00000003
+C3TSEL0                           00000004
+C3TSEL1                           00000005
+C4TSEL0                           00000006
+C4TSEL1                           00000007
+CCP1AS                            00000295
+CCP1AS0                           00000004
+CCP1AS1                           00000005
+CCP1AS2                           00000006
+CCP1ASE                           00000007
+CCP1CON                           00000293
+CCP1IE                            00000002
+CCP1IF                            00000002
+CCP1M0                            00000000
+CCP1M1                            00000001
+CCP1M2                            00000002
+CCP1M3                            00000003
+CCP2AS                            0000029C
+CCP2AS0                           00000004
+CCP2AS1                           00000005
+CCP2AS2                           00000006
+CCP2ASE                           00000007
+CCP2CON                           0000029A
+CCP2IE                            00000000
+CCP2IF                            00000000
+CCP2M0                            00000000
+CCP2M1                            00000001
+CCP2M2                            00000002
+CCP2M3                            00000003
+CCP2SEL                           00000000
+CCP3CON                           00000313
+CCP3IE                            00000004
+CCP3IF                            00000004
+CCP3M0                            00000000
+CCP3M1                            00000001
+CCP3M2                            00000002
+CCP3M3                            00000003
+CCP4CON                           0000031A
+CCP4IE                            00000005
+CCP4IF                            00000005
+CCP4M0                            00000000
+CCP4M1                            00000001
+CCP4M2                            00000002
+CCP4M3                            00000003
+CCPR1H                            00000292
+CCPR1L                            00000291
+CCPR2H                            00000299
+CCPR2L                            00000298
+CCPR3H                            00000312
+CCPR3L                            00000311
+CCPR4H                            00000319
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE 31
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+CCPR4L                            00000318
+CCPTMRS                           0000029E
+CDAFVR0                           00000002
+CDAFVR1                           00000003
+CFGS                              00000006
+CHECK_HEX_HEX_0_9                 000002D9
+CHECK_HEX_HEX_A_F                 000002DC
+CHECK_HEX_HEX_a_f                 000002E1
+CHECK_HEX_NOT_HEX                 000002D7
+CHECK_HEX_VALID                   000002E5
+CHS0                              00000002
+CHS1                              00000003
+CHS2                              00000004
+CHS3                              00000005
+CHS4                              00000006
+CKE                               00000006
+CKP                               00000004
+CLKRCON                           0000039A
+CLKRDC0                           00000003
+CLKRDC1                           00000004
+CLKRDIV0                          00000000
+CLKRDIV1                          00000001
+CLKRDIV2                          00000002
+CLKREN                            00000007
+CLKROE                            00000006
+CLKRSLR                           00000005
+CLR_ACTIVITY                      
+CM1CON0                           00000111
+CM1CON1                           00000112
+CM2CON0                           00000113
+CM2CON1                           00000114
+CMD_ACCESS_MODE                   00000001
+CMD_FIFO_HI                       00000021
+CMD_PROG                          00000004
+CMD_READ                          00000005
+CMD_RESET                         00000006
+CMD_SET_ADDR                      00000003
+CMD_SPI                           00000002
+CMD_VERSION                       00000000
+CMOUT                             00000115
+CPSCH0                            00000000
+CPSCH1                            00000001
+CPSCH2                            00000002
+CPSCH3                            00000003
+CPSCON0                           0000001E
+CPSCON1                           0000001F
+CPSON                             00000007
+CPSOUT                            00000001
+CPSRM                             00000006
+CPSRNG0                           00000002
+CPSRNG1                           00000003
+CREN                              00000004
+CR_CHAR                           0000000D
+CSRC                              00000007
+C_SHAD                            00000000
+CheckIfHexChar                    000002BF
+ChksumError                       00000002
+CmdAddrHi                         00000023
+CmdAddrLo                         00000024
+CmdByte                           00000021
+CmdCount                          00000022
+CmdFlags                          00000071
+CmdInProcess                      00000000
+DACCON0                           00000118
+DACCON1                           00000119
+DACEN                             00000007
+DACLPS                            00000006
+DACNSS                            00000000
+DACOE                             00000005
+DACPSS0                           00000002
+DACPSS1                           00000003
+DACR0                             00000000
+DACR1                             00000001
+DACR2                             00000002
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE 32
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+DACR3                             00000003
+DACR4                             00000004
+DC                                00000001
+DC1B0                             00000004
+DC1B1                             00000005
+DC2B0                             00000004
+DC2B1                             00000005
+DC3B0                             00000004
+DC3B1                             00000005
+DC4B0                             00000004
+DC4B1                             00000005
+DC_SHAD                           00000001
+DEASSERT_CSN                      
+DEASSERT_PROG                     
+DEASSERT_RESET                    
+DHEN                              00000000
+D_NOT_A                           00000005
+DisableSpi                        00000148
+DoSpiWrite                        00000157
+ECCP1AS                           00000295
+EEADR                             00000191
+EEADRH                            00000192
+EEADRL                            00000191
+EECON1                            00000195
+EECON2                            00000196
+EEDAT                             00000193
+EEDATH                            00000194
+EEDATL                            00000193
+EEIE                              00000004
+EEIF                              00000004
+EEPGD                             00000007
+EVAL_CMD_ACCESS_DIS               00000092
+EVAL_CMD_ACCESS_MODE              0000007A
+EVAL_CMD_CHECKSUM_ERR             000000FD
+EVAL_CMD_DONE                     00000118
+EVAL_CMD_ILL_ARGS                 00000111
+EVAL_CMD_ILL_CMD                  00000107
+EVAL_CMD_MALFORMED                00000102
+EVAL_CMD_NOT_ACCESS               0000010C
+EVAL_CMD_PROG                     000000AA
+EVAL_CMD_PROG_FAIL                000000CC
+EVAL_CMD_PROG_READ_LOOP           000000BC
+EVAL_CMD_READ                     000000D1
+EVAL_CMD_READ_CONT                000000EC
+EVAL_CMD_READ_DONE                000000F4
+EVAL_CMD_RESET                    000000F8
+EVAL_CMD_RET                      0000011B
+EVAL_CMD_SET_ADDR                 000000A1
+EVAL_CMD_SPI                      00000095
+EVAL_CMD_SPI_LOOP                 00000099
+EVAL_CMD_SUCCESS                  00000116
+EVAL_CMD_VERSION                  00000070
+EnableSpi                         00000139
+EvalCommand                       0000005F
+F                                 00000001
+FERR                              00000002
+FIRMWARE_TYPE                     00000001
+FREE                              00000004
+FSR0                              00000004
+FSR0H                             00000005
+FSR0H_SHAD                        00000FE9
+FSR0L                             00000004
+FSR0L_SHAD                        00000FE8
+FSR1                              00000006
+FSR1H                             00000007
+FSR1H_SHAD                        00000FEB
+FSR1L                             00000006
+FSR1L_SHAD                        00000FEA
+FVRCON                            00000117
+FVREN                             00000007
+FVRRDY                            00000006
+Form2Cmd                          00000001
+GCEN                              00000007
+GIE                               00000007
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE 33
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+GO                                00000001
+GO_NOT_DONE                       00000001
+GetHexAsciiChar                   000001E4
+HFIOFL                            00000003
+HFIOFR                            00000004
+HFIOFS                            00000000
+INDF0                             00000000
+INDF1                             00000001
+INLVLA                            0000038C
+INLVLA0                           00000000
+INLVLA1                           00000001
+INLVLA2                           00000002
+INLVLA3                           00000003
+INLVLA4                           00000004
+INLVLA5                           00000005
+INLVLA_INIT                       00000000
+INLVLC                            0000038E
+INLVLC0                           00000000
+INLVLC1                           00000001
+INLVLC2                           00000002
+INLVLC3                           00000003
+INLVLC4                           00000004
+INLVLC5                           00000005
+INLVLC_INIT                       00000000
+INTCON                            0000000B
+INTCON_SETUP                      000000C0
+INTE                              00000004
+INTEDG                            00000006
+INTF                              00000001
+IOCAF                             00000393
+IOCAF0                            00000000
+IOCAF1                            00000001
+IOCAF2                            00000002
+IOCAF3                            00000003
+IOCAF4                            00000004
+IOCAF5                            00000005
+IOCAN                             00000392
+IOCAN0                            00000000
+IOCAN1                            00000001
+IOCAN2                            00000002
+IOCAN3                            00000003
+IOCAN4                            00000004
+IOCAN5                            00000005
+IOCAP                             00000391
+IOCAP0                            00000000
+IOCAP1                            00000001
+IOCAP2                            00000002
+IOCAP3                            00000003
+IOCAP4                            00000004
+IOCAP5                            00000005
+IOCIE                             00000003
+IOCIF                             00000000
+IRCF0                             00000003
+IRCF1                             00000004
+IRCF2                             00000005
+IRCF3                             00000006
+InitSystem                        0000000E
+IsHexChar                         00000007
+LATA                              0000010C
+LATA0                             00000000
+LATA1                             00000001
+LATA2                             00000002
+LATA4                             00000004
+LATA5                             00000005
+LATC                              0000010E
+LATC0                             00000000
+LATC1                             00000001
+LATC2                             00000002
+LATC3                             00000003
+LATC4                             00000004
+LATC5                             00000005
+LFIOFR                            00000001
+LF_CHAR                           0000000A
+LWLO                              00000005
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE 34
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+MAIN_LOOP                         00000007
+MAIN_VECTOR                       00000006
+MC1OUT                            00000000
+MC2OUT                            00000001
+MDBIT                             00000000
+MDCARH                            0000039F
+MDCARL                            0000039E
+MDCH0                             00000000
+MDCH1                             00000001
+MDCH2                             00000002
+MDCH3                             00000003
+MDCHODIS                          00000007
+MDCHPOL                           00000006
+MDCHSYNC                          00000005
+MDCL0                             00000000
+MDCL1                             00000001
+MDCL2                             00000002
+MDCL3                             00000003
+MDCLODIS                          00000007
+MDCLPOL                           00000006
+MDCLSYNC                          00000005
+MDCON                             0000039C
+MDEN                              00000007
+MDMS0                             00000000
+MDMS1                             00000001
+MDMS2                             00000002
+MDMS3                             00000003
+MDMSODIS                          00000007
+MDOE                              00000006
+MDOPOL                            00000004
+MDOUT                             00000003
+MDSLR                             00000005
+MDSRC                             0000039D
+MFIOFR                            00000002
+NACK_CHAR                         00000058
+NACK_CHECKSUM                     00000002
+NACK_MALFORMED                    00000003
+NACK_NOT_ACCESS                   00000001
+NACK_NUM_ARGS                     00000004
+NACK_UNKNOWN                      00000000
+NOT_BOR                           00000000
+NOT_PD                            00000003
+NOT_POR                           00000001
+NOT_RI                            00000002
+NOT_RMCLR                         00000003
+NOT_T1SYNC                        00000002
+NOT_TO                            00000004
+NOT_WPUEN                         00000007
+NRF_ENDEBUG                       00000086
+NRF_ERASE_ALL                     00000062
+NRF_ERASE_PG                      00000052
+NRF_PROG                          00000002
+NRF_RDFPCR                        00000089
+NRF_RDISMB                        00000085
+NRF_RDSR                          00000005
+NRF_READ                          00000003
+NRF_WRDIS                         00000004
+NRF_WREN                          00000006
+NRF_WRSR                          00000001
+NUM_CMD_BYTES                     00000007
+N_ACTIVITY                        00000003
+N_CSN                             00000001
+N_RESET                           00000002
+NumBytes                          00000020
+OERR                              00000001
+OPTION_REG                        00000095
+OPTION_SETUP                      00000007
+OSCCON                            00000099
+OSCCON_SETUP                      000000F0
+OSCSTAT                           0000009A
+OSCTUNE                           00000098
+OSFIE                             00000007
+OSFIF                             00000007
+OSTS                              00000005
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE 35
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+P                                 00000004
+P1CSEL                            00000002
+P1DC0                             00000000
+P1DC1                             00000001
+P1DC2                             00000002
+P1DC3                             00000003
+P1DC4                             00000004
+P1DC5                             00000005
+P1DC6                             00000006
+P1DSEL                            00000003
+P1M0                              00000006
+P1M1                              00000007
+P1RSEN                            00000007
+P2BSEL                            00000001
+P2DC0                             00000000
+P2DC1                             00000001
+P2DC2                             00000002
+P2DC3                             00000003
+P2DC4                             00000004
+P2DC5                             00000005
+P2DC6                             00000006
+P2M0                              00000006
+P2M1                              00000007
+P2RSEN                            00000007
+PCIE                              00000006
+PCL                               00000002
+PCLATH                            0000000A
+PCLATH_SHAD                       00000FE7
+PCON                              00000096
+PEIE                              00000006
+PEN                               00000002
+PIE1                              00000091
+PIE1_SETUP                        00000020
+PIE2                              00000092
+PIE3                              00000093
+PIR1                              00000011
+PIR2                              00000012
+PIR3                              00000013
+PLLR                              00000006
+POLL_PROG_DONE                    0000017D
+POLL_PROG_LOOP                    00000173
+PORTA                             0000000C
+PORTA_INIT                        00000006
+PORTA_OE_DIS                      00000002
+PORTA_OE_EN                       00000000
+PORTC                             0000000E
+PORTC_INIT                        00000008
+PORTC_OE_DIS                      00000027
+PORTC_OE_EN                       00000022
+PR2                               0000001B
+PR4                               00000416
+PR6                               0000041D
+PROC_RX_CHKSUM_H                  00000299
+PROC_RX_CHKSUM_L                  000002A5
+PROC_RX_CMD_STATE_H               00000229
+PROC_RX_CMD_STATE_L               00000236
+PROC_RX_CMD_STATE_L_1             00000240
+PROC_RX_CMD_STATE_L_2             00000249
+PROC_RX_CMD_STATE_L_3             00000253
+PROC_RX_DATA_STATE_H              00000259
+PROC_RX_DATA_STATE_H_1            00000266
+PROC_RX_DATA_STATE_H_2            0000026E
+PROC_RX_DATA_STATE_L              00000274
+PROC_RX_DATA_STATE_L_1            0000027E
+PROC_RX_DATA_STATE_L_2            00000287
+PROC_RX_DATA_STATE_L_3            00000291
+PROC_RX_GET_CH                    00000206
+PROC_RX_LOOP                      000001F6
+PROC_RX_NOTE_BAD_CMD              000002AE
+PROC_RX_NOTE_CHKSUM_ERR           000002B0
+PROC_RX_NOTE_CMD                  000002B1
+PROC_RX_RST                       000001FF
+PROC_RX_SEL_STATE                 0000021A
+PROC_RX_SET_IDLE                  000002B2
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE 36
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+PROC_TX_ACK                       00000193
+PROC_TX_CHK_FOR_DATA              0000019A
+PROC_TX_DATA_1                    000001A9
+PROC_TX_DATA_2                    000001AF
+PROC_TX_DATA_3                    000001B8
+PROC_TX_NACK                      00000197
+PROC_TX_RET                       000001E2
+PROC_TX_SETUP_DATA_1              000001A2
+PROC_TX_SETUP_TERM                000001A5
+PROC_TX_TERM_1                    000001C8
+PROC_TX_TERM_2                    000001D0
+PROC_TX_TERM_2_FORM2              000001D8
+PROC_TX_TERM_3                    000001DD
+PROG                              00000000
+PROG_DEV_LOOP                     0000016D
+PROG_FAILED                       00000001
+PROG_SUCCESS                      00000000
+PROG_TIMEOUT                      0000F9F2
+PS0                               00000000
+PS1                               00000001
+PS2                               00000002
+PSA                               00000003
+PSS1AC0                           00000002
+PSS1AC1                           00000003
+PSS1BD0                           00000000
+PSS1BD1                           00000001
+PSS2AC0                           00000002
+PSS2AC1                           00000003
+PSS2BD0                           00000000
+PSS2BD1                           00000001
+PSTR1CON                          00000296
+PSTR2CON                          0000029D
+PWM1CON                           00000294
+PWM2CON                           0000029B
+PollProgramCompletion             00000173
+PopCmdFifo                        0000011C
+ProcessRxChar                     000001F6
+ProcessTxData                     0000017F
+ProgramDevice                     00000166
+PushRspFifo                       00000121
+PushRxFifo                        000002B8
+RA0                               00000000
+RA1                               00000001
+RA2                               00000002
+RA3                               00000003
+RA4                               00000004
+RA5                               00000005
+RC0                               00000000
+RC1                               00000001
+RC2                               00000002
+RC3                               00000003
+RC4                               00000004
+RC5                               00000005
+RCEN                              00000003
+RCIDL                             00000006
+RCIE                              00000005
+RCIF                              00000005
+RCREG                             00000199
+RCSTA                             0000019D
+RCSTA_INIT                        00000090
+RD                                00000000
+RSEN                              00000001
+RSP_FIFO_HI                       00000022
+RX9                               00000006
+RX9D                              00000000
+RXDTSEL                           00000007
+RX_CHK_STATE_H                    00000020
+RX_CHK_STATE_L                    00000040
+RX_CMD_STATE_H                    00000002
+RX_CMD_STATE_L                    00000004
+RX_DATA_STATE_H                   00000008
+RX_DATA_STATE_L                   00000010
+RX_IDLE_STATE                     00000001
+R_NOT_W                           00000002
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE 37
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+ReadInProcess                     00000004
+RspCount                          00000074
+RxChksumStateH                    00000005
+RxChksumStateL                    00000006
+RxCmdStateH                       00000001
+RxCmdStateL                       00000002
+RxDataStateH                      00000003
+RxDataStateL                      00000004
+RxIdleState                       00000000
+S                                 00000003
+SBCDE                             00000002
+SBOREN                            00000007
+SCIE                              00000005
+SCKP                              00000004
+SCS0                              00000000
+SCS1                              00000001
+SDAHT                             00000003
+SDOSEL                            00000006
+SEN                               00000000
+SENDB                             00000003
+SET_ACTIVITY                      
+SET_RX_STATE                      
+SET_TX_STATE                      
+SMP                               00000007
+SPACE_CHAR                        00000020
+SPBRG                             0000019B
+SPBRGH                            0000019C
+SPBRGL                            0000019B
+SPBRG_INIT                        00000044
+SPEN                              00000007
+SPLLEN                            00000007
+SRCLK0                            00000004
+SRCLK1                            00000005
+SRCLK2                            00000006
+SRCON0                            0000011A
+SRCON1                            0000011B
+SREN                              00000005
+SRLEN                             00000007
+SRNQEN                            00000002
+SRPR                              00000000
+SRPS                              00000001
+SRQEN                             00000003
+SRRC1E                            00000000
+SRRCKE                            00000002
+SRRPE                             00000003
+SRSC1E                            00000004
+SRSCKE                            00000006
+SRSPE                             00000007
+SSP1ADD                           00000212
+SSP1BUF                           00000211
+SSP1CON1                          00000215
+SSP1CON1_INIT                     00000001
+SSP1CON2                          00000216
+SSP1CON2_INIT                     00000000
+SSP1CON3                          00000217
+SSP1CON3_INIT                     00000000
+SSP1IE                            00000003
+SSP1IF                            00000003
+SSP1MSK                           00000213
+SSP1STAT                          00000214
+SSP1STAT_INIT                     00000040
+SSPADD                            00000212
+SSPBUF                            00000211
+SSPCON                            00000215
+SSPCON1                           00000215
+SSPCON2                           00000216
+SSPCON3                           00000217
+SSPEN                             00000005
+SSPM0                             00000000
+SSPM1                             00000001
+SSPM2                             00000002
+SSPM3                             00000003
+SSPMSK                            00000213
+SSPOV                             00000006
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE 38
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+SSPSTAT                           00000214
+SSSEL                             00000005
+START_CMD_CHAR                    00000048
+STATUS                            00000003
+STATUS_SHAD                       00000FE4
+STKOVF                            00000007
+STKPTR                            00000FED
+STKUNF                            00000006
+STOP_CMD_CHAR                     00000054
+STR1A                             00000000
+STR1B                             00000001
+STR1C                             00000002
+STR1D                             00000003
+STR1SYNC                          00000004
+STR2A                             00000000
+STR2B                             00000001
+STR2C                             00000002
+STR2D                             00000003
+STR2SYNC                          00000004
+SWDTEN                            00000000
+SYNC                              00000004
+SifCmdPopPtr                      0000002A
+SifCmdPushPtr                     00000029
+SifRspPopPtr                      00000076
+SifRspPushPtr                     00000075
+SifRxChar                         00000026
+SifRxChecksum                     00000028
+SifRxState                        00000025
+SifTempData                       00000027
+SifTxChecksum                     00000073
+SifTxState                        00000072
+SpiEnabled                        00000006
+T0CS                              00000005
+T0IE                              00000005
+T0IF                              00000002
+T0SE                              00000004
+T0XCS                             00000000
+T1CKPS0                           00000004
+T1CKPS1                           00000005
+T1CON                             00000018
+T1CON_INIT                        00000031
+T1GCON                            00000019
+T1GCON_INIT                       00000000
+T1GGO                             00000003
+T1GPOL                            00000006
+T1GSEL                            00000003
+T1GSPM                            00000004
+T1GSS0                            00000000
+T1GSS1                            00000001
+T1GTM                             00000005
+T1GVAL                            00000002
+T1OSCEN                           00000003
+T1OSCR                            00000007
+T2CKPS0                           00000000
+T2CKPS1                           00000001
+T2CON                             0000001C
+T2OUTPS0                          00000003
+T2OUTPS1                          00000004
+T2OUTPS2                          00000005
+T2OUTPS3                          00000006
+T4CKPS0                           00000000
+T4CKPS1                           00000001
+T4CON                             00000417
+T4OUTPS0                          00000003
+T4OUTPS1                          00000004
+T4OUTPS2                          00000005
+T4OUTPS3                          00000006
+T6CKPS0                           00000000
+T6CKPS1                           00000001
+T6CON                             0000041E
+T6OUTPS0                          00000003
+T6OUTPS1                          00000004
+T6OUTPS2                          00000005
+T6OUTPS3                          00000006
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE 39
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+TMR0                              00000015
+TMR0CS                            00000005
+TMR0IE                            00000005
+TMR0IF                            00000002
+TMR0SE                            00000004
+TMR1                              00000016
+TMR1CS0                           00000006
+TMR1CS1                           00000007
+TMR1GE                            00000007
+TMR1GIE                           00000007
+TMR1GIF                           00000007
+TMR1H                             00000017
+TMR1IE                            00000000
+TMR1IF                            00000000
+TMR1L                             00000016
+TMR1ON                            00000000
+TMR2                              0000001A
+TMR2IE                            00000001
+TMR2IF                            00000001
+TMR2ON                            00000002
+TMR4                              00000415
+TMR4IE                            00000001
+TMR4IF                            00000001
+TMR4ON                            00000002
+TMR6                              0000041C
+TMR6IE                            00000003
+TMR6IF                            00000003
+TMR6ON                            00000002
+TOSH                              00000FEF
+TOSL                              00000FEE
+TRISA                             0000008C
+TRISA0                            00000000
+TRISA1                            00000001
+TRISA2                            00000002
+TRISA3                            00000003
+TRISA4                            00000004
+TRISA5                            00000005
+TRISC                             0000008E
+TRISC0                            00000000
+TRISC1                            00000001
+TRISC2                            00000002
+TRISC3                            00000003
+TRISC4                            00000004
+TRISC5                            00000005
+TRMT                              00000001
+TSEN                              00000005
+TSRNG                             00000004
+TUN0                              00000000
+TUN1                              00000001
+TUN2                              00000002
+TUN3                              00000003
+TUN4                              00000004
+TUN5                              00000005
+TX9                               00000006
+TX9D                              00000000
+TXCKSEL                           00000002
+TXEN                              00000005
+TXIE                              00000004
+TXIF                              00000004
+TXREG                             0000019A
+TXSTA                             0000019E
+TXSTA_INIT                        00000024
+TX_ACK_STATE                      00000001
+TX_DATA_1_STATE                   00000004
+TX_DATA_2_STATE                   00000008
+TX_DATA_3_STATE                   00000010
+TX_IDLE_STATE                     00000000
+TX_NACK_STATE                     00000002
+TX_TERM_1_STATE                   00000020
+TX_TERM_2_STATE                   00000040
+TX_TERM_3_STATE                   00000080
+TempReg                           00000070
+TxAckState                        00000000
+TxData1State                      00000002
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE 40
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+TxData2State                      00000003
+TxData3State                      00000004
+TxNackState                       00000001
+TxTerm1State                      00000005
+TxTerm2State                      00000006
+TxTerm3State                      00000007
+UA                                00000001
+UPDATE_ADDR_HIGH                  00000137
+USE_INT_CLOCK                     1
+UpdateAddr                        00000132
+UpdateRunningRxChksum             000002B5
+VER_MAJOR                         00000002
+VER_MINOR                         00000002
+W                                 00000000
+WCOL                              00000007
+WDTCON                            00000097
+WDTPS0                            00000001
+WDTPS1                            00000002
+WDTPS2                            00000003
+WDTPS3                            00000004
+WDTPS4                            00000005
+WPUA                              0000020C
+WPUA0                             00000000
+WPUA1                             00000001
+WPUA2                             00000002
+WPUA3                             00000003
+WPUA4                             00000004
+WPUA5                             00000005
+WPUA_INIT_DIS                     00000006
+WPUA_INIT_EN                      00000004
+WPUC                              0000020E
+WPUC0                             00000000
+WPUC1                             00000001
+WPUC2                             00000002
+WPUC3                             00000003
+WPUC4                             00000004
+WPUC5                             00000005
+WPUC_INIT_DIS                     00000027
+WPUC_INIT_EN                      00000022
+WR                                00000001
+WREG                              00000009
+WREG_SHAD                         00000FE5
+WREN                              00000002
+WRERR                             00000003
+WUE                               00000001
+WriteEnableDevice                 00000161
+Z                                 00000002
+Z_SHAD                            00000002
+_BOREN_NSLEEP                     0000FDFF
+_BOREN_OFF                        0000F9FF
+_BOREN_ON                         0000FFFF
+_BOREN_SBODEN                     0000FBFF
+_BORV_19                          0000FFFF
+_BORV_HI                          0000FBFF
+_BORV_LO                          0000FFFF
+_CLKOUTEN_OFF                     0000FFFF
+_CLKOUTEN_ON                      0000F7FF
+_CONFIG1                          00008007
+_CONFIG2                          00008008
+_CPD_OFF                          0000FFFF
+_CPD_ON                           0000FEFF
+_CP_OFF                           0000FFFF
+_CP_ON                            0000FF7F
+_DEVID1                           00008006
+_FCMEN_OFF                        0000DFFF
+_FCMEN_ON                         0000FFFF
+_FOSC_ECH                         0000FFFF
+_FOSC_ECL                         0000FFFD
+_FOSC_ECM                         0000FFFE
+_FOSC_EXTRC                       0000FFFB
+_FOSC_HS                          0000FFFA
+_FOSC_INTOSC                      0000FFFC
+_FOSC_LP                          0000FFF8
+_FOSC_XT                          0000FFF9
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   11-12-2014  08:39:31        PAGE 41
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+_IDLOC0                           00008000
+_IDLOC1                           00008001
+_IDLOC2                           00008002
+_IDLOC3                           00008003
+_IESO_OFF                         0000EFFF
+_IESO_ON                          0000FFFF
+_LVP_OFF                          0000DFFF
+_LVP_ON                           0000FFFF
+_MCLRE_OFF                        0000FFBF
+_MCLRE_ON                         0000FFFF
+_PLLEN_OFF                        0000FEFF
+_PLLEN_ON                         0000FFFF
+_PWRTE_OFF                        0000FFFF
+_PWRTE_ON                         0000FFDF
+_STVREN_OFF                       0000FDFF
+_STVREN_ON                        0000FFFF
+_WDTE_NSLEEP                      0000FFF7
+_WDTE_OFF                         0000FFE7
+_WDTE_ON                          0000FFFF
+_WDTE_SWDTEN                      0000FFEF
+_WRT_ALL                          0000FFFC
+_WRT_BOOT                         0000FFFE
+_WRT_HALF                         0000FFFD
+_WRT_OFF                          0000FFFF
+__16F1825                         00000001
+
+
+MEMORY USAGE MAP ('X' = Used,  '-' = Unused)
+
+0000 : X---XXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX
+0040 : XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX
+0080 : XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX
+00C0 : XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX
+0100 : XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX
+0140 : XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX
+0180 : XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX
+01C0 : XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX
+0200 : XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX
+0240 : XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX
+0280 : XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX
+02C0 : XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXX--------- ----------------
+8000 : -------XX------- ---------------- ---------------- ----------------
+
+All other memory blocks unused.
+
+Program Memory Words Used:   740
+Program Memory Words Free:  7452
+
+
+Errors   :     0
+Warnings :     0 reported,     0 suppressed
+Messages :     0 reported,     0 suppressed
+
+
