@@ -16,7 +16,7 @@
 
 c 0000-000d	; Code space
 
-c 000e-0012  ; 8-bit data
+c 000e-0012  ; 8-bit dat
 
 c 0013-001d	; Code space
 
@@ -126,6 +126,21 @@ i 124a-1ffe	; ignore data
 ! 001e FIFO_STATUS
 ! 0024 Masks out TX_FULL and TX_EMPTY
 
+l 004e init
+# 004e ***************************************************************************
+# 004e Initialization
+# 004e ***************************************************************************
+
+l 00eb main
+# 00eb ***************************************************************************
+# 00eb MAIN LOOP
+# 00eb ***************************************************************************
+
+! 00dc Bind switch checked at reset?!?
+! 00e6 Set channel 70 in factory mode?
+
+l 010f not_factory
+
 # 01d2 ***************************************************************************
 # 01d2 This code below sets the servo pulse durations
 # 01d2 ***************************************************************************
@@ -144,14 +159,37 @@ s 0003 servo_out_state
 
 l 083e reset
 # 083e ***************************************************************************
+# 083e Program start
+# 083e ***************************************************************************
+l 0841 _clear_ram
+
+l 0885 init_rodata
+# 0885 ***************************************************************************
+# 0885 Initalize RAM with default values stored in a ROM table
+# 0885 ***************************************************************************
+l 0b3e ram_initialization_data
+l 084a init_ljmp
+l 08af init_rodata_loop
+l 084d init_rodata_page0
 
 l 08ca timer2_handler
 # 08ca ***************************************************************************
 # 08ca Timer 2 interrupt handler
 # 08ca
-# 08ca Does some SPI stuff
-# 08ca Uses Timer 2
+# 08ca Seems to perform frequency hopping?!
 # 08ca ***************************************************************************
+
+! 097e READ_RX_PAYLOAD
+
+l 09b3 init_rf
+l 09e3 init_rf_r7_is_5
+l 09fc init_rf_r7_is_6
+l 09d3 init_rf_r7_is_7
+
+! 09c2 Jump if r7 is 5
+! 09c5 Jump if r7 is 6
+! 09c9 Jump if r7 is NOT 8 (jump if 7?)
+l 0a14 init_rf_execute
 
 ! 0b2d Disable ‘Auto Acknowledgment’
 ! 0b28 Enable ‘Auto Acknowledgment’ on all pipes
@@ -165,6 +203,9 @@ l 0b91 timer0_handler
 # 0b91
 # 0b91 Sets the servo output timer 0
 # 0b91 ***************************************************************************
+
+l 0c81 read_bind_data
+
 
 l 0cc6 set_crc
 # 0cc6 ***************************************************************************
@@ -183,6 +224,31 @@ l 0cf4 set_crc_2bytes
 l 0d02 set_crc_write_config
 ! 0d04 CONFIG
 
+l 070f ic2_write_address
+l 0ec5 i2c_start
+l 1039 i2c_stop
+l 0a1e i2c_read_byte
+l 0717 i2c_write_byte
+l 10e2 i2c_read_byte_from_eeprom
+l 0be1 i2c_has_write_finished
+l 10b6 i2c_write_byte_to_eeprom
+
+l 1071 delay
+# 1071 ***************************************************************************
+# 1071 delay
+# 1071
+# 1071 Delay value in R6/R7
+# 1071 ***************************************************************************
+l 107c delay_loop
+
+l 1088 init_ports
+# 1088 ***************************************************************************
+# 1088 init_ports
+# 1088 ***************************************************************************
+
+l 1185 init_timer0
+l 1242 init_timer1
+
 l 118f spi_write
 l 1191 _spi_write_loop
 # 118f ***************************************************************************
@@ -194,6 +260,12 @@ l 113d spi_read_register
 # 113d SPI Read Byte
 # 113d In: A: command    Out: R7: read value
 # 113d ***************************************************************************
+
+l 114a spi_read_rf_status
+# 114a ***************************************************************************
+# 114a spi_read_rf_status
+# 114a Reads and clears the RF status register. Output in R7
+# 114a ***************************************************************************
 
 l 1199 spi_get_number_of_address_bytes
 x 119a 03h
@@ -208,6 +280,13 @@ l 109f spi_write_register
 # 109f SPI Write to a RF register
 # 109f In: R7: register number, R5: value
 # 109f ***************************************************************************
+
+l 110c spi_set_rf_channel
+# 110c ***************************************************************************
+# 110c spi_set_rf_channel
+# 110c In: R7: channel number
+# 110c ***************************************************************************
+! 111a RF_CH
 
 l 11a3 spi_is_rx_fifo_empty
 # 11a3 ***************************************************************************
@@ -230,6 +309,13 @@ l 1236 spi_read_rx_fifo_payload_width
 # 1236
 # 1236 Returns the number of bytes of the top payload in the RX FIFO
 # 1236 ***************************************************************************
+
+l 123c spi_read_rf_fifo_data
+# 123c ***************************************************************************
+# 123c spi_read_rf_fifo_data
+# 123c
+# 123c Read data from the RF FIFO?
+# 123c ***************************************************************************
 
 l 1246 rf_handler
 # 1246 ****************************************************
@@ -304,3 +390,8 @@ f af WDSW
 f a5 WUCON
 f cf WUOPC0
 f ce WUOPC1
+
+f 93 P0DIR
+f 94 P1DIR
+f 9e P0CON
+f 9f P1CON

@@ -1,6 +1,6 @@
 ;
 ;  D52 V3.4.1 8052 Disassembly of xr3100.hex
-;  2014/11/12 16:53
+;  2014/11/12 20:43
 ;
 	org	0
 ;
@@ -52,38 +52,41 @@ X002e:	mov	r5,rb0r7	; 002e   ad 07      -.
 	clr	a		; 0041   e4         d
 	addc	a,r6		; 0042   3e         >
 	mov	r6,a		; 0043   fe         ~	; Vector: RF SPI ready
-	lcall	X10e2		; 0044   12 10 e2   ..b
+	lcall	i2c_read_byte_from_eeprom; 0044   12 10 e2   ..b
 	ret			; 0047   22         "
 ;
 	db	22h,0ffh,0ffh,2				; 0048 "...	; Vector: RF Interrupt
 	db	12h,46h					; 004c .F
+; ***************************************************************************
+; Initialization
+; ***************************************************************************
 ;
-X004e:	clr	a		; 004e   e4         d
+init:	clr	a		; 004e   e4         d
 	mov	rb1r4,a		; 004f   f5 0c      u.
 	mov	rb1r5,a		; 0051   f5 0d      u.
-	lcall	X1088		; 0053   12 10 88   ...
-	lcall	X0c81		; 0056   12 0c 81   ...
-	anl	93h,#0dfh	; 0059   53 93 df   S._
-	mov	9eh,#53h	; 005c   75 9e 53   u.S
-	anl	93h,#5ch	; 005f   53 93 5c   S.\
-	anl	94h,#0fch	; 0062   53 94 fc   S.|
+	lcall	init_ports	; 0053   12 10 88   ...
+	lcall	read_bind_data	; 0056   12 0c 81   ...
+	anl	P0DIR,#0dfh	; 0059   53 93 df   S._
+	mov	P0CON,#53h	; 005c   75 9e 53   u.S
+	anl	P0DIR,#5ch	; 005f   53 93 5c   S.\
+	anl	P1DIR,#0fch	; 0062   53 94 fc   S.|
 	setb	idsm		; 0065   d2 ea      Rj
 	setb	pt0		; 0067   d2 b9      R9
-	lcall	X1185		; 0069   12 11 85   ...
-	lcall	X1242		; 006c   12 12 42   ..B
+	lcall	init_timer0	; 0069   12 11 85   ...
+	lcall	init_timer1	; 006c   12 12 42   ..B
 	mov	r7,#2		; 006f   7f 02      ..
 	lcall	set_crc		; 0071   12 0c c6   ..F
 	clr	a		; 0074   e4         d
 	mov	r5,a		; 0075   fd         }
 	mov	r7,#4		; 0076   7f 04      ..
-	lcall	X09b3		; 0078   12 09 b3   ..3
+	lcall	init_rf		; 0078   12 09 b3   ..3
 	clr	a		; 007b   e4         d
 	mov	r5,a		; 007c   fd         }
 	mov	r7,#5		; 007d   7f 05      ..
-	lcall	X09b3		; 007f   12 09 b3   ..3
+	lcall	init_rf		; 007f   12 09 b3   ..3
 	mov	r5,#1		; 0082   7d 01      }.
 	mov	r7,#6		; 0084   7f 06      ..
-	lcall	X09b3		; 0086   12 09 b3   ..3
+	lcall	init_rf		; 0086   12 09 b3   ..3
 	clr	a		; 0089   e4         d
 	mov	r5,a		; 008a   fd         }
 	mov	r7,a		; 008b   ff         .
@@ -115,7 +118,7 @@ X004e:	clr	a		; 004e   e4         d
 	mov	dph,a		; 00bc   f5 83      u.
 	movx	a,@dptr		; 00be   e0         `
 	mov	r7,a		; 00bf   ff         .
-	lcall	X110c		; 00c0   12 11 0c   ...
+	lcall	spi_set_rf_channel; 00c0   12 11 0c   ...
 	mov	r7,#1		; 00c3   7f 01      ..
 	lcall	X0fb5		; 00c5   12 0f b5   ..5
 	mov	r7,#1		; 00c8   7f 01      ..
@@ -127,18 +130,21 @@ X004e:	clr	a		; 004e   e4         d
 	setb	ea		; 00d6   d2 af      R/
 	clr	p0.0		; 00d8   c2 80      B.
 	setb	p0.1		; 00da   d2 81      R.
-	jb	p0.3,X00e2	; 00dc   20 83 03    ..
+	jb	p0.3,X00e2	; 00dc   20 83 03    ..	; Bind switch checked at reset?!?
 	mov	2bh,#1		; 00df   75 2b 01   u+.
 X00e2:	mov	a,2bh		; 00e2   e5 2b      e+
-	jz	X00eb		; 00e4   60 05      `.
-	mov	r7,#46h		; 00e6   7f 46      .F
-	lcall	X110c		; 00e8   12 11 0c   ...
-X00eb:	mov	a,2bh		; 00eb   e5 2b      e+
-	jz	X010f		; 00ed   60 20      ` 
+	jz	main		; 00e4   60 05      `.
+	mov	r7,#46h		; 00e6   7f 46      .F	; Set channel 70 in factory mode?
+	lcall	spi_set_rf_channel; 00e8   12 11 0c   ...
+; ***************************************************************************
+; MAIN LOOP
+; ***************************************************************************
+main:	mov	a,2bh		; 00eb   e5 2b      e+
+	jz	not_factory	; 00ed   60 20      ` 
 	mov	dptr,#X0014	; 00ef   90 00 14   ...
 	movx	a,@dptr		; 00f2   e0         `
 	mov	r7,a		; 00f3   ff         .
-	jnb	acc.0,X00eb	; 00f4   30 e0 f4   0`t
+	jnb	acc.0,main	; 00f4   30 e0 f4   0`t
 	anl	a,#0feh		; 00f7   54 fe      T~
 	movx	@dptr,a		; 00f9   f0         p
 	lcall	spi_received_power_decector; 00fa   12 11 c1   ..A
@@ -147,13 +153,14 @@ X00eb:	mov	a,2bh		; 00eb   e5 2b      e+
 	jz	X0109		; 0101   60 06      `.
 	setb	p0.0		; 0103   d2 80      R.
 	setb	p0.1		; 0105   d2 81      R.
-	sjmp	X00eb		; 0107   80 e2      .b
+	sjmp	main		; 0107   80 e2      .b
 ;
 X0109:	clr	p0.0		; 0109   c2 80      B.
 	clr	p0.1		; 010b   c2 81      B.
-	sjmp	X00eb		; 010d   80 dc      .\
+	sjmp	main		; 010d   80 dc      .\
 ;
-X010f:	lcall	X0a82		; 010f   12 0a 82   ...
+not_factory:
+	lcall	X0a82		; 010f   12 0a 82   ...
 	cjne	r7,#1,X0121	; 0112   bf 01 0c   ?..
 	setb	p0.1		; 0115   d2 81      R.
 	clr	p0.0		; 0117   c2 80      B.
@@ -163,7 +170,7 @@ X010f:	lcall	X0a82		; 010f   12 0a 82   ...
 X0121:	mov	a,24h		; 0121   e5 24      e$
 	jz	X014c		; 0123   60 27      `'
 	clr	ibf		; 0125   c2 e8      Bh
-	lcall	X114a		; 0127   12 11 4a   ..J
+	lcall	spi_read_rf_status; 0127   12 11 4a   ..J
 	mov	rb1r3,r7	; 012a   8f 0b      ..
 X012c:	lcall	spi_is_rx_fifo_empty; 012c   12 11 a3   ..#
 	mov	a,r7		; 012f   ef         o
@@ -171,7 +178,7 @@ X012c:	lcall	spi_is_rx_fifo_empty; 012c   12 11 a3   ..#
 	mov	r3,#1		; 0132   7b 01      {.
 	mov	r2,#0		; 0134   7a 00      z.
 	mov	r1,#16h		; 0136   79 16      y.
-	lcall	X123c		; 0138   12 12 3c   ..<
+	lcall	spi_read_rf_fifo_data; 0138   12 12 3c   ..<
 	mov	2dh,#1		; 013b   75 2d 01   u-.
 	sjmp	X012c		; 013e   80 ec      .l
 ;
@@ -186,7 +193,7 @@ X014c:	mov	dptr,#X0008	; 014c   90 00 08   ...
 	mov	dptr,#X002a	; 0152   90 00 2a   ..*
 	movx	a,@dptr		; 0155   e0         `
 	mov	r7,a		; 0156   ff         .
-	lcall	X110c		; 0157   12 11 0c   ...
+	lcall	spi_set_rf_channel; 0157   12 11 0c   ...
 	mov	dptr,#X0008	; 015a   90 00 08   ...
 	mov	a,#1		; 015d   74 01      t.
 	movx	@dptr,a		; 015f   f0         p
@@ -444,7 +451,7 @@ X02e1:	clr	c		; 02e1   c3         C
 	jnc	X02f7		; 02ee   50 07      P.
 	setb	p0.0		; 02f0   d2 80      R.
 	clr	p0.1		; 02f2   c2 81      B.
-	ljmp	X00eb		; 02f4   02 00 eb   ..k
+	ljmp	main		; 02f4   02 00 eb   ..k
 ;
 X02f7:	clr	p0.0		; 02f7   c2 80      B.
 	setb	p0.1		; 02f9   d2 81      R.
@@ -483,7 +490,7 @@ X02f7:	clr	p0.0		; 02f7   c2 80      B.
 	inc	dptr		; 032b   a3         #
 	mov	a,r7		; 032c   ef         o
 	movx	@dptr,a		; 032d   f0         p
-	ljmp	X00eb		; 032e   02 00 eb   ..k
+	ljmp	main		; 032e   02 00 eb   ..k
 ;
 X0331:	mov	dptr,#X0022	; 0331   90 00 22   .."
 	mov	a,#0f8h		; 0334   74 f8      tx
@@ -497,7 +504,7 @@ X0331:	mov	dptr,#X0022	; 0331   90 00 22   .."
 	inc	dptr		; 033f   a3         #
 	mov	a,#2fh		; 0340   74 2f      t/
 	movx	@dptr,a		; 0342   f0         p
-	ljmp	X00eb		; 0343   02 00 eb   ..k
+	ljmp	main		; 0343   02 00 eb   ..k
 ;
 X0346:	anl	ie,#0f7h	; 0346   53 a8 f7   S(w
 	clr	a		; 0349   e4         d
@@ -511,7 +518,7 @@ X0346:	anl	ie,#0f7h	; 0346   53 a8 f7   S(w
 	lcall	X0d4c		; 0356   12 0d 4c   ..L
 	clr	ibf		; 0359   c2 e8      Bh
 	mov	r7,#51h		; 035b   7f 51      .Q
-	lcall	X110c		; 035d   12 11 0c   ...
+	lcall	spi_set_rf_channel; 035d   12 11 0c   ...
 	clr	a		; 0360   e4         d
 	mov	rb2r0,a		; 0361   f5 10      u.
 	mov	rb2r1,a		; 0363   f5 11      u.
@@ -532,14 +539,14 @@ X0380:	mov	a,24h		; 0380   e5 24      e$
 	jnz	X0387		; 0382   70 03      p.
 	ljmp	X04d8		; 0384   02 04 d8   ..X
 ;
-X0387:	lcall	X114a		; 0387   12 11 4a   ..J
+X0387:	lcall	spi_read_rf_status; 0387   12 11 4a   ..J
 X038a:	lcall	spi_is_rx_fifo_empty; 038a   12 11 a3   ..#
 	mov	a,r7		; 038d   ef         o
 	jnz	X039b		; 038e   70 0b      p.
 	mov	r3,#1		; 0390   7b 01      {.
 	mov	r2,#0		; 0392   7a 00      z.
 	mov	r1,#16h		; 0394   79 16      y.
-	lcall	X123c		; 0396   12 12 3c   ..<
+	lcall	spi_read_rf_fifo_data; 0396   12 12 3c   ..<
 	sjmp	X038a		; 0399   80 ef      .o
 ;
 X039b:	clr	a		; 039b   e4         d
@@ -1044,17 +1051,19 @@ X06b9:	ret			; 06b9   22         "
 	db	6,0d5h,0f0h,0f2h,22h,0c3h,98h,0fdh	; 0702 .Upr"C.}
 	db	0fh,0d5h,0f0h,0eah,22h			; 070a .Upj"
 ;
-X070f:	lcall	X0ec5		; 070f   12 0e c5   ..E
-	lcall	X0717		; 0712   12 07 17   ...
+ic2_write_address:
+	lcall	i2c_start	; 070f   12 0e c5   ..E
+	lcall	i2c_write_byte	; 0712   12 07 17   ...
 	mov	r7,rb0r5	; 0715   af 05      /.
-X0717:	clr	a		; 0717   e4         d
+i2c_write_byte:
+	clr	a		; 0717   e4         d
 	mov	r6,a		; 0718   fe         ~
 X0719:	mov	a,r7		; 0719   ef         o
 	jnb	acc.7,X0722	; 071a   30 e7 05   0g.
-	orl	94h,#10h	; 071d   43 94 10   C..
+	orl	P1DIR,#10h	; 071d   43 94 10   C..
 	sjmp	X0725		; 0720   80 03      ..
 ;
-X0722:	anl	94h,#0efh	; 0722   53 94 ef   S.o
+X0722:	anl	P1DIR,#0efh	; 0722   53 94 ef   S.o
 X0725:	mov	a,r7		; 0725   ef         o
 	add	a,acc		; 0726   25 e0      %`
 	mov	r7,a		; 0728   ff         .
@@ -1107,7 +1116,7 @@ X0725:	mov	a,r7		; 0725   ef         o
 	nop			; 075b   00         .
 	nop			; 075c   00         .
 	nop			; 075d   00         .
-	orl	94h,#10h	; 075e   43 94 10   C..
+	orl	P1DIR,#10h	; 075e   43 94 10   C..
 	nop			; 0761   00         .
 	nop			; 0762   00         .
 	nop			; 0763   00         .
@@ -1216,16 +1225,21 @@ X0836:	mov	a,42h		; 0836   e5 42      eB
 	ret			; 083d   22         "
 ;
 ; ***************************************************************************
+; Program start
+; ***************************************************************************
 reset:	mov	r0,#7fh		; 083e   78 7f      x.
 	clr	a		; 0840   e4         d
-X0841:	mov	@r0,a		; 0841   f6         v
-	djnz	r0,X0841	; 0842   d8 fd      X}
+_clear_ram:
+	mov	@r0,a		; 0841   f6         v
+	djnz	r0,_clear_ram	; 0842   d8 fd      X}
 	mov	sp,#5dh		; 0844   75 81 5d   u.]
-	ljmp	X0885		; 0847   02 08 85   ...
+	ljmp	init_rodata	; 0847   02 08 85   ...
 ;
-X084a:	ljmp	X004e		; 084a   02 00 4e   ..N
+init_ljmp:
+	ljmp	init		; 084a   02 00 4e   ..N
 ;
-X084d:	clr	a		; 084d   e4         d
+init_rodata_page0:
+	clr	a		; 084d   e4         d
 	movc	a,@a+dptr	; 084e   93         .
 	inc	dptr		; 084f   a3         #
 	mov	r0,a		; 0850   f8         x
@@ -1266,12 +1280,16 @@ X0878:	mov	@r0,a		; 0878   f6         v
 	sjmp	X0888		; 087b   80 0b      ..
 ;
 	db	1,2,4,8,10h,20h,40h,80h			; 087d ..... @.
+; ***************************************************************************
+; Initalize RAM with default values stored in a ROM table
+; ***************************************************************************
 ;
-X0885:	mov	dptr,#X0b3e	; 0885   90 0b 3e   ..>
+init_rodata:
+	mov	dptr,#ram_initialization_data; 0885   90 0b 3e   ..>
 X0888:	clr	a		; 0888   e4         d
 	mov	r6,#1		; 0889   7e 01      ~.
 	movc	a,@a+dptr	; 088b   93         .
-	jz	X084a		; 088c   60 bc      `<
+	jz	init_ljmp	; 088c   60 bc      `<
 	inc	dptr		; 088e   a3         #
 	mov	r7,a		; 088f   ff         .
 	anl	a,#3fh		; 0890   54 3f      T?
@@ -1286,7 +1304,7 @@ X0888:	clr	a		; 0888   e4         d
 X089e:	xch	a,r7		; 089e   cf         O
 	anl	a,#0c0h		; 089f   54 c0      T@
 	add	a,acc		; 08a1   25 e0      %`
-	jz	X084d		; 08a3   60 a8      `(
+	jz	init_rodata_page0; 08a3   60 a8      `(
 	jc	X085f		; 08a5   40 b8      @8
 	clr	a		; 08a7   e4         d
 	movc	a,@a+dptr	; 08a8   93         .
@@ -1296,7 +1314,8 @@ X089e:	xch	a,r7		; 089e   cf         O
 	movc	a,@a+dptr	; 08ac   93         .
 	inc	dptr		; 08ad   a3         #
 	mov	r0,a		; 08ae   f8         x
-X08af:	clr	a		; 08af   e4         d
+init_rodata_loop:
+	clr	a		; 08af   e4         d
 	movc	a,@a+dptr	; 08b0   93         .
 	inc	dptr		; 08b1   a3         #
 	xch	a,r0		; 08b2   c8         H
@@ -1313,15 +1332,14 @@ X08af:	clr	a		; 08af   e4         d
 	xch	a,r2		; 08c0   ca         J
 	xch	a,dph		; 08c1   c5 83      E.
 	xch	a,r2		; 08c3   ca         J
-	djnz	r7,X08af	; 08c4   df e9      _i
-	djnz	r6,X08af	; 08c6   de e7      ^g
+	djnz	r7,init_rodata_loop; 08c4   df e9      _i
+	djnz	r6,init_rodata_loop; 08c6   de e7      ^g
 	sjmp	X0888		; 08c8   80 be      .>
 ;
 ; ***************************************************************************
 ; Timer 2 interrupt handler
 ;
-; Does some SPI stuff
-; Uses Timer 2
+; Seems to perform frequency hopping?!
 ; ***************************************************************************
 timer2_handler:
 	push	acc		; 08ca   c0 e0      @`
@@ -1364,7 +1382,7 @@ timer2_handler:
 	mov	dph,a		; 0911   f5 83      u.
 	movx	a,@dptr		; 0913   e0         `
 	mov	r7,a		; 0914   ff         .
-	lcall	X110c		; 0915   12 11 0c   ...
+	lcall	spi_set_rf_channel; 0915   12 11 0c   ...
 	mov	dptr,#X0006	; 0918   90 00 06   ...
 	movx	a,@dptr		; 091b   e0         `
 	clr	c		; 091c   c3         C
@@ -1421,7 +1439,7 @@ X096a:	lcall	X11d5		; 096a   12 11 d5   ..U
 	mov	rb3r7,r7	; 0978   8f 1f      ..
 	mov	20h,r7		; 097a   8f 20      . 
 	clr	obf		; 097c   c2 e9      Bi
-	mov	r7,#61h		; 097e   7f 61      .a
+	mov	r7,#61h		; 097e   7f 61      .a	; READ_RX_PAYLOAD
 X0980:	lcall	spi_write	; 0980   12 11 8f   ...
 	sjmp	X098a		; 0983   80 05      ..
 ;
@@ -1454,7 +1472,8 @@ X09aa:	setb	obf		; 09aa   d2 e9      Ri
 	mov	r7,a		; 09b1   ff         .
 	ret			; 09b2   22         "
 ;
-X09b3:	mov	rb1r6,r7	; 09b3   8f 0e      ..
+init_rf:
+	mov	rb1r6,r7	; 09b3   8f 0e      ..
 	mov	rb1r7,r5	; 09b5   8d 0f      ..
 	clr	a		; 09b7   e4         d
 	mov	r7,a		; 09b8   ff         .
@@ -1462,17 +1481,18 @@ X09b3:	mov	rb1r6,r7	; 09b3   8f 0e      ..
 	mov	rb2r0,r7	; 09bc   8f 10      ..
 	mov	a,rb1r6		; 09be   e5 0e      e.
 	add	a,#0fbh		; 09c0   24 fb      ${
-	jz	X09e3		; 09c2   60 1f      `.
+	jz	init_rf_r7_is_5	; 09c2   60 1f      `.	; Jump if r7 is 5
 	dec	a		; 09c4   14         .
-	jz	X09fc		; 09c5   60 35      `5
+	jz	init_rf_r7_is_6	; 09c5   60 35      `5	; Jump if r7 is 6
 	add	a,#2		; 09c7   24 02      $.
-	jnz	X0a17		; 09c9   70 4c      pL
+	jnz	X0a17		; 09c9   70 4c      pL	; Jump if r7 is NOT 8 (jump if 7?)
 	mov	a,rb1r7		; 09cb   e5 0f      e.
-	jz	X09d3		; 09cd   60 04      `.
+	jz	init_rf_r7_is_7	; 09cd   60 04      `.
 	mov	r7,#0		; 09cf   7f 00      ..
 	sjmp	X09d5		; 09d1   80 02      ..
 ;
-X09d3:	mov	r7,#1		; 09d3   7f 01      ..
+init_rf_r7_is_7:
+	mov	r7,#1		; 09d3   7f 01      ..
 X09d5:	mov	a,r7		; 09d5   ef         o
 	anl	a,#1		; 09d6   54 01      T.
 	swap	a		; 09d8   c4         D
@@ -1481,9 +1501,10 @@ X09d5:	mov	a,r7		; 09d5   ef         o
 	mov	r6,rb2r0	; 09dc   ae 10      ..
 	mov	a,r6		; 09de   ee         n
 	anl	a,#0efh		; 09df   54 ef      To
-	sjmp	X0a14		; 09e1   80 31      .1
+	sjmp	init_rf_execute	; 09e1   80 31      .1
 ;
-X09e3:	mov	a,rb1r7		; 09e3   e5 0f      e.
+init_rf_r7_is_5:
+	mov	a,rb1r7		; 09e3   e5 0f      e.
 	jz	X09eb		; 09e5   60 04      `.
 	mov	r7,#0		; 09e7   7f 00      ..
 	sjmp	X09ed		; 09e9   80 02      ..
@@ -1498,9 +1519,10 @@ X09ed:	mov	a,r7		; 09ed   ef         o
 	mov	r6,rb2r0	; 09f5   ae 10      ..
 	mov	a,r6		; 09f7   ee         n
 	anl	a,#0dfh		; 09f8   54 df      T_
-	sjmp	X0a14		; 09fa   80 18      ..
+	sjmp	init_rf_execute	; 09fa   80 18      ..
 ;
-X09fc:	mov	a,rb1r7		; 09fc   e5 0f      e.
+init_rf_r7_is_6:
+	mov	a,rb1r7		; 09fc   e5 0f      e.
 	jz	X0a04		; 09fe   60 04      `.
 	mov	r7,#0		; 0a00   7f 00      ..
 	sjmp	X0a06		; 0a02   80 02      ..
@@ -1516,16 +1538,18 @@ X0a06:	mov	a,r7		; 0a06   ef         o
 	mov	r6,rb2r0	; 0a0f   ae 10      ..
 	mov	a,r6		; 0a11   ee         n
 	anl	a,#0bfh		; 0a12   54 bf      T?
-X0a14:	orl	a,r7		; 0a14   4f         O
+init_rf_execute:
+	orl	a,r7		; 0a14   4f         O
 	mov	rb2r0,a		; 0a15   f5 10      u.
 X0a17:	mov	r5,rb2r0	; 0a17   ad 10      -.
 	clr	a		; 0a19   e4         d
 	mov	r7,a		; 0a1a   ff         .
 	ljmp	spi_write_register; 0a1b   02 10 9f   ...
 ;
-X0a1e:	clr	a		; 0a1e   e4         d
+i2c_read_byte:
+	clr	a		; 0a1e   e4         d
 	mov	r7,a		; 0a1f   ff         .
-	orl	94h,#10h	; 0a20   43 94 10   C..
+	orl	P1DIR,#10h	; 0a20   43 94 10   C..
 	mov	r6,a		; 0a23   fe         ~
 X0a24:	nop			; 0a24   00         .
 	nop			; 0a25   00         .
@@ -1732,7 +1756,8 @@ X0b30:	mov	r5,rb2r0	; 0b30   ad 10      -.
 	mov	r7,#1		; 0b39   7f 01      ..	; EN_AA
 	ljmp	spi_write_register; 0b3b   02 10 9f   ...
 ;
-X0b3e:	db	42h,0,20h,0,0,41h,0,5			; 0b3e B. ..A..
+ram_initialization_data:
+	db	42h,0,20h,0,0,41h,0,5			; 0b3e B. ..A..
 	db	0,41h,0,4,0,5,26h,12h			; 0b46 .A....&.
 	db	23h,23h,45h,78h,48h,0,22h,0f8h		; 0b4e ##ExH."x
 	db	2fh,0f8h,2fh,0f8h,2fh,0f8h,2fh,48h	; 0b56 /x/x/x/H
@@ -1793,18 +1818,19 @@ X0bd8:	pop	psw		; 0bd8   d0 d0      PP
 	pop	acc		; 0bde   d0 e0      P`
 	reti			; 0be0   32         2
 ;
-X0be1:	mov	r7,#0a0h	; 0be1   7f a0      . 
+i2c_has_write_finished:
+	mov	r7,#0a0h	; 0be1   7f a0      . 
 	clr	p1.4		; 0be3   c2 94      B.
-	orl	94h,#10h	; 0be5   43 94 10   C..
-	lcall	X0ec5		; 0be8   12 0e c5   ..E
+	orl	P1DIR,#10h	; 0be5   43 94 10   C..
+	lcall	i2c_start	; 0be8   12 0e c5   ..E
 	clr	a		; 0beb   e4         d
 	mov	r6,a		; 0bec   fe         ~
 X0bed:	mov	a,r7		; 0bed   ef         o
 	jnb	acc.7,X0bf6	; 0bee   30 e7 05   0g.
-	orl	94h,#10h	; 0bf1   43 94 10   C..
+	orl	P1DIR,#10h	; 0bf1   43 94 10   C..
 	sjmp	X0bf9		; 0bf4   80 03      ..
 ;
-X0bf6:	anl	94h,#0efh	; 0bf6   53 94 ef   S.o
+X0bf6:	anl	P1DIR,#0efh	; 0bf6   53 94 ef   S.o
 X0bf9:	mov	a,r7		; 0bf9   ef         o
 	add	a,acc		; 0bfa   25 e0      %`
 	mov	r7,a		; 0bfc   ff         .
@@ -1822,7 +1848,7 @@ X0bf9:	mov	a,r7		; 0bf9   ef         o
 	nop			; 0c0a   00         .
 	inc	r6		; 0c0b   0e         .
 	cjne	r6,#8,X0bed	; 0c0c   be 08 de   >.^
-	orl	94h,#10h	; 0c0f   43 94 10   C..
+	orl	P1DIR,#10h	; 0c0f   43 94 10   C..
 	nop			; 0c12   00         .
 	nop			; 0c13   00         .
 	nop			; 0c14   00         .
@@ -1860,7 +1886,8 @@ X0c2c:	clr	p1.3		; 0c2c   c2 93      B.
 	db	0efh,0f0h,80h,0ceh,30h,0fch,4,0c2h	; 0c71 op.N0|.B
 	db	0fdh,80h,0f9h,0a2h,0d5h,92h,0afh,22h	; 0c79 }.y"U./"
 ;
-X0c81:	clr	a		; 0c81   e4         d
+read_bind_data:
+	clr	a		; 0c81   e4         d
 	mov	rb1r6,a		; 0c82   f5 0e      u.
 X0c84:	mov	r7,rb1r6	; 0c84   af 0e      /.
 	mov	r6,#0		; 0c86   7e 00      ~.
@@ -2103,7 +2130,8 @@ X0e2a:	mov	a,SPIRSTAT	; 0e2a   e5 e6      ef
 	db	54h,7fh,4fh,0f5h,5ah,0adh,5ah,7fh	; 0eb9 T.OuZ-Z.
 	db	6,2,10h,9fh				; 0ec1 ....
 ;
-X0ec5:	orl	94h,#10h	; 0ec5   43 94 10   C..
+i2c_start:
+	orl	P1DIR,#10h	; 0ec5   43 94 10   C..
 	nop			; 0ec8   00         .
 	nop			; 0ec9   00         .
 	setb	p1.3		; 0eca   d2 93      R.
@@ -2117,7 +2145,7 @@ X0ec5:	orl	94h,#10h	; 0ec5   43 94 10   C..
 	nop			; 0ed3   00         .
 	nop			; 0ed4   00         .
 	nop			; 0ed5   00         .
-	anl	94h,#0efh	; 0ed6   53 94 ef   S.o
+	anl	P1DIR,#0efh	; 0ed6   53 94 ef   S.o
 	nop			; 0ed9   00         .
 	nop			; 0eda   00         .
 	nop			; 0edb   00         .
@@ -2320,7 +2348,7 @@ X0ffb:	mov	r3,rb0r7	; 0ffb   ab 07      +.
 	mov	a,r3		; 1013   eb         k
 	mov	r5,a		; 1014   fd         }
 	mov	r3,rb0r4	; 1015   ab 04      +.
-	ljmp	X10b6		; 1017   02 10 b6   ..6
+	ljmp	i2c_write_byte_to_eeprom; 1017   02 10 b6   ..6
 ;
 	mov	4fh,r7		; 101a   8f 4f      .O
 	mov	r7,#6		; 101c   7f 06      ..
@@ -2339,7 +2367,8 @@ X0ffb:	mov	r3,rb0r7	; 0ffb   ab 07      +.
 	mov	r7,#6		; 1034   7f 06      ..
 	ljmp	spi_write_register; 1036   02 10 9f   ...
 ;
-X1039:	anl	94h,#0efh	; 1039   53 94 ef   S.o
+i2c_stop:
+	anl	P1DIR,#0efh	; 1039   53 94 ef   S.o
 	nop			; 103c   00         .
 	setb	p1.3		; 103d   d2 93      R.
 	nop			; 103f   00         .
@@ -2352,7 +2381,7 @@ X1039:	anl	94h,#0efh	; 1039   53 94 ef   S.o
 	nop			; 1046   00         .
 	nop			; 1047   00         .
 	nop			; 1048   00         .
-	orl	94h,#10h	; 1049   43 94 10   C..
+	orl	P1DIR,#10h	; 1049   43 94 10   C..
 	nop			; 104c   00         .
 	nop			; 104d   00         .
 	nop			; 104e   00         .
@@ -2369,8 +2398,13 @@ X1039:	anl	94h,#0efh	; 1039   53 94 ef   S.o
 	db	8fh,82h,8eh,83h,0edh,0f0h,30h,0fch	; 105f ....mp0|
 	db	4,0c2h,0fdh,80h,0f9h,0a2h,0d5h,92h	; 1067 .B}.y"U.
 	db	0afh,22h				; 106f /"
+; ***************************************************************************
+; delay
 ;
-X1071:	setb	c		; 1071   d3         S
+; Delay value in R6/R7
+; ***************************************************************************
+;
+delay:	setb	c		; 1071   d3         S
 	mov	a,r7		; 1072   ef         o
 	subb	a,#0		; 1073   94 00      ..
 	mov	a,r6		; 1075   ee         n
@@ -2378,25 +2412,30 @@ X1071:	setb	c		; 1071   d3         S
 	jc	X1087		; 1078   40 0d      @.
 	clr	a		; 107a   e4         d
 	mov	r5,a		; 107b   fd         }
-X107c:	inc	r5		; 107c   0d         .
-	cjne	r5,#0ah,X107c	; 107d   bd 0a fc   =.|
+delay_loop:
+	inc	r5		; 107c   0d         .
+	cjne	r5,#0ah,delay_loop; 107d   bd 0a fc   =.|
 	mov	a,r7		; 1080   ef         o
 	dec	r7		; 1081   1f         .
-	jnz	X1071		; 1082   70 ed      pm
+	jnz	delay		; 1082   70 ed      pm
 	dec	r6		; 1084   1e         .
-	sjmp	X1071		; 1085   80 ea      .j
+	sjmp	delay		; 1085   80 ea      .j
 ;
 X1087:	ret			; 1087   22         "
 ;
-X1088:	mov	9fh,#54h	; 1088   75 9f 54   u.T
-	mov	9fh,#53h	; 108b   75 9f 53   u.S
+; ***************************************************************************
+; init_ports
+; ***************************************************************************
+init_ports:
+	mov	P1CON,#54h	; 1088   75 9f 54   u.T
+	mov	P1CON,#53h	; 108b   75 9f 53   u.S
 	clr	p1.3		; 108e   c2 93      B.
 	clr	p1.4		; 1090   c2 94      B.
-	anl	94h,#0f7h	; 1092   53 94 f7   S.w
-	orl	94h,#10h	; 1095   43 94 10   C..
+	anl	P1DIR,#0f7h	; 1092   53 94 f7   S.w
+	orl	P1DIR,#10h	; 1095   43 94 10   C..
 	mov	r7,#0c8h	; 1098   7f c8      .H
 	mov	r6,#0		; 109a   7e 00      ~.
-	ljmp	X1071		; 109c   02 10 71   ..q
+	ljmp	delay		; 109c   02 10 71   ..q
 ;
 ; ***************************************************************************
 ; SPI Write to a RF register
@@ -2416,13 +2455,14 @@ spi_write_register:
 	mov	r7,20h		; 10b3   af 20      / 
 	ret			; 10b5   22         "
 ;
-X10b6:	mov	r6,rb0r7	; 10b6   ae 07      ..
+i2c_write_byte_to_eeprom:
+	mov	r6,rb0r7	; 10b6   ae 07      ..
 	mov	r4,rb0r3	; 10b8   ac 03      ,.
-	lcall	X070f		; 10ba   12 07 0f   ...
+	lcall	ic2_write_address; 10ba   12 07 0f   ...
 	mov	r7,rb0r4	; 10bd   af 04      /.
-	lcall	X0717		; 10bf   12 07 17   ...
-	lcall	X1039		; 10c2   12 10 39   ..9
-X10c5:	lcall	X0be1		; 10c5   12 0b e1   ..a
+	lcall	i2c_write_byte	; 10bf   12 07 17   ...
+	lcall	i2c_stop	; 10c2   12 10 39   ..9
+X10c5:	lcall	i2c_has_write_finished; 10c5   12 0b e1   ..a
 	mov	a,r7		; 10c8   ef         o
 	jz	X10c5		; 10c9   60 fa      `z
 	ret			; 10cb   22         "
@@ -2431,15 +2471,16 @@ X10c5:	lcall	X0be1		; 10c5   12 0b e1   ..a
 	db	8fh,0fah,30h,0fch,4,0c2h,0fdh,80h	; 10d4 .z0|.B}.
 	db	0f9h,0a2h,0d5h,92h,0afh,22h		; 10dc y"U./"
 ;
-X10e2:	mov	r4,rb0r7	; 10e2   ac 07      ,.
-	lcall	X070f		; 10e4   12 07 0f   ...
-	lcall	X0ec5		; 10e7   12 0e c5   ..E
+i2c_read_byte_from_eeprom:
+	mov	r4,rb0r7	; 10e2   ac 07      ,.
+	lcall	ic2_write_address; 10e4   12 07 0f   ...
+	lcall	i2c_start	; 10e7   12 0e c5   ..E
 	mov	a,r4		; 10ea   ec         l
 	inc	a		; 10eb   04         .
 	mov	r7,a		; 10ec   ff         .
-	lcall	X0717		; 10ed   12 07 17   ...
-	lcall	X0a1e		; 10f0   12 0a 1e   ...
-	lcall	X1039		; 10f3   12 10 39   ..9
+	lcall	i2c_write_byte	; 10ed   12 07 17   ...
+	lcall	i2c_read_byte	; 10f0   12 0a 1e   ...
+	lcall	i2c_stop	; 10f3   12 10 39   ..9
 	ret			; 10f6   22         "
 ;
 X10f7:	mov	a,r7		; 10f7   ef         o
@@ -2455,7 +2496,12 @@ X10f7:	mov	a,r7		; 10f7   ef         o
 	mov	r7,#servo_out_state; 1107   7f 03      ..
 	ljmp	spi_write_register; 1109   02 10 9f   ...
 ;
-X110c:	mov	a,r7		; 110c   ef         o
+; ***************************************************************************
+; spi_set_rf_channel
+; In: R7: channel number
+; ***************************************************************************
+spi_set_rf_channel:
+	mov	a,r7		; 110c   ef         o
 	anl	a,#7fh		; 110d   54 7f      T.
 	mov	r7,a		; 110f   ff         .
 	mov	r6,rb3r3	; 1110   ae 1b      ..
@@ -2464,7 +2510,7 @@ X110c:	mov	a,r7		; 110c   ef         o
 	orl	a,r7		; 1115   4f         O
 	mov	rb3r3,a		; 1116   f5 1b      u.
 	mov	r5,rb3r3	; 1118   ad 1b      -.
-	mov	r7,#5		; 111a   7f 05      ..
+	mov	r7,#5		; 111a   7f 05      ..	; RF_CH
 	ljmp	spi_write_register; 111c   02 10 9f   ...
 ;
 	db	74h,1,0a8h,7,8,80h,2,0c3h		; 111f t.(....C
@@ -2485,7 +2531,12 @@ spi_read_register:
 	setb	obf		; 1147   d2 e9      Ri
 	ret			; 1149   22         "
 ;
-X114a:	mov	r5,#70h		; 114a   7d 70      }p
+; ***************************************************************************
+; spi_read_rf_status
+; Reads and clears the RF status register. Output in R7
+; ***************************************************************************
+spi_read_rf_status:
+	mov	r5,#70h		; 114a   7d 70      }p
 	mov	r7,#7		; 114c   7f 07      ..
 	lcall	spi_write_register; 114e   12 10 9f   ...
 	mov	a,r7		; 1151   ef         o
@@ -2505,7 +2556,8 @@ X114a:	mov	r5,#70h		; 114a   7d 70      }p
 	mov	r7,a		; 1183   ff         .
 	ret			; 1184   22         "
 ;
-X1185:	mov	tmod,#1		; 1185   75 89 01   u..
+init_timer0:
+	mov	tmod,#1		; 1185   75 89 01   u..
 	clr	a		; 1188   e4         d
 	mov	tcon,a		; 1189   f5 88      u.
 	mov	ie,#2		; 118b   75 a8 02   u(.
@@ -2615,11 +2667,18 @@ spi_read_rx_fifo_payload_width:
 	lcall	spi_read_register; 1238   12 11 3d   ..=
 	ret			; 123b   22         "
 ;
-X123c:	mov	r7,#8		; 123c   7f 08      ..
+; ***************************************************************************
+; spi_read_rf_fifo_data
+;
+; Read data from the RF FIFO?
+; ***************************************************************************
+spi_read_rf_fifo_data:
+	mov	r7,#8		; 123c   7f 08      ..
 	lcall	X0941		; 123e   12 09 41   ..A
 	ret			; 1241   22         "
 ;
-X1242:	orl	tmod,#10h	; 1242   43 89 10   C..
+init_timer1:
+	orl	tmod,#10h	; 1242   43 89 10   C..
 	ret			; 1245   22         "
 ;
 ; ****************************************************
@@ -2658,8 +2717,12 @@ rb3r7	equ	1fh
 ;
 ;	SFR Equates
 ;
+P0DIR	equ	93h
+P1DIR	equ	94h
 S0CON	equ	98h
 S0BUF	equ	99h
+P0CON	equ	9eh
+P1CON	equ	9fh
 PWMDC0	equ	0a1h
 PWMDC1	equ	0a2h
 CLKCTRL	equ	0a3h

@@ -1,0 +1,12 @@
+
+PROJECT = xr3100
+
+OBJECTS := $(PROJECT).d52
+HEX := $(PROJECT).hex
+CONTROL := $(PROJECT).ctl
+
+DASM := d52
+DASM_OPTS := -d
+
+$(OBJECTS): $(HEX) $(CONTROL)
+	$(DASM) $(DASM_OPTS) $(HEX)
