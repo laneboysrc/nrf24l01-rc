@@ -88,11 +88,14 @@ b 10cc-10e1	; 8-bit data
 
 c 10e2-111e	; Code space
 
-b 111f-113c		; 8-bit data
+
+c 111f-113c
+! 111f 111f-113c UNUSED CODE
 
 c 113d-1155	; Code space
 
-b 1156-117f	; 8-bit data
+c 1156-117f
+! 1156 1156-117f UNUSED CODE
 
 c 1180-11ac	; Code space
 
@@ -104,32 +107,45 @@ b 11cb-11d4	; 8-bit data
 
 c 11d5-11de	; Code space
 
-b 11df-11fc	; 8-bit data
+c 11df-11fc
+! 11df 11df-11fc UNUSED CODE
 
 c 11fd-1206	; Code space
 
-b 1207-120d	; 8-bit data
+c 1207-120d
+! 1207 1207-120d UNUSED CODE
 
 c 120e-1214	; Code space
 
-b 1215-1222	; 8-bit data
+c 1215-1222
+! 1215 1215-1222 UNUSED CODE
 
 c 1223-1229	; Code space
 
-b 122a-1235		; 8-bit data
+c 122a-1235
+! 122a 122a-1235 UNUSED CODE
 
 c 1236-1249	; Code space
 
 i 124a-1ffe	; ignore data
 
+s 0022 ch1
+s 0024 ch2
+s 0026 ch3
+s 0028 ch4
+
 ! 000e OBSERVE_TX ?!
 ! 001e FIFO_STATUS
 ! 0024 Masks out TX_FULL and TX_EMPTY
+
+l 002e i2c_eeprom_read_one_byte
 
 l 004e init
 # 004e ***************************************************************************
 # 004e Initialization
 # 004e ***************************************************************************
+
+! 00c3 Enable the receiver
 
 l 00eb main
 # 00eb ***************************************************************************
@@ -142,11 +158,15 @@ l 00eb main
 l 010f not_factory
 
 # 01d2 ***************************************************************************
-# 01d2 This code below sets the servo pulse durations
+# 01d2 This code below sets the servo pulse durations 0x55
 # 01d2 ***************************************************************************
 
+# 02b1 ***************************************************************************
+# 02b1 This code below sets failsafe 0xaa
+# 02b1 ***************************************************************************
+
 l 05b3 servo_pulse_t1_handler
-s 0003 servo_out_state
+;s 0003 servo_out_state
 # 05b3 ***************************************************************************
 # 05b3 Timer 1 interrupt handler, generates the servo pulses
 # 05b3
@@ -156,6 +176,7 @@ s 0003 servo_out_state
 # 05b3 Timing values are stored in RAM 0x22, 0x24, 0x26, 0x28
 # 05b3 ***************************************************************************
 
+l 0662 get_indirect_r1_r2
 
 l 083e reset
 # 083e ***************************************************************************
@@ -191,6 +212,8 @@ l 09d3 init_rf_r7_is_7
 ! 09c9 Jump if r7 is NOT 8 (jump if 7?)
 l 0a14 init_rf_execute
 
+l 0ae4 init_rf_data_pipes
+
 ! 0b2d Disable ‘Auto Acknowledgment’
 ! 0b28 Enable ‘Auto Acknowledgment’ on all pipes
 ! 0b32 EN_RXADDR
@@ -224,6 +247,10 @@ l 0cf4 set_crc_2bytes
 l 0d02 set_crc_write_config
 ! 0d04 CONFIG
 
+l 0d4c rc_configure_receiver
+l 0d76 rf_set_receive_address_for_pipe
+l 0d89 init_rf_set_data_rate
+
 l 070f ic2_write_address
 l 0ec5 i2c_start
 l 1039 i2c_stop
@@ -232,6 +259,9 @@ l 0717 i2c_write_byte
 l 10e2 i2c_read_byte_from_eeprom
 l 0be1 i2c_has_write_finished
 l 10b6 i2c_write_byte_to_eeprom
+
+l 0fb5 rf_set_rx
+l 0fd8 rf_set_power_up
 
 l 1071 delay
 # 1071 ***************************************************************************
@@ -245,6 +275,8 @@ l 1088 init_ports
 # 1088 ***************************************************************************
 # 1088 init_ports
 # 1088 ***************************************************************************
+
+l 10f7 init_rf_setup_address_width
 
 l 1185 init_timer0
 l 1242 init_timer1
@@ -301,6 +333,13 @@ l 11c1 spi_received_power_decector
 # 11c1
 # 11c1 Returns the Received Power Detector (Carrier Detect) flag
 # 11c1 ***************************************************************************
+
+l 11d5 rf_read_rx_status
+l 11fd spi_send_nop_command
+
+l 120e rf_set_payload_bytes
+
+l 1230 rf_read_fifo_status
 
 ! 1236 R_RX_PL_WID
 l 1236 spi_read_rx_fifo_payload_width
