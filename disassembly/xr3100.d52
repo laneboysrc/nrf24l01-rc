@@ -1,6 +1,6 @@
 ;
 ;  D52 V3.4.1 8052 Disassembly of xr3100.hex
-;  2014/11/13 10:41
+;  2014/11/13 11:59
 ;
 	org	0
 ;
@@ -48,7 +48,7 @@ i2c_eeprom_read_one_byte:
 	rlc	a		; 003b   33         3
 	mov	r6,a		; 003c   fe         ~
 	mov	a,r7		; 003d   ef         o
-	add	a,#0a0h		; 003e   24 a0      $ 
+	add	a,#0a0h		; 003e   24 a0      $
 	mov	r7,a		; 0040   ff         .
 	clr	a		; 0041   e4         d
 	addc	a,r6		; 0042   3e         >
@@ -67,7 +67,7 @@ i2c_eeprom_read_one_byte:
 ; ***************************************************************************
 init:	clr	a		; 004e   e4         d
 	mov	rb1r4,a		; 004f   f5 0c      u.
-	mov	rb1r5,a		; 0051   f5 0d      u.
+	mov	rf_detected,a	; 0051   f5 0d      u.
 	lcall	init_ports	; 0053   12 10 88   ...
 	lcall	read_bind_data	; 0056   12 0c 81   ...
 	anl	P0DIR,#0dfh	; 0059   53 93 df   S._
@@ -79,18 +79,18 @@ init:	clr	a		; 004e   e4         d
 	lcall	init_timer0	; 0069   12 11 85   ...
 	lcall	init_timer1	; 006c   12 12 42   ..B
 	mov	r7,#2		; 006f   7f 02      ..
-	lcall	set_crc		; 0071   12 0c c6   ..F
+	lcall	rf_set_crc	; 0071   12 0c c6   ..F
 	clr	a		; 0074   e4         d
 	mov	r5,a		; 0075   fd         }
 	mov	r7,#4		; 0076   7f 04      ..
-	lcall	init_rf		; 0078   12 09 b3   ..3
+	lcall	rf_modify_config_bit; 0078   12 09 b3   ..3
 	clr	a		; 007b   e4         d
 	mov	r5,a		; 007c   fd         }
 	mov	r7,#5		; 007d   7f 05      ..
-	lcall	init_rf		; 007f   12 09 b3   ..3
+	lcall	rf_modify_config_bit; 007f   12 09 b3   ..3
 	mov	r5,#1		; 0082   7d 01      }.
 	mov	r7,#6		; 0084   7f 06      ..
-	lcall	init_rf		; 0086   12 09 b3   ..3
+	lcall	rf_modify_config_bit; 0086   12 09 b3   ..3
 	clr	a		; 0089   e4         d
 	mov	r5,a		; 008a   fd         }
 	mov	r7,a		; 008b   ff         .
@@ -101,7 +101,7 @@ init:	clr	a		; 004e   e4         d
 	lcall	init_rf_set_data_rate; 0096   12 0d 89   ...
 	mov	r3,#1		; 0099   7b 01      {.
 	mov	r2,#0		; 009b   7a 00      z.
-	mov	r1,#3eh		; 009d   79 3e      y>
+	mov	r1,#bind_data	; 009d   79 3e      y>
 	clr	a		; 009f   e4         d
 	mov	r7,a		; 00a0   ff         .
 	lcall	rc_configure_receiver; 00a1   12 0d 4c   ..L
@@ -115,7 +115,7 @@ init:	clr	a		; 004e   e4         d
 	mov	dptr,#X0004	; 00b0   90 00 04   ...
 	movx	@dptr,a		; 00b3   f0         p
 	movx	a,@dptr		; 00b4   e0         `
-	add	a,#2ah		; 00b5   24 2a      $*
+	add	a,#hop_data	; 00b5   24 2a      $*
 	mov	dpl,a		; 00b7   f5 82      u.
 	clr	a		; 00b9   e4         d
 	addc	a,#0		; 00ba   34 00      4.
@@ -132,9 +132,9 @@ init:	clr	a		; 004e   e4         d
 	clr	IEN0_all	; 00d1   c2 af      B/
 	mov	IEN0,#ch1	; 00d3   75 a8 22   u("
 	setb	IEN0_all	; 00d6   d2 af      R/
-	clr	p0.0		; 00d8   c2 80      B.
-	setb	p0.1		; 00da   d2 81      R.
-	jb	p0.3,X00e2	; 00dc   20 83 03    ..	; Bind switch checked at reset?!?
+	clr	LED_GREEN	; 00d8   c2 80      B.
+	setb	LED_RED		; 00da   d2 81      R.
+	jb	BIND_BUTTON,X00e2; 00dc   20 83 03    ..	; Bind switch checked at reset?!?
 	mov	2bh,#1		; 00df   75 2b 01   u+.
 X00e2:	mov	a,2bh		; 00e2   e5 2b      e+
 	jz	main		; 00e4   60 05      `.
@@ -144,30 +144,30 @@ X00e2:	mov	a,2bh		; 00e2   e5 2b      e+
 ; MAIN LOOP
 ; ***************************************************************************
 main:	mov	a,2bh		; 00eb   e5 2b      e+
-	jz	not_factory	; 00ed   60 20      ` 
+	jz	not_factory	; 00ed   60 20      `
 	mov	dptr,#X0014	; 00ef   90 00 14   ...
 	movx	a,@dptr		; 00f2   e0         `
 	mov	r7,a		; 00f3   ff         .
 	jnb	acc.0,main	; 00f4   30 e0 f4   0`t
 	anl	a,#0feh		; 00f7   54 fe      T~
 	movx	@dptr,a		; 00f9   f0         p
-	lcall	spi_received_power_decector; 00fa   12 11 c1   ..A
-	mov	rb1r5,r7	; 00fd   8f 0d      ..
-	mov	a,rb1r5		; 00ff   e5 0d      e.
+	lcall	is_rf_power_detected; 00fa   12 11 c1   ..A
+	mov	rf_detected,r7	; 00fd   8f 0d      ..
+	mov	a,rf_detected	; 00ff   e5 0d      e.
 	jz	X0109		; 0101   60 06      `.
-	setb	p0.0		; 0103   d2 80      R.
-	setb	p0.1		; 0105   d2 81      R.
+	setb	LED_GREEN	; 0103   d2 80      R.
+	setb	LED_RED		; 0105   d2 81      R.
 	sjmp	main		; 0107   80 e2      .b
 ;
-X0109:	clr	p0.0		; 0109   c2 80      B.
-	clr	p0.1		; 010b   c2 81      B.
+X0109:	clr	LED_GREEN	; 0109   c2 80      B.
+	clr	LED_RED		; 010b   c2 81      B.
 	sjmp	main		; 010d   80 dc      .\
 ;
 not_factory:
 	lcall	X0a82		; 010f   12 0a 82   ...
 	cjne	r7,#1,X0121	; 0112   bf 01 0c   ?..
-	setb	p0.1		; 0115   d2 81      R.
-	clr	p0.0		; 0117   c2 80      B.
+	setb	LED_RED		; 0115   d2 81      R.
+	clr	LED_GREEN	; 0117   c2 80      B.
 	clr	RFCON_rfce	; 0119   c2 e8      Bh
 	lcall	X0346		; 011b   12 03 46   ..F
 	mov	T2CON,#41h	; 011e   75 c8 41   uHA
@@ -195,7 +195,7 @@ fifo_is_empty:
 X014c:	mov	dptr,#X0008	; 014c   90 00 08   ...
 	movx	a,@dptr		; 014f   e0         `
 	jnz	X0164		; 0150   70 12      p.
-	mov	dptr,#X002a	; 0152   90 00 2a   ..*
+	mov	dptr,#hop_data	; 0152   90 00 2a   ..*
 	movx	a,@dptr		; 0155   e0         `
 	mov	r7,a		; 0156   ff         .
 	lcall	spi_set_rf_channel; 0157   12 11 0c   ...
@@ -429,7 +429,7 @@ X02b1:	mov	dptr,#X001d	; 02b1   90 00 1d   ...
 	cjne	a,#0aah,X02de	; 02b5   b4 aa 26   4*&
 	inc	dptr		; 02b8   a3         #
 	movx	a,@dptr		; 02b9   e0         `
-	mov	dptr,#X0007	; 02ba   90 00 07   ...
+	mov	dptr,#failsafe_flag; 02ba   90 00 07   ...
 	movx	@dptr,a		; 02bd   f0         p
 	mov	dptr,#X0016	; 02be   90 00 16   ...
 	movx	a,@dptr		; 02c1   e0         `
@@ -456,14 +456,15 @@ X02e1:	clr	c		; 02e1   c3         C
 	mov	dptr,#X0001	; 02e8   90 00 01   ...
 	movx	a,@dptr		; 02eb   e0         `
 	subb	a,#0		; 02ec   94 00      ..
-	jnc	X02f7		; 02ee   50 07      P.
-	setb	p0.0		; 02f0   d2 80      R.
-	clr	p0.1		; 02f2   c2 81      B.
+	jnc	output_failsafe	; 02ee   50 07      P.
+	setb	LED_GREEN	; 02f0   d2 80      R.
+	clr	LED_RED		; 02f2   c2 81      B.
 	ljmp	main		; 02f4   02 00 eb   ..k
 ;
-X02f7:	clr	p0.0		; 02f7   c2 80      B.
-	setb	p0.1		; 02f9   d2 81      R.
-	mov	dptr,#X0007	; 02fb   90 00 07   ...
+output_failsafe:
+	clr	LED_GREEN	; 02f7   c2 80      B.
+	setb	LED_RED		; 02f9   d2 81      R.
+	mov	dptr,#failsafe_flag; 02fb   90 00 07   ...
 	movx	a,@dptr		; 02fe   e0         `
 	xrl	a,#5ah		; 02ff   64 5a      dZ
 	jnz	X0331		; 0301   70 2e      p.
@@ -528,14 +529,14 @@ X0346:	anl	IEN0,#0f7h	; 0346   53 a8 f7   S(w
 	mov	r7,#51h		; 035b   7f 51      .Q
 	lcall	spi_set_rf_channel; 035d   12 11 0c   ...
 	clr	a		; 0360   e4         d
-	mov	rb2r0,a		; 0361   f5 10      u.
-	mov	rb2r1,a		; 0363   f5 11      u.
-X0365:	inc	rb2r1		; 0365   05 11      ..
-	mov	a,rb2r1		; 0367   e5 11      e.
+	mov	count_l,a	; 0361   f5 10      u.
+	mov	count_h,a	; 0363   f5 11      u.
+X0365:	inc	count_h		; 0365   05 11      ..
+	mov	a,count_h	; 0367   e5 11      e.
 	jnz	X036d		; 0369   70 02      p.
-	inc	rb2r0		; 036b   05 10      ..
+	inc	count_l		; 036b   05 10      ..
 X036d:	cjne	a,#88h,X0365	; 036d   b4 88 f5   4.u
-	mov	a,rb2r0		; 0370   e5 10      e.
+	mov	a,count_l	; 0370   e5 10      e.
 	cjne	a,#13h,X0365	; 0372   b4 13 f0   4.p
 	setb	RFCON_rfce	; 0375   d2 e8      Rh
 	clr	a		; 0377   e4         d
@@ -581,9 +582,9 @@ X03b5:	inc	dptr		; 03b5   a3         #
 ;
 X03be:	mov	r7,a		; 03be   ff         .
 	mov	r6,a		; 03bf   fe         ~
-	mov	rb2r0,a		; 03c0   f5 10      u.
-	mov	rb2r1,a		; 03c2   f5 11      u.
-X03c4:	mov	r5,rb2r1	; 03c4   ad 11      -.
+	mov	count_l,a	; 03c0   f5 10      u.
+	mov	count_h,a	; 03c2   f5 11      u.
+X03c4:	mov	r5,count_h	; 03c4   ad 11      -.
 	mov	a,#19h		; 03c6   74 19      t.
 	add	a,r5		; 03c8   2d         -
 	mov	dpl,a		; 03c9   f5 82      u.
@@ -597,7 +598,7 @@ X03c4:	mov	r5,rb2r1	; 03c4   ad 11      -.
 	mov	r0,a		; 03d5   f8         x
 	mov	@r0,rb0r4	; 03d6   a6 04      &.
 	mov	a,#14h		; 03d8   74 14      t.
-	add	a,rb2r1		; 03da   25 11      %.
+	add	a,count_h	; 03da   25 11      %.
 	mov	r0,a		; 03dc   f8         x
 	mov	a,@r0		; 03dd   e6         f
 	add	a,r7		; 03de   2f         /
@@ -605,17 +606,17 @@ X03c4:	mov	r5,rb2r1	; 03c4   ad 11      -.
 	clr	a		; 03e0   e4         d
 	addc	a,r6		; 03e1   3e         >
 	mov	r6,a		; 03e2   fe         ~
-	inc	rb2r1		; 03e3   05 11      ..
-	mov	a,rb2r1		; 03e5   e5 11      e.
+	inc	count_h		; 03e3   05 11      ..
+	mov	a,count_h	; 03e5   e5 11      e.
 	jnz	X03eb		; 03e7   70 02      p.
-	inc	rb2r0		; 03e9   05 10      ..
+	inc	count_l		; 03e9   05 10      ..
 X03eb:	xrl	a,#5		; 03eb   64 05      d.
-	orl	a,rb2r0		; 03ed   45 10      E.
+	orl	a,count_l	; 03ed   45 10      E.
 	jnz	X03c4		; 03ef   70 d3      pS
-	mov	rb1r6,r7	; 03f1   8f 0e      ..
+	mov	save_r7,r7	; 03f1   8f 0e      ..
 	mov	a,r6		; 03f3   ee         n
 	mov	r6,#0		; 03f4   7e 00      ~.
-	mov	rb1r7,a		; 03f6   f5 0f      u.
+	mov	save_r5,a	; 03f6   f5 0f      u.
 	mov	rb3r1,#1	; 03f8   75 19 01   u..
 	ljmp	X04d8		; 03fb   02 04 d8   ..X
 ;
@@ -624,17 +625,17 @@ X03fe:	mov	a,rb3r1		; 03fe   e5 19      e.
 	jnz	X0447		; 0402   70 43      pC
 	mov	dptr,#X0016	; 0404   90 00 16   ...
 	movx	a,@dptr		; 0407   e0         `
-	xrl	a,rb1r6		; 0408   65 0e      e.
+	xrl	a,save_r7	; 0408   65 0e      e.
 	jnz	X0441		; 040a   70 35      p5
 	inc	dptr		; 040c   a3         #
 	movx	a,@dptr		; 040d   e0         `
-	cjne	a,rb1r7,X0441	; 040e   b5 0f 30   5.0
+	cjne	a,save_r5,X0441	; 040e   b5 0f 30   5.0
 	inc	dptr		; 0411   a3         #
 	movx	a,@dptr		; 0412   e0         `
 	jnz	X0441		; 0413   70 2c      p,
-	mov	rb2r0,a		; 0415   f5 10      u.
-	mov	rb2r1,a		; 0417   f5 11      u.
-X0419:	mov	r7,rb2r1	; 0419   af 11      /.
+	mov	count_l,a	; 0415   f5 10      u.
+	mov	count_h,a	; 0417   f5 11      u.
+X0419:	mov	r7,count_h	; 0419   af 11      /.
 	mov	a,#19h		; 041b   74 19      t.
 	add	a,r7		; 041d   2f         /
 	mov	dpl,a		; 041e   f5 82      u.
@@ -643,7 +644,7 @@ X0419:	mov	r7,rb2r1	; 0419   af 11      /.
 	mov	dph,a		; 0423   f5 83      u.
 	movx	a,@dptr		; 0425   e0         `
 	mov	r6,a		; 0426   fe         ~
-	mov	a,#2ah		; 0427   74 2a      t*
+	mov	a,#hop_data	; 0427   74 2a      t*
 	add	a,r7		; 0429   2f         /
 	mov	dpl,a		; 042a   f5 82      u.
 	clr	a		; 042c   e4         d
@@ -651,12 +652,12 @@ X0419:	mov	r7,rb2r1	; 0419   af 11      /.
 	mov	dph,a		; 042f   f5 83      u.
 	mov	a,r6		; 0431   ee         n
 	movx	@dptr,a		; 0432   f0         p
-	inc	rb2r1		; 0433   05 11      ..
-	mov	a,rb2r1		; 0435   e5 11      e.
+	inc	count_h		; 0433   05 11      ..
+	mov	a,count_h	; 0435   e5 11      e.
 	jnz	X043b		; 0437   70 02      p.
-	inc	rb2r0		; 0439   05 10      ..
-X043b:	xrl	a,#7		; 043b   64 07      d.
-	orl	a,rb2r0		; 043d   45 10      E.
+	inc	count_l		; 0439   05 10      ..
+X043b:	xrl	a,#failsafe_flag; 043b   64 07      d.
+	orl	a,count_l	; 043d   45 10      E.
 	jnz	X0419		; 043f   70 d8      pX
 X0441:	mov	rb3r1,#2	; 0441   75 19 02   u..
 	ljmp	X04d8		; 0444   02 04 d8   ..X
@@ -666,18 +667,18 @@ X0447:	mov	a,rb3r1		; 0447   e5 19      e.
 	jnz	X0491		; 044b   70 44      pD
 	mov	dptr,#X0016	; 044d   90 00 16   ...
 	movx	a,@dptr		; 0450   e0         `
-	xrl	a,rb1r6		; 0451   65 0e      e.
+	xrl	a,save_r7	; 0451   65 0e      e.
 	jnz	X048c		; 0453   70 37      p7
 	inc	dptr		; 0455   a3         #
 	movx	a,@dptr		; 0456   e0         `
-	cjne	a,rb1r7,X048c	; 0457   b5 0f 32   5.2
+	cjne	a,save_r5,X048c	; 0457   b5 0f 32   5.2
 	inc	dptr		; 045a   a3         #
 	movx	a,@dptr		; 045b   e0         `
 	cjne	a,#1,X048c	; 045c   b4 01 2d   4.-
 	clr	a		; 045f   e4         d
-	mov	rb2r0,a		; 0460   f5 10      u.
-	mov	rb2r1,a		; 0462   f5 11      u.
-X0464:	mov	r7,rb2r1	; 0464   af 11      /.
+	mov	count_l,a	; 0460   f5 10      u.
+	mov	count_h,a	; 0462   f5 11      u.
+X0464:	mov	r7,count_h	; 0464   af 11      /.
 	mov	a,#19h		; 0466   74 19      t.
 	add	a,r7		; 0468   2f         /
 	mov	dpl,a		; 0469   f5 82      u.
@@ -694,12 +695,12 @@ X0464:	mov	r7,rb2r1	; 0464   af 11      /.
 	mov	dph,a		; 047a   f5 83      u.
 	mov	a,r6		; 047c   ee         n
 	movx	@dptr,a		; 047d   f0         p
-	inc	rb2r1		; 047e   05 11      ..
-	mov	a,rb2r1		; 0480   e5 11      e.
+	inc	count_h		; 047e   05 11      ..
+	mov	a,count_h	; 0480   e5 11      e.
 	jnz	X0486		; 0482   70 02      p.
-	inc	rb2r0		; 0484   05 10      ..
-X0486:	xrl	a,#7		; 0486   64 07      d.
-	orl	a,rb2r0		; 0488   45 10      E.
+	inc	count_l		; 0484   05 10      ..
+X0486:	xrl	a,#failsafe_flag; 0486   64 07      d.
+	orl	a,count_l	; 0488   45 10      E.
 	jnz	X0464		; 048a   70 d8      pX
 X048c:	mov	rb3r1,#3	; 048c   75 19 03   u..
 	sjmp	X04d8		; 048f   80 47      .G
@@ -709,18 +710,18 @@ X0491:	mov	a,rb3r1		; 0491   e5 19      e.
 	jnz	X04d8		; 0495   70 41      pA
 	mov	dptr,#X0016	; 0497   90 00 16   ...
 	movx	a,@dptr		; 049a   e0         `
-	xrl	a,rb1r6		; 049b   65 0e      e.
+	xrl	a,save_r7	; 049b   65 0e      e.
 	jnz	X04d8		; 049d   70 39      p9
 	inc	dptr		; 049f   a3         #
 	movx	a,@dptr		; 04a0   e0         `
-	cjne	a,rb1r7,X04d8	; 04a1   b5 0f 34   5.4
+	cjne	a,save_r5,X04d8	; 04a1   b5 0f 34   5.4
 	inc	dptr		; 04a4   a3         #
 	movx	a,@dptr		; 04a5   e0         `
 	cjne	a,#2,X04d8	; 04a6   b4 02 2f   4./
 	clr	a		; 04a9   e4         d
-	mov	rb2r0,a		; 04aa   f5 10      u.
-	mov	rb2r1,a		; 04ac   f5 11      u.
-X04ae:	mov	r7,rb2r1	; 04ae   af 11      /.
+	mov	count_l,a	; 04aa   f5 10      u.
+	mov	count_h,a	; 04ac   f5 11      u.
+X04ae:	mov	r7,count_h	; 04ae   af 11      /.
 	mov	a,#19h		; 04b0   74 19      t.
 	add	a,r7		; 04b2   2f         /
 	mov	dpl,a		; 04b3   f5 82      u.
@@ -737,24 +738,24 @@ X04ae:	mov	r7,rb2r1	; 04ae   af 11      /.
 	mov	dph,a		; 04c4   f5 83      u.
 	mov	a,r6		; 04c6   ee         n
 	movx	@dptr,a		; 04c7   f0         p
-	inc	rb2r1		; 04c8   05 11      ..
-	mov	a,rb2r1		; 04ca   e5 11      e.
+	inc	count_h		; 04c8   05 11      ..
+	mov	a,count_h	; 04ca   e5 11      e.
 	jnz	X04d0		; 04cc   70 02      p.
-	inc	rb2r0		; 04ce   05 10      ..
+	inc	count_l		; 04ce   05 10      ..
 X04d0:	xrl	a,#6		; 04d0   64 06      d.
-	orl	a,rb2r0		; 04d2   45 10      E.
+	orl	a,count_l	; 04d2   45 10      E.
 	jnz	X04ae		; 04d4   70 d8      pX
-	sjmp	X0541		; 04d6   80 69      .i
+	sjmp	save_bind_data	; 04d6   80 69      .i
 ;
 X04d8:	clr	a		; 04d8   e4         d
-	mov	rb2r0,a		; 04d9   f5 10      u.
-	mov	rb2r1,a		; 04db   f5 11      u.
-X04dd:	inc	rb2r1		; 04dd   05 11      ..
-	mov	a,rb2r1		; 04df   e5 11      e.
+	mov	count_l,a	; 04d9   f5 10      u.
+	mov	count_h,a	; 04db   f5 11      u.
+X04dd:	inc	count_h		; 04dd   05 11      ..
+	mov	a,count_h	; 04df   e5 11      e.
 	jnz	X04e5		; 04e1   70 02      p.
-	inc	rb2r0		; 04e3   05 10      ..
+	inc	count_l		; 04e3   05 10      ..
 X04e5:	cjne	a,#0f4h,X04dd	; 04e5   b4 f4 f5   4tu
-	mov	a,rb2r0		; 04e8   e5 10      e.
+	mov	a,count_l	; 04e8   e5 10      e.
 	cjne	a,#1,X04dd	; 04ea   b4 01 f0   4.p
 	clr	c		; 04ed   c3         C
 	mov	a,rb2r3		; 04ee   e5 13      e.
@@ -794,8 +795,8 @@ X051a:	mov	24h,#1		; 051a   75 24 01   u$.
 	mov	th2,#0fah	; 052e   75 cd fa   uMz
 	clr	a		; 0531   e4         d
 	mov	tl2,a		; 0532   f5 cc      uL
-	setb	p0.1		; 0534   d2 81      R.
-	clr	p0.0		; 0536   c2 80      B.
+	setb	LED_RED		; 0534   d2 81      R.
+	clr	LED_GREEN	; 0536   c2 80      B.
 	mov	dptr,#X0001	; 0538   90 00 01   ...
 	movx	@dptr,a		; 053b   f0         p
 	inc	dptr		; 053c   a3         #
@@ -803,51 +804,52 @@ X051a:	mov	24h,#1		; 051a   75 24 01   u$.
 	movx	@dptr,a		; 053f   f0         p
 	ret			; 0540   22         "
 ;
-X0541:	clr	a		; 0541   e4         d
-	mov	rb2r0,a		; 0542   f5 10      u.
-	mov	rb2r1,a		; 0544   f5 11      u.
+save_bind_data:
+	clr	a		; 0541   e4         d
+	mov	count_l,a	; 0542   f5 10      u.
+	mov	count_h,a	; 0544   f5 11      u.
 X0546:	mov	a,#14h		; 0546   74 14      t.
-	add	a,rb2r1		; 0548   25 11      %.
+	add	a,count_h	; 0548   25 11      %.
 	mov	r0,a		; 054a   f8         x
 	mov	a,@r0		; 054b   e6         f
 	mov	r5,a		; 054c   fd         }
-	mov	r7,rb2r1	; 054d   af 11      /.
-	mov	r6,rb2r0	; 054f   ae 10      ..
-	lcall	X0ffb		; 0551   12 0f fb   ..{
-	inc	rb2r1		; 0554   05 11      ..
-	mov	a,rb2r1		; 0556   e5 11      e.
+	mov	r7,count_h	; 054d   af 11      /.
+	mov	r6,count_l	; 054f   ae 10      ..
+	lcall	write_bind_data_byte; 0551   12 0f fb   ..{
+	inc	count_h		; 0554   05 11      ..
+	mov	a,count_h	; 0556   e5 11      e.
 	jnz	X055c		; 0558   70 02      p.
-	inc	rb2r0		; 055a   05 10      ..
+	inc	count_l		; 055a   05 10      ..
 X055c:	clr	c		; 055c   c3         C
 	subb	a,#5		; 055d   94 05      ..
-	mov	a,rb2r0		; 055f   e5 10      e.
+	mov	a,count_l	; 055f   e5 10      e.
 	subb	a,#0		; 0561   94 00      ..
 	jc	X0546		; 0563   40 e1      @a
 	clr	a		; 0565   e4         d
-	mov	rb2r0,a		; 0566   f5 10      u.
-	mov	rb2r1,a		; 0568   f5 11      u.
-X056a:	mov	a,rb2r1		; 056a   e5 11      e.
+	mov	count_l,a	; 0566   f5 10      u.
+	mov	count_h,a	; 0568   f5 11      u.
+X056a:	mov	a,count_h	; 056a   e5 11      e.
 	add	a,#0ah		; 056c   24 0a      $.
 	mov	r7,a		; 056e   ff         .
 	clr	a		; 056f   e4         d
-	addc	a,rb2r0		; 0570   35 10      5.
+	addc	a,count_l	; 0570   35 10      5.
 	mov	r6,a		; 0572   fe         ~
-	mov	a,#2ah		; 0573   74 2a      t*
-	add	a,rb2r1		; 0575   25 11      %.
+	mov	a,#hop_data	; 0573   74 2a      t*
+	add	a,count_h	; 0575   25 11      %.
 	mov	dpl,a		; 0577   f5 82      u.
 	clr	a		; 0579   e4         d
 	addc	a,#0		; 057a   34 00      4.
 	mov	dph,a		; 057c   f5 83      u.
 	movx	a,@dptr		; 057e   e0         `
 	mov	r5,a		; 057f   fd         }
-	lcall	X0ffb		; 0580   12 0f fb   ..{
-	inc	rb2r1		; 0583   05 11      ..
-	mov	a,rb2r1		; 0585   e5 11      e.
+	lcall	write_bind_data_byte; 0580   12 0f fb   ..{
+	inc	count_h		; 0583   05 11      ..
+	mov	a,count_h	; 0585   e5 11      e.
 	jnz	X058b		; 0587   70 02      p.
-	inc	rb2r0		; 0589   05 10      ..
+	inc	count_l		; 0589   05 10      ..
 X058b:	clr	c		; 058b   c3         C
 	subb	a,#14h		; 058c   94 14      ..
-	mov	a,rb2r0		; 058e   e5 10      e.
+	mov	a,count_l	; 058e   e5 10      e.
 	subb	a,#0		; 0590   94 00      ..
 	jc	X056a		; 0592   40 d6      @V
 	mov	24h,#1		; 0594   75 24 01   u$.
@@ -863,8 +865,8 @@ X058b:	clr	c		; 058b   c3         C
 	mov	th2,#0fah	; 05a8   75 cd fa   uMz
 	clr	a		; 05ab   e4         d
 	mov	tl2,a		; 05ac   f5 cc      uL
-	clr	p0.1		; 05ae   c2 81      B.
-	setb	p0.0		; 05b0   d2 80      R.
+	clr	LED_RED		; 05ae   c2 81      B.
+	setb	LED_GREEN	; 05b0   d2 80      R.
 	ret			; 05b2   22         "
 ;
 ; ***************************************************************************
@@ -1065,9 +1067,9 @@ X06b9:	ret			; 06b9   22         "
 	db	0d5h,0f0h,0e9h,0e4h,0ceh,0fdh,ch1,0edh	; 06e2 UpidN}"m
 	db	0f8h,0f5h,0f0h,0eeh,84h,20h,0d2h,1ch	; 06ea xupn. R.
 	db	0feh,0adh,0f0h,75h,0f0h,8,0efh,2fh	; 06f2 ~-pup.o/
-	db	0ffh,0edh,33h,0fdh,40h,7,98h,50h	; 06fa .m3}@..P
-	db	6,0d5h,0f0h,0f2h,ch1,0c3h,98h,0fdh	; 0702 .Upr"C.}
-	db	0fh,0d5h,0f0h,0eah,ch1			; 070a .Upj"
+	db	0ffh,0edh,33h,0fdh,40h,failsafe_flag,98h	; 06fa .m3}@..
+	db	50h,6,0d5h,0f0h,0f2h,ch1,0c3h,98h	; 0701 P.Upr"C.
+	db	0fdh,0fh,0d5h,0f0h,0eah,ch1		; 0709 }.Upj"
 ;
 ic2_write_address:
 	lcall	i2c_start	; 070f   12 0e c5   ..E
@@ -1100,7 +1102,7 @@ X0725:	mov	a,r7		; 0725   ef         o
 	nop			; 0735   00         .
 	nop			; 0736   00         .
 	nop			; 0737   00         .
-	setb	p1.3		; 0738   d2 93      R.
+	setb	SCL		; 0738   d2 93      R.
 	nop			; 073a   00         .
 	nop			; 073b   00         .
 	nop			; 073c   00         .
@@ -1116,7 +1118,7 @@ X0725:	mov	a,r7		; 0725   ef         o
 	nop			; 0746   00         .
 	nop			; 0747   00         .
 	nop			; 0748   00         .
-	clr	p1.3		; 0749   c2 93      B.
+	clr	SCL		; 0749   c2 93      B.
 	inc	r6		; 074b   0e         .
 	cjne	r6,#8,X0719	; 074c   be 08 ca   >.J
 	nop			; 074f   00         .
@@ -1150,7 +1152,7 @@ X0725:	mov	a,r7		; 0725   ef         o
 	nop			; 076d   00         .
 	nop			; 076e   00         .
 	nop			; 076f   00         .
-	setb	p1.3		; 0770   d2 93      R.
+	setb	SCL		; 0770   d2 93      R.
 	nop			; 0772   00         .
 	nop			; 0773   00         .
 	nop			; 0774   00         .
@@ -1166,8 +1168,8 @@ X0725:	mov	a,r7		; 0725   ef         o
 	nop			; 077e   00         .
 	nop			; 077f   00         .
 	nop			; 0780   00         .
-	jnb	p1.4,X0798	; 0781   30 94 14   0..
-	clr	p1.3		; 0784   c2 93      B.
+	jnb	SDA,X0798	; 0781   30 94 14   0..
+	clr	SCL		; 0784   c2 93      B.
 	nop			; 0786   00         .
 	nop			; 0787   00         .
 	nop			; 0788   00         .
@@ -1186,7 +1188,7 @@ X0725:	mov	a,r7		; 0725   ef         o
 	mov	r7,#0		; 0795   7f 00      ..
 	ret			; 0797   22         "
 ;
-X0798:	clr	p1.3		; 0798   c2 93      B.
+X0798:	clr	SCL		; 0798   c2 93      B.
 	nop			; 079a   00         .
 	nop			; 079b   00         .
 	nop			; 079c   00         .
@@ -1205,15 +1207,15 @@ X0798:	clr	p1.3		; 0798   c2 93      B.
 	mov	r7,#1		; 07a9   7f 01      ..
 	ret			; 07ab   22         "
 ;
-	db	8fh,3eh,7fh,2,12h,11h,3dh,8fh		; 07ac .>....=.
+	db	8fh,bind_data,7fh,2,12h,11h,3dh,8fh	; 07ac .>....=.
 	db	3fh,7fh,1,12h,11h,3dh,8fh,40h		; 07b4 ?....=.@
-	db	0e5h,3eh,14h,60h,1ch,14h,60h,29h	; 07bc e>.`..`)
+	db	0e5h,bind_data,14h,60h,1ch,14h,60h,29h	; 07bc e>.`..`)
 	db	14h,60h,36h,14h,60h,45h,14h,60h		; 07c4 .`6.`E.`
 	db	50h,ch2,5,70h,60h,0afh,3fh,0efh		; 07cc P$.p`/?o
 	db	54h,1,0f5h,41h,0afh,40h,0efh,80h	; 07d4 T.uA/@o.
 	db	4eh,0afh,3fh,0efh,0c3h,13h,54h,1	; 07dc N/?oC.T.
 	db	0f5h,41h,0afh,40h,0efh,0c3h,13h,80h	; 07e4 uA/@oC..
-	db	3eh,0afh,3fh,0efh,13h,13h,54h,1		; 07ec >/?o..T.
+	db	bind_data,0afh,3fh,0efh,13h,13h,54h,1	; 07ec >/?o..T.
 	db	0f5h,41h,0afh,40h,0efh,13h,13h,80h	; 07f4 uA/@o...
 	db	2eh,0afh,3fh,0efh,13h,13h,13h,54h	; 07fc ./?o...T
 	db	1,0f5h,41h,0afh,40h,0efh,13h,13h	; 0804 .uA/@o..
@@ -1277,14 +1279,14 @@ X085f:	clr	a		; 085f   e4         d
 	movc	a,@a+dptr	; 0860   93         .
 	inc	dptr		; 0861   a3         #
 	mov	r0,a		; 0862   f8         x
-	anl	a,#7		; 0863   54 07      T.
+	anl	a,#failsafe_flag; 0863   54 07      T.
 	add	a,#0ch		; 0865   24 0c      $.
 	xch	a,r0		; 0867   c8         H
 	clr	c		; 0868   c3         C
 	rlc	a		; 0869   33         3
 	swap	a		; 086a   c4         D
 	anl	a,#0fh		; 086b   54 0f      T.
-	orl	a,#20h		; 086d   44 20      D 
+	orl	a,#20h		; 086d   44 20      D
 	xch	a,r0		; 086f   c8         H
 	movc	a,@a+pc		; 0870   83         .
 	jc	X0877		; 0871   40 04      @.
@@ -1393,7 +1395,7 @@ timer2_handler:
 	mov	a,b		; 0906   e5 f0      ep
 	movx	@dptr,a		; 0908   f0         p
 	movx	a,@dptr		; 0909   e0         `
-	add	a,#2ah		; 090a   24 2a      $*
+	add	a,#hop_data	; 090a   24 2a      $*
 	mov	dpl,a		; 090c   f5 82      u.
 	clr	a		; 090e   e4         d
 	addc	a,#0		; 090f   34 00      4.
@@ -1449,7 +1451,7 @@ spi_read_rf_fifo_data:
 spi_read_is_0_or_1_or_5:
 	lcall	spi_get_number_of_address_bytes; 095a   12 11 99   ...
 	mov	rb3r7,r7	; 095d   8f 1f      ..
-	mov	20h,r7		; 095f   8f 20      . 
+	mov	20h,r7		; 095f   8f 20      .
 	clr	RFCON_rfcsn	; 0961   c2 e9      Bi
 	mov	a,rb3r3		; 0963   e5 1b      e.
 	add	a,#0ah		; 0965   24 0a      $.
@@ -1461,11 +1463,11 @@ spi_read_is_8:
 	mov	rb3r3,r7	; 096d   8f 1b      ..
 	mov	a,r7		; 096f   ef         o
 	clr	c		; 0970   c3         C
-	subb	a,#7		; 0971   94 07      ..
+	subb	a,#failsafe_flag; 0971   94 07      ..
 	jnc	spi_read_is_not_null; 0973   50 10      P.
 	lcall	spi_read_rx_fifo_payload_width; 0975   12 12 36   ..6
 	mov	rb3r7,r7	; 0978   8f 1f      ..
-	mov	20h,r7		; 097a   8f 20      . 
+	mov	20h,r7		; 097a   8f 20      .
 	clr	RFCON_rfcsn	; 097c   c2 e9      Bi
 	mov	r7,#61h		; 097e   7f 61      .a	; READ_RX_PAYLOAD
 X0980:	lcall	spi_write	; 0980   12 11 8f   ...
@@ -1473,7 +1475,7 @@ X0980:	lcall	spi_write	; 0980   12 11 8f   ...
 ;
 spi_read_is_not_null:
 	clr	a		; 0985   e4         d
-	mov	20h,a		; 0986   f5 20      u 
+	mov	20h,a		; 0986   f5 20      u
 	mov	rb3r7,a		; 0988   f5 1f      u.
 X098a:	mov	r7,rb3r7	; 098a   af 1f      /.
 	dec	rb3r7		; 098c   15 1f      ..
@@ -1497,43 +1499,48 @@ X09a2:	dec	a		; 09a2   14         .
 X09aa:	setb	RFCON_rfcsn	; 09aa   d2 e9      Ri
 	mov	a,rb3r3		; 09ac   e5 1b      e.
 	mov	r6,a		; 09ae   fe         ~
-	mov	a,20h		; 09af   e5 20      e 
+	mov	a,20h		; 09af   e5 20      e
 	mov	r7,a		; 09b1   ff         .
 	ret			; 09b2   22         "
 ;
-init_rf:
-	mov	rb1r6,r7	; 09b3   8f 0e      ..
-	mov	rb1r7,r5	; 09b5   8d 0f      ..
+; ***************************************************************************
+; rf_modify_config_bit
+;
+; r7: bit number in the CONFIG reg.  r5: new bit value
+; ***************************************************************************
+rf_modify_config_bit:
+	mov	save_r7,r7	; 09b3   8f 0e      ..
+	mov	save_r5,r5	; 09b5   8d 0f      ..
 	clr	a		; 09b7   e4         d
 	mov	r7,a		; 09b8   ff         .
 	lcall	spi_read_register; 09b9   12 11 3d   ..=
-	mov	rb2r0,r7	; 09bc   8f 10      ..
-	mov	a,rb1r6		; 09be   e5 0e      e.
+	mov	count_l,r7	; 09bc   8f 10      ..
+	mov	a,save_r7	; 09be   e5 0e      e.
 	add	a,#0fbh		; 09c0   24 fb      ${
-	jz	init_rf_r7_is_5	; 09c2   60 1f      `.	; Jump if r7 is 5
+	jz	rf_cfg_r7_is_5	; 09c2   60 1f      `.	; Jump if r7 is 5
 	dec	a		; 09c4   14         .
-	jz	init_rf_r7_is_6	; 09c5   60 35      `5	; Jump if r7 is 6
+	jz	rf_cfg_r7_is_6	; 09c5   60 35      `5	; Jump if r7 is 6
 	add	a,#2		; 09c7   24 02      $.
 	jnz	X0a17		; 09c9   70 4c      pL	; Jump if r7 is NOT 8 (jump if 7?)
-	mov	a,rb1r7		; 09cb   e5 0f      e.
-	jz	init_rf_r7_is_7	; 09cd   60 04      `.
+	mov	a,save_r5	; 09cb   e5 0f      e.
+	jz	rf_cfg_r7_is_7	; 09cd   60 04      `.
 	mov	r7,#0		; 09cf   7f 00      ..
 	sjmp	X09d5		; 09d1   80 02      ..
 ;
-init_rf_r7_is_7:
+rf_cfg_r7_is_7:
 	mov	r7,#1		; 09d3   7f 01      ..
 X09d5:	mov	a,r7		; 09d5   ef         o
 	anl	a,#1		; 09d6   54 01      T.
 	swap	a		; 09d8   c4         D
 	anl	a,#0f0h		; 09d9   54 f0      Tp
 	mov	r7,a		; 09db   ff         .
-	mov	r6,rb2r0	; 09dc   ae 10      ..
+	mov	r6,count_l	; 09dc   ae 10      ..
 	mov	a,r6		; 09de   ee         n
 	anl	a,#0efh		; 09df   54 ef      To
-	sjmp	init_rf_execute	; 09e1   80 31      .1
+	sjmp	rf_modify_execute; 09e1   80 31      .1
 ;
-init_rf_r7_is_5:
-	mov	a,rb1r7		; 09e3   e5 0f      e.
+rf_cfg_r7_is_5:
+	mov	a,save_r5	; 09e3   e5 0f      e.
 	jz	X09eb		; 09e5   60 04      `.
 	mov	r7,#0		; 09e7   7f 00      ..
 	sjmp	X09ed		; 09e9   80 02      ..
@@ -1545,13 +1552,13 @@ X09ed:	mov	a,r7		; 09ed   ef         o
 	rlc	a		; 09f1   33         3
 	anl	a,#0e0h		; 09f2   54 e0      T`
 	mov	r7,a		; 09f4   ff         .
-	mov	r6,rb2r0	; 09f5   ae 10      ..
+	mov	r6,count_l	; 09f5   ae 10      ..
 	mov	a,r6		; 09f7   ee         n
 	anl	a,#0dfh		; 09f8   54 df      T_
-	sjmp	init_rf_execute	; 09fa   80 18      ..
+	sjmp	rf_modify_execute; 09fa   80 18      ..
 ;
-init_rf_r7_is_6:
-	mov	a,rb1r7		; 09fc   e5 0f      e.
+rf_cfg_r7_is_6:
+	mov	a,save_r5	; 09fc   e5 0f      e.
 	jz	X0a04		; 09fe   60 04      `.
 	mov	r7,#0		; 0a00   7f 00      ..
 	sjmp	X0a06		; 0a02   80 02      ..
@@ -1564,13 +1571,13 @@ X0a06:	mov	a,r7		; 0a06   ef         o
 	rlc	a		; 0a0b   33         3
 	anl	a,#0c0h		; 0a0c   54 c0      T@
 	mov	r7,a		; 0a0e   ff         .
-	mov	r6,rb2r0	; 0a0f   ae 10      ..
+	mov	r6,count_l	; 0a0f   ae 10      ..
 	mov	a,r6		; 0a11   ee         n
 	anl	a,#0bfh		; 0a12   54 bf      T?
-init_rf_execute:
+rf_modify_execute:
 	orl	a,r7		; 0a14   4f         O
-	mov	rb2r0,a		; 0a15   f5 10      u.
-X0a17:	mov	r5,rb2r0	; 0a17   ad 10      -.
+	mov	count_l,a	; 0a15   f5 10      u.
+X0a17:	mov	r5,count_l	; 0a17   ad 10      -.
 	clr	a		; 0a19   e4         d
 	mov	r7,a		; 0a1a   ff         .
 	ljmp	spi_write_register; 0a1b   02 10 9f   ...
@@ -1595,7 +1602,7 @@ X0a24:	nop			; 0a24   00         .
 	nop			; 0a30   00         .
 	nop			; 0a31   00         .
 	nop			; 0a32   00         .
-	clr	p1.3		; 0a33   c2 93      B.
+	clr	SCL		; 0a33   c2 93      B.
 	nop			; 0a35   00         .
 	nop			; 0a36   00         .
 	nop			; 0a37   00         .
@@ -1611,7 +1618,7 @@ X0a24:	nop			; 0a24   00         .
 	nop			; 0a41   00         .
 	nop			; 0a42   00         .
 	nop			; 0a43   00         .
-	setb	p1.3		; 0a44   d2 93      R.
+	setb	SCL		; 0a44   d2 93      R.
 	nop			; 0a46   00         .
 	nop			; 0a47   00         .
 	nop			; 0a48   00         .
@@ -1630,7 +1637,7 @@ X0a24:	nop			; 0a24   00         .
 	mov	a,r7		; 0a55   ef         o
 	add	a,acc		; 0a56   25 e0      %`
 	mov	r7,a		; 0a58   ff         .
-	jnb	p1.4,X0a5d	; 0a59   30 94 01   0..
+	jnb	SDA,X0a5d	; 0a59   30 94 01   0..
 	inc	r7		; 0a5c   0f         .
 X0a5d:	nop			; 0a5d   00         .
 	nop			; 0a5e   00         .
@@ -1649,7 +1656,7 @@ X0a5d:	nop			; 0a5d   00         .
 	nop			; 0a6b   00         .
 	inc	r6		; 0a6c   0e         .
 	cjne	r6,#8,X0a24	; 0a6d   be 08 b4   >.4
-	clr	p1.3		; 0a70   c2 93      B.
+	clr	SCL		; 0a70   c2 93      B.
 	nop			; 0a72   00         .
 	nop			; 0a73   00         .
 	nop			; 0a74   00         .
@@ -1672,12 +1679,12 @@ X0a82:	mov	dptr,#X0014	; 0a82   90 00 14   ...
 	jnb	acc.0,X0ae1	; 0a86   30 e0 58   0`X
 	anl	a,#0feh		; 0a89   54 fe      T~
 	movx	@dptr,a		; 0a8b   f0         p
-	jb	p0.3,X0ac3	; 0a8c   20 83 34    .4
+	jb	BIND_BUTTON,X0ac3; 0a8c   20 83 34    .4
 	clr	c		; 0a8f   c3         C
 	mov	dptr,#X0021	; 0a90   90 00 21   ..!
 	movx	a,@dptr		; 0a93   e0         `
 	subb	a,#88h		; 0a94   94 88      ..
-	mov	dptr,#X0020	; 0a96   90 00 20   .. 
+	mov	dptr,#X0020	; 0a96   90 00 20   ..
 	movx	a,@dptr		; 0a99   e0         `
 	subb	a,#13h		; 0a9a   94 13      ..
 	jnc	X0aaa		; 0a9c   50 0c      P.
@@ -1686,15 +1693,15 @@ X0a82:	mov	dptr,#X0014	; 0a82   90 00 14   ...
 	inc	a		; 0aa0   04         .
 	movx	@dptr,a		; 0aa1   f0         p
 	jnz	X0aaa		; 0aa2   70 06      p.
-	mov	dptr,#X0020	; 0aa4   90 00 20   .. 
+	mov	dptr,#X0020	; 0aa4   90 00 20   ..
 	movx	a,@dptr		; 0aa7   e0         `
 	inc	a		; 0aa8   04         .
 	movx	@dptr,a		; 0aa9   f0         p
 X0aaa:	setb	c		; 0aaa   d3         S
 	mov	dptr,#X0021	; 0aab   90 00 21   ..!
 	movx	a,@dptr		; 0aae   e0         `
-	subb	a,#20h		; 0aaf   94 20      . 
-	mov	dptr,#X0020	; 0ab1   90 00 20   .. 
+	subb	a,#20h		; 0aaf   94 20      .
+	mov	dptr,#X0020	; 0ab1   90 00 20   ..
 	movx	a,@dptr		; 0ab4   e0         `
 	subb	a,#3		; 0ab5   94 03      ..
 	jc	X0ac0		; 0ab7   40 07      @.
@@ -1711,8 +1718,8 @@ X0ac0:	mov	r7,#0		; 0ac0   7f 00      ..
 X0ac3:	setb	c		; 0ac3   d3         S
 	mov	dptr,#X0021	; 0ac4   90 00 21   ..!
 	movx	a,@dptr		; 0ac7   e0         `
-	subb	a,#20h		; 0ac8   94 20      . 
-	mov	dptr,#X0020	; 0aca   90 00 20   .. 
+	subb	a,#20h		; 0ac8   94 20      .
+	mov	dptr,#X0020	; 0aca   90 00 20   ..
 	movx	a,@dptr		; 0acd   e0         `
 	subb	a,#3		; 0ace   94 03      ..
 	clr	a		; 0ad0   e4         d
@@ -1723,7 +1730,7 @@ X0ac3:	setb	c		; 0ac3   d3         S
 	mov	r7,#2		; 0ad6   7f 02      ..
 	ret			; 0ad8   22         "
 ;
-X0ad9:	mov	dptr,#X0020	; 0ad9   90 00 20   .. 
+X0ad9:	mov	dptr,#X0020	; 0ad9   90 00 20   ..
 	movx	@dptr,a		; 0adc   f0         p
 	inc	dptr		; 0add   a3         #
 	movx	@dptr,a		; 0ade   f0         p
@@ -1734,22 +1741,22 @@ X0ae1:	mov	r7,#0		; 0ae1   7f 00      ..
 	ret			; 0ae3   22         "
 ;
 init_rf_data_pipes:
-	mov	rb1r6,r7	; 0ae4   8f 0e      ..
-	mov	rb1r7,r5	; 0ae6   8d 0f      ..
+	mov	save_r7,r7	; 0ae4   8f 0e      ..
+	mov	save_r5,r5	; 0ae6   8d 0f      ..
 	mov	r7,#2		; 0ae8   7f 02      ..
 	lcall	spi_read_register; 0aea   12 11 3d   ..=
-	mov	rb2r0,r7	; 0aed   8f 10      ..
+	mov	count_l,r7	; 0aed   8f 10      ..
 	mov	r7,#1		; 0aef   7f 01      ..
 	lcall	spi_read_register; 0af1   12 11 3d   ..=
-	mov	rb2r1,r7	; 0af4   8f 11      ..
-	mov	a,rb1r6		; 0af6   e5 0e      e.
+	mov	count_h,r7	; 0af4   8f 11      ..
+	mov	a,save_r7	; 0af6   e5 0e      e.
 	add	a,#0fah		; 0af8   24 fa      $z
 	jnc	X0b02		; 0afa   50 06      P.
-	add	a,#7		; 0afc   24 07      $.
+	add	a,#failsafe_flag; 0afc   24 07      $.
 	jz	X0b21		; 0afe   60 21      `!
 	sjmp	X0b30		; 0b00   80 2e      ..
 ;
-X0b02:	mov	r7,rb1r6	; 0b02   af 0e      /.
+X0b02:	mov	r7,save_r7	; 0b02   af 0e      /.
 	mov	a,#1		; 0b04   74 01      t.
 	mov	r0,rb0r7	; 0b06   a8 07      (.
 	inc	r0		; 0b08   08         .
@@ -1759,30 +1766,30 @@ X0b0b:	clr	c		; 0b0b   c3         C
 	rlc	a		; 0b0c   33         3
 X0b0d:	djnz	r0,X0b0b	; 0b0d   d8 fc      X|
 	mov	r7,a		; 0b0f   ff         .
-	orl	rb2r0,a		; 0b10   42 10      B.
-	mov	a,rb1r7		; 0b12   e5 0f      e.
+	orl	count_l,a	; 0b10   42 10      B.
+	mov	a,save_r5	; 0b12   e5 0f      e.
 	jz	X0b1b		; 0b14   60 05      `.
 	mov	a,r7		; 0b16   ef         o
-	orl	rb2r1,a		; 0b17   42 11      B.
+	orl	count_h,a	; 0b17   42 11      B.
 	sjmp	X0b30		; 0b19   80 15      ..
 ;
 X0b1b:	mov	a,r7		; 0b1b   ef         o
 	cpl	a		; 0b1c   f4         t
-	anl	rb2r1,a		; 0b1d   52 11      R.
+	anl	count_h,a	; 0b1d   52 11      R.
 	sjmp	X0b30		; 0b1f   80 0f      ..
 ;
-X0b21:	mov	rb2r0,#3fh	; 0b21   75 10 3f   u.?
-	mov	a,rb1r7		; 0b24   e5 0f      e.
+X0b21:	mov	count_l,#3fh	; 0b21   75 10 3f   u.?
+	mov	a,save_r5	; 0b24   e5 0f      e.
 	jz	X0b2d		; 0b26   60 05      `.
-	mov	rb2r1,#3fh	; 0b28   75 11 3f   u.?	; Enable ‘Auto Acknowledgment’ on all pipes
+	mov	count_h,#3fh	; 0b28   75 11 3f   u.?	; Enable ‘Auto Acknowledgment’ on all pipes
 	sjmp	X0b30		; 0b2b   80 03      ..
 ;
 X0b2d:	clr	a		; 0b2d   e4         d	; Disable ‘Auto Acknowledgment’
-	mov	rb2r1,a		; 0b2e   f5 11      u.
-X0b30:	mov	r5,rb2r0	; 0b30   ad 10      -.
+	mov	count_h,a	; 0b2e   f5 11      u.
+X0b30:	mov	r5,count_l	; 0b30   ad 10      -.
 	mov	r7,#2		; 0b32   7f 02      ..	; EN_RXADDR
 	lcall	spi_write_register; 0b34   12 10 9f   ...
-	mov	r5,rb2r1	; 0b37   ad 11      -.
+	mov	r5,count_h	; 0b37   ad 11      -.
 	mov	r7,#1		; 0b39   7f 01      ..	; EN_AA
 	ljmp	spi_write_register; 0b3b   02 10 9f   ...
 ;
@@ -1849,8 +1856,8 @@ X0bd8:	pop	PSW		; 0bd8   d0 d0      PP
 	reti			; 0be0   32         2
 ;
 i2c_has_write_finished:
-	mov	r7,#0a0h	; 0be1   7f a0      . 
-	clr	p1.4		; 0be3   c2 94      B.
+	mov	r7,#0a0h	; 0be1   7f a0      .
+	clr	SDA		; 0be3   c2 94      B.
 	orl	P1DIR,#10h	; 0be5   43 94 10   C..
 	lcall	i2c_start	; 0be8   12 0e c5   ..E
 	clr	a		; 0beb   e4         d
@@ -1864,13 +1871,13 @@ X0bf6:	anl	P1DIR,#0efh	; 0bf6   53 94 ef   S.o
 X0bf9:	mov	a,r7		; 0bf9   ef         o
 	add	a,acc		; 0bfa   25 e0      %`
 	mov	r7,a		; 0bfc   ff         .
-	setb	p1.3		; 0bfd   d2 93      R.
+	setb	SCL		; 0bfd   d2 93      R.
 	nop			; 0bff   00         .
 	nop			; 0c00   00         .
 	nop			; 0c01   00         .
 	nop			; 0c02   00         .
 	nop			; 0c03   00         .
-	clr	p1.3		; 0c04   c2 93      B.
+	clr	SCL		; 0c04   c2 93      B.
 	nop			; 0c06   00         .
 	nop			; 0c07   00         .
 	nop			; 0c08   00         .
@@ -1887,7 +1894,7 @@ X0bf9:	mov	a,r7		; 0bf9   ef         o
 	nop			; 0c17   00         .
 	nop			; 0c18   00         .
 	nop			; 0c19   00         .
-	setb	p1.3		; 0c1a   d2 93      R.
+	setb	SCL		; 0c1a   d2 93      R.
 	nop			; 0c1c   00         .
 	nop			; 0c1d   00         .
 	nop			; 0c1e   00         .
@@ -1896,12 +1903,12 @@ X0bf9:	mov	a,r7		; 0bf9   ef         o
 	nop			; 0c21   00         .
 	nop			; 0c22   00         .
 	nop			; 0c23   00         .
-	jnb	p1.4,X0c2c	; 0c24   30 94 05   0..
-	clr	p1.3		; 0c27   c2 93      B.
+	jnb	SDA,X0c2c	; 0c24   30 94 05   0..
+	clr	SCL		; 0c27   c2 93      B.
 	mov	r7,#0		; 0c29   7f 00      ..
 	ret			; 0c2b   22         "
 ;
-X0c2c:	clr	p1.3		; 0c2c   c2 93      B.
+X0c2c:	clr	SCL		; 0c2c   c2 93      B.
 	mov	r7,#1		; 0c2e   7f 01      ..
 	ret			; 0c30   22         "
 ;
@@ -1918,101 +1925,101 @@ X0c2c:	clr	p1.3		; 0c2c   c2 93      B.
 ;
 read_bind_data:
 	clr	a		; 0c81   e4         d
-	mov	rb1r6,a		; 0c82   f5 0e      u.
-X0c84:	mov	r7,rb1r6	; 0c84   af 0e      /.
+	mov	save_r7,a	; 0c82   f5 0e      u.
+X0c84:	mov	r7,save_r7	; 0c84   af 0e      /.
 	mov	r6,#0		; 0c86   7e 00      ~.
 	lcall	i2c_eeprom_read_one_byte; 0c88   12 00 2e   ...
-	mov	a,#3eh		; 0c8b   74 3e      t>
-	add	a,rb1r6		; 0c8d   25 0e      %.
+	mov	a,#bind_data	; 0c8b   74 3e      t>
+	add	a,save_r7	; 0c8d   25 0e      %.
 	mov	dpl,a		; 0c8f   f5 82      u.
 	clr	a		; 0c91   e4         d
 	addc	a,#0		; 0c92   34 00      4.
 	mov	dph,a		; 0c94   f5 83      u.
 	mov	a,r7		; 0c96   ef         o
 	movx	@dptr,a		; 0c97   f0         p
-	inc	rb1r6		; 0c98   05 0e      ..
-	mov	a,rb1r6		; 0c9a   e5 0e      e.
+	inc	save_r7		; 0c98   05 0e      ..
+	mov	a,save_r7	; 0c9a   e5 0e      e.
 	clr	c		; 0c9c   c3         C
 	subb	a,#5		; 0c9d   94 05      ..
 	jc	X0c84		; 0c9f   40 e3      @c
 	clr	a		; 0ca1   e4         d
-	mov	rb1r6,a		; 0ca2   f5 0e      u.
-X0ca4:	mov	a,rb1r6		; 0ca4   e5 0e      e.
+	mov	save_r7,a	; 0ca2   f5 0e      u.
+X0ca4:	mov	a,save_r7	; 0ca4   e5 0e      e.
 	add	a,#0ah		; 0ca6   24 0a      $.
 	mov	r7,a		; 0ca8   ff         .
 	clr	a		; 0ca9   e4         d
 	rlc	a		; 0caa   33         3
 	mov	r6,a		; 0cab   fe         ~
 	lcall	i2c_eeprom_read_one_byte; 0cac   12 00 2e   ...
-	mov	a,#2ah		; 0caf   74 2a      t*
-	add	a,rb1r6		; 0cb1   25 0e      %.
+	mov	a,#hop_data	; 0caf   74 2a      t*
+	add	a,save_r7	; 0cb1   25 0e      %.
 	mov	dpl,a		; 0cb3   f5 82      u.
 	clr	a		; 0cb5   e4         d
 	addc	a,#0		; 0cb6   34 00      4.
 	mov	dph,a		; 0cb8   f5 83      u.
 	mov	a,r7		; 0cba   ef         o
 	movx	@dptr,a		; 0cbb   f0         p
-	inc	rb1r6		; 0cbc   05 0e      ..
-	mov	a,rb1r6		; 0cbe   e5 0e      e.
+	inc	save_r7		; 0cbc   05 0e      ..
+	mov	a,save_r7	; 0cbe   e5 0e      e.
 	clr	c		; 0cc0   c3         C
 	subb	a,#14h		; 0cc1   94 14      ..
 	jc	X0ca4		; 0cc3   40 df      @_
 	ret			; 0cc5   22         "
 ;
 ; ***************************************************************************
-; set_crc
+; rf_set_crc
 ; In: R7: Number of bytes of CRC to use, 0 to turn it off
 ; ***************************************************************************
-set_crc:
-	mov	rb1r6,r7	; 0cc6   8f 0e      ..
+rf_set_crc:
+	mov	save_r7,r7	; 0cc6   8f 0e      ..
 	clr	a		; 0cc8   e4         d	; CONFIG
 	mov	r7,a		; 0cc9   ff         .
 	lcall	spi_read_register; 0cca   12 11 3d   ..=
-	mov	rb1r7,r7	; 0ccd   8f 0f      ..
-	mov	a,rb1r6		; 0ccf   e5 0e      e.
+	mov	save_r5,r7	; 0ccd   8f 0f      ..
+	mov	a,save_r7	; 0ccf   e5 0e      e.
 	dec	a		; 0cd1   14         .
 	jz	set_crc_1byte	; 0cd2   60 10      `.
 	dec	a		; 0cd4   14         .
 	jz	set_crc_2bytes	; 0cd5   60 1d      `.
 	add	a,#2		; 0cd7   24 02      $.
 	jnz	set_crc_write_config; 0cd9   70 27      p'
-	mov	r7,rb1r7	; 0cdb   af 0f      /.
+	mov	r7,save_r5	; 0cdb   af 0f      /.
 	mov	a,r7		; 0cdd   ef         o
 	anl	a,#0f7h		; 0cde   54 f7      Tw	; clear EN_CRC (CRC off)
-	mov	rb1r7,a		; 0ce0   f5 0f      u.
+	mov	save_r5,a	; 0ce0   f5 0f      u.
 	sjmp	set_crc_write_config; 0ce2   80 1e      ..
 ;
 set_crc_1byte:
-	mov	r7,rb1r7	; 0ce4   af 0f      /.
+	mov	r7,save_r5	; 0ce4   af 0f      /.
 	mov	a,r7		; 0ce6   ef         o
 	orl	a,#8		; 0ce7   44 08      D.	; set EN_CRC
-	mov	rb1r7,a		; 0ce9   f5 0f      u.
-	mov	r7,rb1r7	; 0ceb   af 0f      /.
+	mov	save_r5,a	; 0ce9   f5 0f      u.
+	mov	r7,save_r5	; 0ceb   af 0f      /.
 	mov	a,r7		; 0ced   ef         o
 	anl	a,#0fbh		; 0cee   54 fb      T{	; clear CRCO (1 bytes CRC)
-	mov	rb1r7,a		; 0cf0   f5 0f      u.
+	mov	save_r5,a	; 0cf0   f5 0f      u.
 	sjmp	set_crc_write_config; 0cf2   80 0e      ..
 ;
 set_crc_2bytes:
-	mov	r7,rb1r7	; 0cf4   af 0f      /.
+	mov	r7,save_r5	; 0cf4   af 0f      /.
 	mov	a,r7		; 0cf6   ef         o
 	orl	a,#8		; 0cf7   44 08      D.	; set EN_CRC
-	mov	rb1r7,a		; 0cf9   f5 0f      u.
-	mov	r7,rb1r7	; 0cfb   af 0f      /.
+	mov	save_r5,a	; 0cf9   f5 0f      u.
+	mov	r7,save_r5	; 0cfb   af 0f      /.
 	mov	a,r7		; 0cfd   ef         o
 	orl	a,#4		; 0cfe   44 04      D.	; set CRCO (2 bytes CRC)
-	mov	rb1r7,a		; 0d00   f5 0f      u.
+	mov	save_r5,a	; 0d00   f5 0f      u.
 set_crc_write_config:
-	mov	r5,rb1r7	; 0d02   ad 0f      -.
+	mov	r5,save_r5	; 0d02   ad 0f      -.
 	clr	a		; 0d04   e4         d	; CONFIG
 	mov	r7,a		; 0d05   ff         .
 	ljmp	spi_write_register; 0d06   02 10 9f   ...
 ;
 	db	8fh,4ch,7fh,2,12h,11h,3dh,8fh		; 0d09 .L....=.
 	db	4dh,7fh,1,12h,11h,3dh,8fh,4eh		; 0d11 M....=.N
-	db	0e5h,4ch,ch2,0fah,50h,6,ch2,7		; 0d19 eL$zP.$.
+	db	0e5h,4ch,ch2,0fah,50h,6,ch2,failsafe_flag	; 0d19 eL$zP.$.
 	db	60h,16h,80h,19h,0afh,4ch,74h,1		; 0d21 `.../Lt.
-	db	0a8h,7,8,80h,2,0c3h,33h,0d8h		; 0d29 (....C3X
+	db	0a8h,failsafe_flag,8,80h,2,0c3h,33h,0d8h	; 0d29 (....C3X
 	db	0fch,0f4h,52h,4dh,52h,4eh,80h,5		; 0d31 |tRMRN..
 	db	0e4h,0f5h,4dh,0f5h,4eh,0adh,4dh,7fh	; 0d39 duMuN-M.
 	db	2,12h,10h,9fh,0adh,4eh,7fh,1		; 0d41 ....-N..
@@ -2034,7 +2041,7 @@ rc_configure_receiver:
 X0d63:	lcall	spi_get_number_of_address_bytes; 0d63   12 11 99   ...
 	mov	23h,r7		; 0d66   8f 23      .#
 	mov	a,rb3r3		; 0d68   e5 1b      e.
-	add	a,#2ah		; 0d6a   24 2a      $*
+	add	a,#hop_data	; 0d6a   24 2a      $*
 	mov	r7,a		; 0d6c   ff         .
 	mov	r3,adr_flag	; 0d6d   ab 1c      +.
 	mov	r2,adr_h	; 0d6f   aa 1d      *.
@@ -2054,38 +2061,38 @@ rf_set_receive_address_for_pipe:
 X0d88:	ret			; 0d88   22         "
 ;
 init_rf_set_data_rate:
-	mov	rb1r6,r7	; 0d89   8f 0e      ..
+	mov	save_r7,r7	; 0d89   8f 0e      ..
 	mov	r7,#6		; 0d8b   7f 06      ..
 	lcall	spi_read_register; 0d8d   12 11 3d   ..=
-	mov	rb1r7,r7	; 0d90   8f 0f      ..
-	mov	a,rb1r6		; 0d92   e5 0e      e.
+	mov	save_r5,r7	; 0d90   8f 0f      ..
+	mov	a,save_r7	; 0d92   e5 0e      e.
 	jz	X0da1		; 0d94   60 0b      `.
 	add	a,#0feh		; 0d96   24 fe      $~
 	jnz	X0db1		; 0d98   70 17      p.
-	mov	r7,rb1r7	; 0d9a   af 0f      /.
+	mov	r7,save_r5	; 0d9a   af 0f      /.
 	mov	a,r7		; 0d9c   ef         o
-	orl	a,#20h		; 0d9d   44 20      D 
+	orl	a,#20h		; 0d9d   44 20      D
 	sjmp	X0da6		; 0d9f   80 05      ..
 ;
-X0da1:	mov	r7,rb1r7	; 0da1   af 0f      /.
+X0da1:	mov	r7,save_r5	; 0da1   af 0f      /.
 	mov	a,r7		; 0da3   ef         o
 	anl	a,#0dfh		; 0da4   54 df      T_
-X0da6:	mov	rb1r7,a		; 0da6   f5 0f      u.
-	mov	r7,rb1r7	; 0da8   af 0f      /.
+X0da6:	mov	save_r5,a	; 0da6   f5 0f      u.
+	mov	r7,save_r5	; 0da8   af 0f      /.
 	mov	a,r7		; 0daa   ef         o
 	anl	a,#0f7h		; 0dab   54 f7      Tw
-	mov	rb1r7,a		; 0dad   f5 0f      u.
+	mov	save_r5,a	; 0dad   f5 0f      u.
 	sjmp	X0dbf		; 0daf   80 0e      ..
 ;
-X0db1:	mov	r7,rb1r7	; 0db1   af 0f      /.
+X0db1:	mov	r7,save_r5	; 0db1   af 0f      /.
 	mov	a,r7		; 0db3   ef         o
 	anl	a,#0dfh		; 0db4   54 df      T_
-	mov	rb1r7,a		; 0db6   f5 0f      u.
-	mov	r7,rb1r7	; 0db8   af 0f      /.
+	mov	save_r5,a	; 0db6   f5 0f      u.
+	mov	r7,save_r5	; 0db8   af 0f      /.
 	mov	a,r7		; 0dba   ef         o
 	orl	a,#8		; 0dbb   44 08      D.
-	mov	rb1r7,a		; 0dbd   f5 0f      u.
-X0dbf:	mov	r5,rb1r7	; 0dbf   ad 0f      -.
+	mov	save_r5,a	; 0dbd   f5 0f      u.
+X0dbf:	mov	r5,save_r5	; 0dbf   ad 0f      -.
 	mov	r7,#6		; 0dc1   7f 06      ..
 	ljmp	spi_write_register; 0dc3   02 10 9f   ...
 ;
@@ -2097,7 +2104,7 @@ X0dbf:	mov	r5,rb1r7	; 0dbf   ad 0f      -.
 	db	7fh,16h,12h,11h,3dh,8fh,5ch,80h		; 0dee ....=.\.
 	db	3,0e4h,0f5h,5ch,0afh,5ch,ch1		; 0df6 .du\/\"
 ;
-X0dfd:	mov	20h,r3		; 0dfd   8b 20      . 
+X0dfd:	mov	20h,r3		; 0dfd   8b 20      .
 	mov	21h,r2		; 0dff   8a 21      .!
 	mov	22h,r1		; 0e01   89 22      ."
 	clr	RFCON_rfcsn	; 0e03   c2 e9      Bi
@@ -2108,7 +2115,7 @@ X0e09:	mov	a,r7		; 0e09   ef         o
 	clr	c		; 0e0a   c3         C
 	subb	a,23h		; 0e0b   95 23      .#
 	jnc	X0e2a		; 0e0d   50 1b      P.
-	mov	r3,20h		; 0e0f   ab 20      + 
+	mov	r3,20h		; 0e0f   ab 20      +
 	mov	r2,21h		; 0e11   aa 21      *!
 	mov	r1,22h		; 0e13   a9 22      )"
 	mov	dpl,r7		; 0e15   8f 82      ..
@@ -2134,7 +2141,7 @@ X0e2a:	mov	a,SPIRSTAT	; 0e2a   e5 e6      ef
 	db	4ah,0a9h,4bh,0afh,48h,2,9,41h		; 0e4c J)K/H..A
 	db	0e5h,48h,ch2,0ah,0ffh,12h,11h,3dh	; 0e54 eH$....=
 	db	0abh,49h,0aah,4ah,0a9h,4bh,0efh,12h	; 0e5c +I*J)Ko.
-	db	6,0a8h,7fh,1,ch1,0abh,7,0aeh		; 0e64 .(.."+..
+	db	6,0a8h,7fh,1,ch1,0abh,failsafe_flag,0aeh	; 0e64 .(.."+..
 	db	4,0afh,5,7ch,0,7dh,0fah,12h		; 0e6c ./.|.}z.
 	db	6,0bah,0efh,14h,54h,0fh,0c4h,54h	; 0e74 .:o.T.DT
 	db	0f0h,0ffh,0aeh				; 0e7c p..
@@ -2167,7 +2174,7 @@ i2c_start:
 	orl	P1DIR,#10h	; 0ec5   43 94 10   C..
 	nop			; 0ec8   00         .
 	nop			; 0ec9   00         .
-	setb	p1.3		; 0eca   d2 93      R.
+	setb	SCL		; 0eca   d2 93      R.
 	nop			; 0ecc   00         .
 	nop			; 0ecd   00         .
 	nop			; 0ece   00         .
@@ -2189,7 +2196,7 @@ i2c_start:
 	nop			; 0ee0   00         .
 	nop			; 0ee1   00         .
 	nop			; 0ee2   00         .
-	clr	p1.3		; 0ee3   c2 93      B.
+	clr	SCL		; 0ee3   c2 93      B.
 	nop			; 0ee5   00         .
 	nop			; 0ee6   00         .
 	nop			; 0ee7   00         .
@@ -2320,50 +2327,51 @@ X0fab:	mov	a,#1		; 0fab   74 01      t.
 X0fb4:	ret			; 0fb4   22         "
 ;
 rf_set_rx:
-	mov	rb1r6,r7	; 0fb5   8f 0e      ..
+	mov	save_r7,r7	; 0fb5   8f 0e      ..
 	clr	a		; 0fb7   e4         d
 	mov	r7,a		; 0fb8   ff         .
 	lcall	spi_read_register; 0fb9   12 11 3d   ..=
-	mov	rb1r7,r7	; 0fbc   8f 0f      ..
-	mov	a,rb1r6		; 0fbe   e5 0e      e.
-	mov	r7,rb1r7	; 0fc0   af 0f      /.
+	mov	save_r5,r7	; 0fbc   8f 0f      ..
+	mov	a,save_r7	; 0fbe   e5 0e      e.
+	mov	r7,save_r5	; 0fc0   af 0f      /.
 	cjne	a,#1,X0fcc	; 0fc2   b4 01 07   4..
 	mov	a,r7		; 0fc5   ef         o
 	orl	a,#1		; 0fc6   44 01      D.
-	mov	rb1r7,a		; 0fc8   f5 0f      u.
+	mov	save_r5,a	; 0fc8   f5 0f      u.
 	sjmp	X0fd1		; 0fca   80 05      ..
 ;
 X0fcc:	mov	a,r7		; 0fcc   ef         o
 	anl	a,#0feh		; 0fcd   54 fe      T~
-	mov	rb1r7,a		; 0fcf   f5 0f      u.
-X0fd1:	mov	r5,rb1r7	; 0fd1   ad 0f      -.
+	mov	save_r5,a	; 0fcf   f5 0f      u.
+X0fd1:	mov	r5,save_r5	; 0fd1   ad 0f      -.
 	clr	a		; 0fd3   e4         d
 	mov	r7,a		; 0fd4   ff         .
 	ljmp	spi_write_register; 0fd5   02 10 9f   ...
 ;
 rf_set_power_up:
-	mov	rb1r6,r7	; 0fd8   8f 0e      ..
+	mov	save_r7,r7	; 0fd8   8f 0e      ..
 	clr	a		; 0fda   e4         d
 	mov	r7,a		; 0fdb   ff         .
 	lcall	spi_read_register; 0fdc   12 11 3d   ..=
-	mov	rb1r7,r7	; 0fdf   8f 0f      ..
-	mov	a,rb1r6		; 0fe1   e5 0e      e.
-	mov	r7,rb1r7	; 0fe3   af 0f      /.
+	mov	save_r5,r7	; 0fdf   8f 0f      ..
+	mov	a,save_r7	; 0fe1   e5 0e      e.
+	mov	r7,save_r5	; 0fe3   af 0f      /.
 	cjne	a,#1,X0fef	; 0fe5   b4 01 07   4..
 	mov	a,r7		; 0fe8   ef         o
 	orl	a,#2		; 0fe9   44 02      D.
-	mov	rb1r7,a		; 0feb   f5 0f      u.
+	mov	save_r5,a	; 0feb   f5 0f      u.
 	sjmp	X0ff4		; 0fed   80 05      ..
 ;
 X0fef:	mov	a,r7		; 0fef   ef         o
 	anl	a,#0fdh		; 0ff0   54 fd      T}
-	mov	rb1r7,a		; 0ff2   f5 0f      u.
-X0ff4:	mov	r5,rb1r7	; 0ff4   ad 0f      -.
+	mov	save_r5,a	; 0ff2   f5 0f      u.
+X0ff4:	mov	r5,save_r5	; 0ff4   ad 0f      -.
 	clr	a		; 0ff6   e4         d
 	mov	r7,a		; 0ff7   ff         .
 	ljmp	spi_write_register; 0ff8   02 10 9f   ...
 ;
-X0ffb:	mov	r3,rb0r7	; 0ffb   ab 07      +.
+write_bind_data_byte:
+	mov	r3,rb0r7	; 0ffb   ab 07      +.
 	mov	r2,rb0r6	; 0ffd   aa 06      *.
 	mov	r4,rb0r5	; 0fff   ac 05      ,.
 	mov	r7,rb0r2	; 1001   af 02      /.
@@ -2375,7 +2383,7 @@ X0ffb:	mov	r3,rb0r7	; 0ffb   ab 07      +.
 	rlc	a		; 100a   33         3
 	mov	r6,a		; 100b   fe         ~
 	mov	a,r7		; 100c   ef         o
-	add	a,#0a0h		; 100d   24 a0      $ 
+	add	a,#0a0h		; 100d   24 a0      $
 	mov	r7,a		; 100f   ff         .
 	clr	a		; 1010   e4         d
 	addc	a,r6		; 1011   3e         >
@@ -2405,7 +2413,7 @@ X0ffb:	mov	r3,rb0r7	; 0ffb   ab 07      +.
 i2c_stop:
 	anl	P1DIR,#0efh	; 1039   53 94 ef   S.o
 	nop			; 103c   00         .
-	setb	p1.3		; 103d   d2 93      R.
+	setb	SCL		; 103d   d2 93      R.
 	nop			; 103f   00         .
 	nop			; 1040   00         .
 	nop			; 1041   00         .
@@ -2464,8 +2472,8 @@ X1087:	ret			; 1087   22         "
 init_ports:
 	mov	P1CON,#54h	; 1088   75 9f 54   u.T
 	mov	P1CON,#53h	; 108b   75 9f 53   u.S
-	clr	p1.3		; 108e   c2 93      B.
-	clr	p1.4		; 1090   c2 94      B.
+	clr	SCL		; 108e   c2 93      B.
+	clr	SDA		; 1090   c2 94      B.
 	anl	P1DIR,#0f7h	; 1092   53 94 f7   S.w
 	orl	P1DIR,#10h	; 1095   43 94 10   C..
 	mov	r7,#0c8h	; 1098   7f c8      .H
@@ -2480,14 +2488,14 @@ spi_write_register:
 	mov	rb3r7,r5	; 109f   8d 1f      ..
 	clr	RFCON_rfcsn	; 10a1   c2 e9      Bi
 	mov	a,r7		; 10a3   ef         o
-	add	a,#20h		; 10a4   24 20      $ 
+	add	a,#20h		; 10a4   24 20      $
 	mov	r7,a		; 10a6   ff         .
 	lcall	spi_write	; 10a7   12 11 8f   ...
-	mov	20h,r7		; 10aa   8f 20      . 
+	mov	20h,r7		; 10aa   8f 20      .
 	mov	r7,rb3r7	; 10ac   af 1f      /.
 	lcall	spi_write	; 10ae   12 11 8f   ...
 	setb	RFCON_rfcsn	; 10b1   d2 e9      Ri
-	mov	r7,20h		; 10b3   af 20      / 
+	mov	r7,20h		; 10b3   af 20      /
 	ret			; 10b5   22         "
 ;
 i2c_write_byte_to_eeprom:
@@ -2523,12 +2531,12 @@ init_rf_setup_address_width:
 	add	a,#0feh		; 10f8   24 fe      $~
 	anl	a,#3		; 10fa   54 03      T.
 	mov	r7,a		; 10fc   ff         .
-	mov	r6,rb1r6	; 10fd   ae 0e      ..
+	mov	r6,save_r7	; 10fd   ae 0e      ..
 	mov	a,r6		; 10ff   ee         n
 	anl	a,#0fch		; 1100   54 fc      T|
 	orl	a,r7		; 1102   4f         O
-	mov	rb1r6,a		; 1103   f5 0e      u.
-	mov	r5,rb1r6	; 1105   ad 0e      -.
+	mov	save_r7,a	; 1103   f5 0e      u.
+	mov	r5,save_r7	; 1105   ad 0e      -.
 	mov	r7,#3		; 1107   7f 03      ..
 	ljmp	spi_write_register; 1109   02 10 9f   ...
 ;
@@ -2558,7 +2566,7 @@ X1126:	clr	c		; 1126   c3         C
 	rlc	a		; 1127   33         3
 X1128:	djnz	r0,X1126	; 1128   d8 fc      X|
 	mov	r5,a		; 112a   fd         }
-	mov	r7,#7		; 112b   7f 07      ..
+	mov	r7,#failsafe_flag; 112b   7f 07      ..
 	ljmp	spi_write_register; 112d   02 10 9f   ...
 ;
 	lcall	rf_read_fifo_status; 1130   12 12 30   ..0
@@ -2590,7 +2598,7 @@ spi_read_register:
 ; ***************************************************************************
 spi_read_rf_status:
 	mov	r5,#70h		; 114a   7d 70      }p
-	mov	r7,#7		; 114c   7f 07      ..
+	mov	r7,#failsafe_flag; 114c   7f 07      ..
 	lcall	spi_write_register; 114e   12 10 9f   ...
 	mov	a,r7		; 1151   ef         o
 	anl	a,#70h		; 1152   54 70      Tp
@@ -2677,12 +2685,12 @@ spi_is_rx_fifo_empty:
 	db	0ffh,ch1,7fh,8,12h,11h,3dh,0efh		; 11b5 ."....=o
 	db	54h,0fh,0ffh,ch1			; 11bd T.."
 ; ***************************************************************************
-; spi_received_power_decector
+; is_rf_power_detected
 ;
 ; Returns the Received Power Detector (Carrier Detect) flag
 ; ***************************************************************************
 ;
-spi_received_power_decector:
+is_rf_power_detected:
 	mov	r7,#9		; 11c1   7f 09      ..
 	lcall	spi_read_register; 11c3   12 11 3d   ..=
 	mov	a,r7		; 11c6   ef         o
@@ -2728,9 +2736,14 @@ spi_send_nop_command:
 	ret			; 1206   22         "
 ;
 	mov	T2CON,#41h	; 1207   75 c8 41   uHA	; 1207-120d UNUSED CODE
-	orl	IEN0,#20h	; 120a   43 a8 20   C( 
+	orl	IEN0,#20h	; 120a   43 a8 20   C(
 	ret			; 120d   22         "
 ;
+; ***************************************************************************
+; rf_set_payload_bytes
+;
+; r7: data pipe number  r5: Number of payload bytes
+; ***************************************************************************
 rf_set_payload_bytes:
 	mov	a,r7		; 120e   ef         o
 	add	a,#11h		; 120f   24 11      $.
@@ -2738,7 +2751,7 @@ rf_set_payload_bytes:
 	ljmp	spi_write_register; 1212   02 10 9f   ...
 ;
 	mov	23h,r5		; 1215   8d 23      .#	; 1215-1222 UNUSED CODE
-	mov	r7,#0a0h	; 1217   7f a0      . 
+	mov	r7,#0a0h	; 1217   7f a0      .
 	ljmp	X0dfd		; 1219   02 0d fd   ..}
 ;
 	mov	23h,r5		; 121c   8d 23      .#
@@ -2807,11 +2820,11 @@ rb0r6	equ	6
 rb0r7	equ	7
 rf_status	equ	0bh
 rb1r4	equ	0ch
-rb1r5	equ	0dh
-rb1r6	equ	0eh
-rb1r7	equ	0fh
-rb2r0	equ	10h
-rb2r1	equ	11h
+rf_detected	equ	0dh
+save_r7	equ	0eh
+save_r5	equ	0fh
+count_l	equ	10h
+count_h	equ	11h
 rb2r2	equ	12h
 rb2r3	equ	13h
 rb3r1	equ	19h
@@ -2909,6 +2922,9 @@ SPIMDAT	equ	0ffh
 ;
 ;	SFR bit Equates
 ;
+LED_GREEN	equ	80h
+LED_RED	equ	81h
+BIND_BUTTON	equ	83h
 TCON_it0	equ	88h
 TCON_ie0	equ	89h
 TCON_it1	equ	8ah
@@ -2917,6 +2933,8 @@ TCON_tr0	equ	8ch
 TCON_tf0	equ	8dh
 TCON_tr1	equ	8eh
 TCON_tf1	equ	8fh
+SCL	equ	93h
+SDA	equ	94h
 S0CON_ri0	equ	98h
 S0CON_ti0	equ	99h
 S0CON_rb80	equ	9ah
@@ -2968,10 +2986,13 @@ RFCON_rfcken	equ	0eah
 ;  These are symbols from the control
 ;  file that are referenced in the code
 ;
+bind_data	equ	3eh
 ch1	equ	22h
 ch2	equ	24h
 ch3	equ	26h
 ch4	equ	28h
+failsafe_flag	equ	7
+hop_data	equ	2ah
 rf_data_available	equ	2dh
 ;
 ;	Miscellaneous equates

@@ -129,6 +129,10 @@ c 1236-1249	; Code space
 
 i 124a-1ffe	; ignore data
 
+
+s 003e bind_data    ; Comes from the EEPROM bind data 5 (or 6) bytes
+s 002a hop_data     ; Comes from the EEPROM bind data, 20 bytes
+
 s 0022 ch1
 s 0024 ch2
 s 0026 ch3
@@ -140,11 +144,31 @@ r 001d adr_h
 r 001e adr_l
 s 002d rf_data_available
 
+r 0d rf_detected
+
+r 0e save_r7
+r 0f save_r5
+
+r 10 count_l
+r 11 count_h
+
 ! 000e OBSERVE_TX ?!
 ! 001e FIFO_STATUS
 ! 0024 Masks out TX_FULL and TX_EMPTY
 
 l 002e i2c_eeprom_read_one_byte
+
+s 0007 failsafe_flag
+
+
+k 80 LED_GREEN  ; p0.0
+k 81 LED_RED    ; p0.1
+
+k 83 BIND_BUTTON    ; p0.3
+
+k 93 SCL
+k 94 SDA
+
 
 l 004e init
 # 004e ***************************************************************************
@@ -175,6 +199,12 @@ l 0140 fifo_is_empty
 # 02b1 ***************************************************************************
 # 02b1 This code below sets failsafe 0xaa
 # 02b1 ***************************************************************************
+
+l 02f7 output_failsafe
+
+
+l 0541 save_bind_data
+
 
 l 05b3 servo_pulse_t1_handler
 ;s 0003 servo_out_state
@@ -236,15 +266,20 @@ l 0985 spi_read_is_not_null
 
 ! 097e READ_RX_PAYLOAD
 
-l 09b3 init_rf
-l 09e3 init_rf_r7_is_5
-l 09fc init_rf_r7_is_6
-l 09d3 init_rf_r7_is_7
+l 09b3 rf_modify_config_bit
+# 09b3 ***************************************************************************
+# 09b3 rf_modify_config_bit
+# 09b3
+# 09b3 r7: bit number in the CONFIG reg.  r5: new bit value
+# 09b3 ***************************************************************************
+l 09e3 rf_cfg_r7_is_5
+l 09fc rf_cfg_r7_is_6
+l 09d3 rf_cfg_r7_is_7
 
 ! 09c2 Jump if r7 is 5
 ! 09c5 Jump if r7 is 6
 ! 09c9 Jump if r7 is NOT 8 (jump if 7?)
-l 0a14 init_rf_execute
+l 0a14 rf_modify_execute
 
 l 0ae4 init_rf_data_pipes
 
@@ -264,9 +299,9 @@ l 0b91 timer0_handler
 l 0c81 read_bind_data
 
 
-l 0cc6 set_crc
+l 0cc6 rf_set_crc
 # 0cc6 ***************************************************************************
-# 0cc6 set_crc
+# 0cc6 rf_set_crc
 # 0cc6 In: R7: Number of bytes of CRC to use, 0 to turn it off
 # 0cc6 ***************************************************************************
 
@@ -296,6 +331,8 @@ l 10b6 i2c_write_byte_to_eeprom
 
 l 0fb5 rf_set_rx
 l 0fd8 rf_set_power_up
+
+l 0ffb write_bind_data_byte
 
 l 1071 delay
 # 1071 ***************************************************************************
@@ -361,9 +398,9 @@ l 11a3 spi_is_rx_fifo_empty
 # 11a3 R7 is 1 if the RF RX FIFO is empty, 0 if it has data pending
 # 11a3 ***************************************************************************
 
-l 11c1 spi_received_power_decector
+l 11c1 is_rf_power_detected
 # 11c1 ***************************************************************************
-# 11c1 spi_received_power_decector
+# 11c1 is_rf_power_detected
 # 11c1
 # 11c1 Returns the Received Power Detector (Carrier Detect) flag
 # 11c1 ***************************************************************************
@@ -372,6 +409,11 @@ l 11d5 rf_read_rx_status
 l 11fd spi_send_nop_command
 
 l 120e rf_set_payload_bytes
+# 120e ***************************************************************************
+# 120e rf_set_payload_bytes
+# 120e
+# 120e r7: data pipe number  r5: Number of payload bytes
+# 120e ***************************************************************************
 
 l 1230 rf_read_fifo_status
 
