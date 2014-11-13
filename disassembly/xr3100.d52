@@ -1,6 +1,6 @@
 ;
 ;  D52 V3.4.1 8052 Disassembly of xr3100.hex
-;  2014/11/13 19:47
+;  2014/11/13 21:02
 ;
 	org	0
 ;
@@ -98,13 +98,13 @@ init:	clr	a		; 004e   e4         d
 	mov	r7,#5		; 008f   7f 05      ..
 	lcall	init_rf_setup_address_width; 0091   12 10 f7   ..w
 	mov	r7,#2		; 0094   7f 02      ..
-	lcall	init_rf_set_data_rate; 0096   12 0d 89   ...
+	lcall	rf_set_data_rate; 0096   12 0d 89   ...
 	mov	r3,#1		; 0099   7b 01      {.
 	mov	r2,#0		; 009b   7a 00      z.
 	mov	r1,#bind_data	; 009d   79 3e      y>
 	clr	a		; 009f   e4         d
 	mov	r7,a		; 00a0   ff         .
-	lcall	rc_configure_receiver; 00a1   12 0d 4c   ..L
+	lcall	rc_get_or_set_address_for_pipe; 00a1   12 0d 4c   ..L
 	mov	r5,#0ah		; 00a4   7d 0a      }.
 	clr	a		; 00a6   e4         d
 	mov	r7,a		; 00a7   ff         .
@@ -135,15 +135,15 @@ init:	clr	a		; 004e   e4         d
 	clr	LED_GREEN	; 00d8   c2 80      B.
 	setb	LED_RED		; 00da   d2 81      R.
 	jb	BIND_BUTTON,X00e2; 00dc   20 83 03    ..	; Bind switch checked at reset?!?
-	mov	2bh,#1		; 00df   75 2b 01   u+.
-X00e2:	mov	a,2bh		; 00e2   e5 2b      e+
+	mov	factory,#1	; 00df   75 2b 01   u+.
+X00e2:	mov	a,factory	; 00e2   e5 2b      e+
 	jz	main		; 00e4   60 05      `.
 	mov	r7,#46h		; 00e6   7f 46      .F	; Set channel 70 in factory mode?
 	lcall	spi_set_rf_channel; 00e8   12 11 0c   ...
 ; ***************************************************************************
 ; MAIN LOOP
 ; ***************************************************************************
-main:	mov	a,2bh		; 00eb   e5 2b      e+
+main:	mov	a,factory	; 00eb   e5 2b      e+
 	jz	not_factory	; 00ed   60 20      ` 
 	mov	dptr,#fs_data+3	; 00ef   90 00 14   ...
 	movx	a,@dptr		; 00f2   e0         `
@@ -171,7 +171,7 @@ not_factory:
 	clr	RFCON_rfce	; 0119   c2 e8      Bh
 	lcall	X0346		; 011b   12 03 46   ..F
 	mov	T2CON,#41h	; 011e   75 c8 41   uHA
-X0121:	mov	a,24h		; 0121   e5 24      e$
+X0121:	mov	a,rf_int_fired	; 0121   e5 24      e$
 	jz	X014c		; 0123   60 27      `'
 	clr	RFCON_rfce	; 0125   c2 e8      Bh
 	lcall	spi_read_rf_status; 0127   12 11 4a   ..J
@@ -188,7 +188,7 @@ X012c:	lcall	spi_is_rx_fifo_empty; 012c   12 11 a3   ..#
 ;
 fifo_is_empty:
 	clr	a		; 0140   e4         d
-	mov	24h,a		; 0141   f5 24      u$
+	mov	rf_int_fired,a	; 0141   f5 24      u$
 	mov	rb1r4,#1	; 0143   75 0c 01   u..
 	mov	rf_data_avail,#1; 0146   75 2d 01   u-.
 	orl	IEN0,#8		; 0149   43 a8 08   C(.
@@ -523,12 +523,12 @@ X0346:	anl	IEN0,#0f7h	; 0346   53 a8 f7   S(w
 	clr	a		; 0349   e4         d
 	mov	rf_data_avail,a	; 034a   f5 2d      u-
 	mov	T2CON,a		; 034c   f5 c8      uH
-	mov	24h,a		; 034e   f5 24      u$
+	mov	rf_int_fired,a	; 034e   f5 24      u$
 	mov	r3,a		; 0350   fb         {
 	mov	r2,#0		; 0351   7a 00      z.
 	mov	r1,#26h		; 0353   79 26      y&
 	mov	r7,a		; 0355   ff         .
-	lcall	rc_configure_receiver; 0356   12 0d 4c   ..L
+	lcall	rc_get_or_set_address_for_pipe; 0356   12 0d 4c   ..L
 	clr	RFCON_rfce	; 0359   c2 e8      Bh
 	mov	r7,#51h		; 035b   7f 51      .Q
 	lcall	spi_set_rf_channel; 035d   12 11 0c   ...
@@ -548,7 +548,7 @@ X036d:	cjne	a,#88h,X0365	; 036d   b4 88 f5   4.u
 	mov	rb3r2,a		; 037a   f5 1a      u.
 	mov	rb2r2,a		; 037c   f5 12      u.
 	mov	rb2r3,a		; 037e   f5 13      u.
-X0380:	mov	a,24h		; 0380   e5 24      e$
+X0380:	mov	a,rf_int_fired	; 0380   e5 24      e$
 	jnz	X0387		; 0382   70 03      p.
 	ljmp	X04d8		; 0384   02 04 d8   ..X
 ;
@@ -563,7 +563,7 @@ X038a:	lcall	spi_is_rx_fifo_empty; 038a   12 11 a3   ..#
 	sjmp	X038a		; 0399   80 ef      .o
 ;
 X039b:	clr	a		; 039b   e4         d
-	mov	24h,a		; 039c   f5 24      u$
+	mov	rf_int_fired,a	; 039c   f5 24      u$
 	mov	a,rb3r1		; 039e   e5 19      e.
 	jnz	X03fe		; 03a0   70 5c      p\
 	mov	dptr,#payload	; 03a2   90 00 16   ...
@@ -786,13 +786,13 @@ X0506:	clr	a		; 0506   e4         d
 	jnc	X051a		; 0515   50 03      P.
 	ljmp	X0380		; 0517   02 03 80   ...
 ;
-X051a:	mov	24h,#1		; 051a   75 24 01   u$.
+X051a:	mov	rf_int_fired,#1	; 051a   75 24 01   u$.
 	mov	r3,#0		; 051d   7b 00      {.
 	mov	r2,#0		; 051f   7a 00      z.
 	mov	r1,#14h		; 0521   79 14      y.
 	clr	a		; 0523   e4         d
 	mov	r7,a		; 0524   ff         .
-	lcall	rc_configure_receiver; 0525   12 0d 4c   ..L
+	lcall	rc_get_or_set_address_for_pipe; 0525   12 0d 4c   ..L
 	mov	dptr,#X0006	; 0528   90 00 06   ...
 	mov	a,#14h		; 052b   74 14      t.
 	movx	@dptr,a		; 052d   f0         p
@@ -856,13 +856,13 @@ X058b:	clr	c		; 058b   c3         C
 	mov	a,count_l	; 058e   e5 10      e.
 	subb	a,#0		; 0590   94 00      ..
 	jc	X056a		; 0592   40 d6      @V
-	mov	24h,#1		; 0594   75 24 01   u$.
+	mov	rf_int_fired,#1	; 0594   75 24 01   u$.
 	mov	r3,#0		; 0597   7b 00      {.
 	mov	r2,#0		; 0599   7a 00      z.
 	mov	r1,#14h		; 059b   79 14      y.
 	clr	a		; 059d   e4         d
 	mov	r7,a		; 059e   ff         .
-	lcall	rc_configure_receiver; 059f   12 0d 4c   ..L
+	lcall	rc_get_or_set_address_for_pipe; 059f   12 0d 4c   ..L
 	mov	dptr,#X0006	; 05a2   90 00 06   ...
 	mov	a,#14h		; 05a5   74 14      t.
 	movx	@dptr,a		; 05a7   f0         p
@@ -2273,7 +2273,7 @@ X0d3e:	mov	r5,4dh		; 0d3e   ad 4d      -M
 	mov	r7,#1		; 0d47   7f 01      ..
 	ljmp	spi_write_register; 0d49   02 10 9f   ...
 ;
-rc_configure_receiver:
+rc_get_or_set_address_for_pipe:
 	mov	pipe_no,r7	; 0d4c   8f 1b      ..
 	mov	adr_flag,r3	; 0d4e   8b 1c      ..
 	mov	adr_h,r2	; 0d50   8a 1d      ..
@@ -2282,7 +2282,7 @@ rc_configure_receiver:
 	dec	a		; 0d56   14         .
 	jz	X0d63		; 0d57   60 0a      `.
 	add	a,#0fbh		; 0d59   24 fb      ${
-	jnc	rf_set_receive_address_for_pipe; 0d5b   50 19      P.
+	jnc	rf_get_receive_address_for_pipe; 0d5b   50 19      P.
 	jz	X0d63		; 0d5d   60 04      `.
 	add	a,#6		; 0d5f   24 06      $.
 	jnz	X0d88		; 0d61   70 25      p%
@@ -2294,9 +2294,9 @@ X0d63:	lcall	spi_get_number_of_address_bytes; 0d63   12 11 99   ...
 	mov	r3,adr_flag	; 0d6d   ab 1c      +.
 	mov	r2,adr_h	; 0d6f   aa 1d      *.
 	mov	r1,adr_l	; 0d71   a9 1e      ).
-	ljmp	X0dfd		; 0d73   02 0d fd   ..}
+	ljmp	rf_write_register_sequence; 0d73   02 0d fd   ..}
 ;
-rf_set_receive_address_for_pipe:
+rf_get_receive_address_for_pipe:
 	mov	a,pipe_no	; 0d76   e5 1b      e.
 	add	a,#0ah		; 0d78   24 0a      $.
 	mov	r7,a		; 0d7a   ff         .
@@ -2308,7 +2308,7 @@ rf_set_receive_address_for_pipe:
 	lcall	spi_write_register; 0d85   12 10 9f   ...
 X0d88:	ret			; 0d88   22         "
 ;
-init_rf_set_data_rate:
+rf_set_data_rate:
 	mov	save_r7,r7	; 0d89   8f 0e      ..
 	mov	r7,#6		; 0d8b   7f 06      ..
 	lcall	spi_read_register; 0d8d   12 11 3d   ..=
@@ -2382,7 +2382,12 @@ X0df7:	clr	a		; 0df7   e4         d
 X0dfa:	mov	r7,5ch		; 0dfa   af 5c      /\
 	ret			; 0dfc   22         "
 ;
-X0dfd:	mov	20h,r3		; 0dfd   8b 20      . 
+; ***************************************************************************
+; rf_write_register_sequence
+; Write a number of bytes in reg23h, values at r2:r1, to the register given in r7
+; ***************************************************************************
+rf_write_register_sequence:
+	mov	20h,r3		; 0dfd   8b 20      . 
 	mov	21h,r2		; 0dff   8a 21      .!
 	mov	22h,r1		; 0e01   89 22      ."
 	clr	RFCON_rfcsn	; 0e03   c2 e9      Bi
@@ -3060,7 +3065,7 @@ is_rf_power_detected:
 	orl	a,#0a8h		; 11cc   44 a8      D(
 	mov	r7,a		; 11ce   ff         .
 	mov	23h,47h		; 11cf   85 47 23   .G#
-	ljmp	X0dfd		; 11d2   02 0d fd   ..}
+	ljmp	rf_write_register_sequence; 11d2   02 0d fd   ..}
 ;
 rf_read_rx_status:
 	lcall	spi_send_nop_command; 11d5   12 11 fd   ..}
@@ -3113,11 +3118,11 @@ rf_set_payload_bytes:
 ;
 	mov	23h,r5		; 1215   8d 23      .#	; 1215-1222 UNUSED CODE
 	mov	r7,#0a0h	; 1217   7f a0      . 
-	ljmp	X0dfd		; 1219   02 0d fd   ..}
+	ljmp	rf_write_register_sequence; 1219   02 0d fd   ..}
 ;
 	mov	23h,r5		; 121c   8d 23      .#
 	mov	r7,#0b0h	; 121e   7f b0      .0
-	ljmp	X0dfd		; 1220   02 0d fd   ..}
+	ljmp	rf_write_register_sequence; 1220   02 0d fd   ..}
 ;
 	mov	dpl,r7		; 1223   8f 82      ..
 	mov	dph,r6		; 1225   8e 83      ..
@@ -3166,7 +3171,7 @@ init_timer1:
 ; RF interrupt handler
 ; ****************************************************
 rf_handler:
-	mov	24h,#1		; 1246   75 24 01   u$.
+	mov	rf_int_fired,#1	; 1246   75 24 01   u$.
 	reti			; 1249   32         2
 ;
 ;	Register/Memory Equates
@@ -3195,6 +3200,8 @@ adr_flag	equ	1ch
 adr_h	equ	1dh
 adr_l	equ	1eh
 rb3r7	equ	1fh
+rf_int_fired	equ	24h
+factory	equ	2bh
 div_4ms	equ	2ch
 rf_data_avail	equ	2dh
 ;

@@ -242,6 +242,8 @@ r 1c adr_flag
 r 1d adr_h
 r 1e adr_l
 
+r 24 rf_int_fired
+r 2b factory
 r 2c div_4ms
 r 2d rf_data_avail
 
@@ -426,9 +428,17 @@ l 0cf4 set_crc_2bytes
 l 0d02 set_crc_write_config
 ! 0d04 CONFIG
 
-l 0d4c rc_configure_receiver
-l 0d76 rf_set_receive_address_for_pipe
-l 0d89 init_rf_set_data_rate
+l 0d4c rc_get_or_set_address_for_pipe
+l 0d76 rf_get_receive_address_for_pipe
+l 0d89 rf_set_data_rate
+
+l 0dfd rf_write_register_sequence
+# 0dfd ***************************************************************************
+# 0dfd rf_write_register_sequence
+# 0dfd Write a number of bytes in reg23h, values at r2:r1, to the register given in r7
+# 0dfd ***************************************************************************
+
+
 
 l 070f ic2_write_address
 l 0ec5 i2c_start
@@ -473,6 +483,8 @@ l 1191 _spi_write_loop
 # 118f ***************************************************************************
 # 118f SPI Write
 # 118f ***************************************************************************
+
+
 
 l 113d spi_read_register
 # 113d ***************************************************************************
