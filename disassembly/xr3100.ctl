@@ -99,7 +99,8 @@ c 1156-117f
 
 c 1180-11ac	; Code space
 
-b 11ad-11c0	; 8-bit data
+c 11ad-11c0
+! 11ad 11ad-11c0 UNUSED CODE
 
 c 11c1-11ca	; Code space
 
@@ -130,27 +131,137 @@ c 1236-1249	; Code space
 i 124a-1ffe	; ignore data
 
 
-s 003e bind_data    ; Comes from the EEPROM bind data 5 (or 6) bytes
-s 002a hop_data     ; Comes from the EEPROM bind data, 20 bytes
 
-s 0022 ch1
-s 0024 ch2
-s 0026 ch3
-s 0028 ch4
+x 01a9 softtmr  ; X0001
+x 02e9 softtmr
+x 0539 softtmr
+x 0bc3 softtmr
+x 0bd1 softtmr
 
-r 000b rf_status
-r 001c adr_flag
-r 001d adr_h
-r 001e adr_l
-s 002d rf_data_available
+x 02e3 softtmr+1 ; X0002
+x 0bbd softtmr+1
 
+x 05c7 servo_output_state ; X0003
+x 05db servo_output_state
+x 05f6 servo_output_state
+x 0602 servo_output_state
+x 0617 servo_output_state
+x 0638 servo_output_state
+x 0bb2 servo_output_state
+
+x 02bb failsafe_flag    ; X0007
+x 02fc failsafe_flag
+
+;s 0007 stick_data      ; X0007
+
+x 00ad stick_data+1     ; X0008
+x 014d stick_data+1
+x 015b stick_data+1
+x 0165 stick_data+1
+x 01bc stick_data+1
+
+x 01d8 stick_data+2     ; X0009
+x 01e5 stick_data+2
+x 01f4 stick_data+2
+x 0272 stick_data+2
+
+x 01ee stick_data+3     ; X000a
+
+x 0200 stick_data+4     ; X000b
+x 020d stick_data+4
+x 021c stick_data+4
+x 0281 stick_data+4
+
+x 0216 stick_data+5     ; X000c
+
+x 0228 stick_data+6     ; X000d
+x 0235 stick_data+6
+x 0244 stick_data+6
+
+x 023e stick_data+7     ; X000e
+
+x 024d stick_data+8     ; X000f
+x 025a stick_data+8
+x 0269 stick_data+8
+x 029f stick_data+8
+
+x 0263 stick_data+9     ; X0010
+
+x 031a fs_data      ; X0011
+x 02db fs_data
+
+x 02d3 fs_data+1    ; X0012
+
+x 02cb fs_data+2    ; X0013
+x 0304 fs_data+2
+
+x 0a83 fs_data+3    ; X0014
+x 0ba0 fs_data+3
+x 00f0 fs_data+3
+
+x 02c3 fs_data+4    ; X0015
+x 030b fs_data+4
+
+x 01e9 payload      ; X0016
+x 02bf payload
+x 03a3 payload
+x 0405 payload
+x 044e payload
+x 0498 payload
+x 01d3 payload+1
+x 02c7 payload+1
+x 0211 payload+2
+x 02cf payload+2
+x 01fb payload+3
+x 02d7 payload+3
+x 0239 payload+4
+x 0223 payload+5
+x 025e payload+6
+x 01c7 payload+7
+x 02b2 payload+7
+
+
+x 0279 ch1      ; X0022
+x 0313 ch1
+x 0332 ch1
+x 05ce ch1
+
+x 0288 ch2      ; X0024
+x 0328 ch2
+x 05e9 ch2
+
+x 0297 ch3      ; X0026
+x 060a ch3
+
+x 02a6 ch4      ; X0028
+x 062b ch4
+
+x 0153 hop_data     ; X002A Comes from the EEPROM bind data, 20 bytes
+! 0caf offset in hop_data
+
+x 0c8c bind_data    ; X003E Comes from the EEPROM bind data 5 (or 6) bytes
+x 009e bind_data
+
+
+
+r 0b rf_status
 r 0d rf_detected
-
 r 0e save_r7
 r 0f save_r5
 
 r 10 count_l
 r 11 count_h
+
+r 1b pipe_no
+
+r 1c adr_flag
+r 1d adr_h
+r 1e adr_l
+
+r 2d rf_data_avail
+
+
+
 
 ! 000e OBSERVE_TX ?!
 ! 001e FIFO_STATUS
@@ -158,7 +269,6 @@ r 11 count_h
 
 l 002e i2c_eeprom_read_one_byte
 
-s 0007 failsafe_flag
 
 
 k 80 LED_GREEN  ; p0.0
@@ -166,8 +276,8 @@ k 81 LED_RED    ; p0.1
 
 k 83 BIND_BUTTON    ; p0.3
 
-k 93 SCL
-k 94 SDA
+k 93 SCL    ; p1.3
+k 94 SDA    ; p1.4
 
 
 l 004e init
@@ -176,6 +286,8 @@ l 004e init
 # 004e ***************************************************************************
 
 ! 00c3 Enable the receiver
+
+x 00a5 0ah
 
 l 00eb main
 # 00eb ***************************************************************************
@@ -192,6 +304,9 @@ l 0140 fifo_is_empty
 ! 017e T2 clock = f/12, Reload Mode 0
 ! 019c T2 clock = f/12, Reload Mode 0
 
+
+
+l 01d2 stick_data
 # 01d2 ***************************************************************************
 # 01d2 This code below sets the servo pulse durations 0x55
 # 01d2 ***************************************************************************
@@ -200,8 +315,13 @@ l 0140 fifo_is_empty
 # 02b1 This code below sets failsafe 0xaa
 # 02b1 ***************************************************************************
 
+l 02e1 check_if_connected
+
+x 02e7 28h
 l 02f7 output_failsafe
 
+l 01c6 process_rf_data
+l 02de rf_data_processed
 
 l 0541 save_bind_data
 
