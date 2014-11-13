@@ -1,12 +1,13 @@
 
-PROJECT = xr3100
 
-OBJECTS := $(PROJECT).d52
-HEX := $(PROJECT).hex
-CONTROL := $(PROJECT).ctl
+OBJECTS := xr3100.d52 hk310.d52
 
 DASM := d52
 DASM_OPTS := -d
 
-$(OBJECTS): $(HEX) $(CONTROL)
-	$(DASM) $(DASM_OPTS) $(HEX)
+%.d52: %.hex %.ctl
+	$(DASM) $(DASM_OPTS) $<
+
+all: $(OBJECTS)
+
+.phony: all
