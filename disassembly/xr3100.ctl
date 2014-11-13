@@ -15,16 +15,22 @@
 
 
 b 087d-0884 ; Bit masks!
+l 087d bit_masks
 b 0b3e-0b90 ; Initialization values!
 
 
 
-c 0000-06b9	; Code space
+c 0000-06b9 ; Code space
 
 c 06ba-070e
 ! 06ba 06ba-070e UNUSED CODE
 
-c 070f-0c30	; Code space
+c 070f-087c
+
+
+c 0885-0b3d ; Code space
+
+c 0b91-0c30	; Code space
 
 c 0c31-0c81
 ! 0c31 0c31-0c81 UNUSED CODE
@@ -354,6 +360,10 @@ l 0b3e ram_initialization_data
 l 084a init_ljmp
 l 08af init_rodata_loop
 l 084d init_rodata_page0
+
+! 088f init_count -> r7
+# 08af At this point r2:r0 contains the address to store values, r6:r7 the count
+
 
 l 08ca timer2_handler
 # 08ca ***************************************************************************

@@ -1,6 +1,6 @@
 ;
 ;  D52 V3.4.1 8052 Disassembly of xr3100.hex
-;  2014/11/13 21:02
+;  2014/11/14 07:52
 ;
 	org	0
 ;
@@ -1319,9 +1319,9 @@ X07ed:	mov	r7,3fh		; 07ed   af 3f      /?
 ;
 X07fd:	mov	r7,3fh		; 07fd   af 3f      /?
 	mov	a,r7		; 07ff   ef         o
-X0800:	rrc	a		; 0800   13         .
+	rrc	a		; 0800   13         .
 	rrc	a		; 0801   13         .
-X0802:	rrc	a		; 0802   13         .
+	rrc	a		; 0802   13         .
 	anl	a,#1		; 0803   54 01      T.
 	mov	41h,a		; 0805   f5 41      uA
 	mov	r7,40h		; 0807   af 40      /@
@@ -1346,7 +1346,7 @@ X081d:	mov	r7,3fh		; 081d   af 3f      /?
 	swap	a		; 0820   c4         D
 	rrc	a		; 0821   13         .
 	anl	a,#1		; 0822   54 01      T.
-X0824:	mov	41h,a		; 0824   f5 41      uA
+	mov	41h,a		; 0824   f5 41      uA
 	mov	r7,40h		; 0826   af 40      /@
 	mov	a,r7		; 0828   ef         o
 	swap	a		; 0829   c4         D
@@ -1419,21 +1419,20 @@ X0878:	mov	@r0,a		; 0878   f6         v
 	djnz	r7,X085f	; 0879   df e4      _d
 	sjmp	X0888		; 087b   80 0b      ..
 ;
-	ajmp	X0802		; 087d   01 02      ..
+bit_masks:
+	db	1,2,4,8,10h,20h,40h,80h			; 087d ..... @.
+; ***************************************************************************
+; Initalize RAM with default values stored in a ROM table
+; ***************************************************************************
 ;
-	inc	a		; 087f   04         .
-	inc	r0		; 0880   08         .
-	jbc	24h.0,X08c4	; 0881   10 20 40   . @
-	sjmp	X0816		; 0884   80 90      ..
-;
-	inc	r3		; 0886   0b         .
-	addc	a,r6		; 0887   3e         >
+init_rodata:
+	mov	dptr,#ram_initialization_data; 0885   90 0b 3e   ..>
 X0888:	clr	a		; 0888   e4         d
 	mov	r6,#1		; 0889   7e 01      ~.
 	movc	a,@a+dptr	; 088b   93         .
 	jz	init_ljmp	; 088c   60 bc      `<
 	inc	dptr		; 088e   a3         #
-	mov	r7,a		; 088f   ff         .
+	mov	r7,a		; 088f   ff         .	; init_count -> r7
 	anl	a,#3fh		; 0890   54 3f      T?
 	jnb	acc.5,X089e	; 0892   30 e5 09   0e.
 	anl	a,#1fh		; 0895   54 1f      T.
@@ -1456,6 +1455,7 @@ X089e:	xch	a,r7		; 089e   cf         O
 	movc	a,@a+dptr	; 08ac   93         .
 	inc	dptr		; 08ad   a3         #
 	mov	r0,a		; 08ae   f8         x
+; At this point r2:r0 contains the address to store values, r6:r7 the count
 init_rodata_loop:
 	clr	a		; 08af   e4         d
 	movc	a,@a+dptr	; 08b0   93         .
@@ -1474,7 +1474,7 @@ init_rodata_loop:
 	xch	a,r2		; 08c0   ca         J
 	xch	a,dph		; 08c1   c5 83      E.
 	xch	a,r2		; 08c3   ca         J
-X08c4:	djnz	r7,init_rodata_loop; 08c4   df e9      _i
+	djnz	r7,init_rodata_loop; 08c4   df e9      _i
 	djnz	r6,init_rodata_loop; 08c6   de e7      ^g
 	sjmp	X0888		; 08c8   80 be      .>
 ;
@@ -1683,7 +1683,7 @@ X09ed:	mov	a,r7		; 09ed   ef         o
 rf_cfg_r7_is_6:
 	mov	a,save_r5	; 09fc   e5 0f      e.
 	jz	X0a04		; 09fe   60 04      `.
-X0a00:	mov	r7,#0		; 0a00   7f 00      ..
+	mov	r7,#0		; 0a00   7f 00      ..
 	sjmp	X0a06		; 0a02   80 02      ..
 ;
 X0a04:	mov	r7,#1		; 0a04   7f 01      ..
@@ -1917,85 +1917,23 @@ X0b30:	mov	r5,count_l	; 0b30   ad 10      -.
 	ljmp	spi_write_register; 0b3b   02 10 9f   ...
 ;
 ram_initialization_data:
-	orl	rb0r0,a		; 0b3e   42 00      B.
-	jb	20h.0,X0b43	; 0b40   20 00 00    ..
-X0b43:	ajmp	X0a00		; 0b43   41 00      A.
-;
-	inc	rb0r0		; 0b45   05 00      ..
-	ajmp	X0a00		; 0b47   41 00      A.
-;
-	inc	a		; 0b49   04         .
-	nop			; 0b4a   00         .
-	inc	26h		; 0b4b   05 26      .&
-	lcall	X2323		; 0b4d   12 23 23   .##
-	orl	a,78h		; 0b50   45 78      Ex
-	orl	a,r0		; 0b52   48         H
-	nop			; 0b53   00         .
-	ret			; 0b54   22         "
-;
-	mov	r0,a		; 0b55   f8         x
-	add	a,r7		; 0b56   2f         /
-	mov	r0,a		; 0b57   f8         x
-	add	a,r7		; 0b58   2f         /
-	mov	r0,a		; 0b59   f8         x
-	add	a,r7		; 0b5a   2f         /
-	mov	r0,a		; 0b5b   f8         x
-	add	a,r7		; 0b5c   2f         /
-	orl	a,r0		; 0b5d   48         H
-	nop			; 0b5e   00         .
-	inc	r1		; 0b5f   09         .
-	mov	r0,a		; 0b60   f8         x
-	add	a,r7		; 0b61   2f         /
-	mov	r0,a		; 0b62   f8         x
-	add	a,r7		; 0b63   2f         /
-	mov	r0,a		; 0b64   f8         x
-	add	a,r7		; 0b65   2f         /
-	mov	r0,a		; 0b66   f8         x
-	add	a,r7		; 0b67   2f         /
-	ajmp	X0a00		; 0b68   41 00      A.
-;
-	rr	a		; 0b6a   03         .
-	nop			; 0b6b   00         .
-	ajmp	X0a00		; 0b6c   41 00      A.
-;
-	nop			; 0b6e   00         .
-	nop			; 0b6f   00         .
-	ajmp	X0a00		; 0b70   41 00      A.
-;
-	inc	@r0		; 0b72   06         .
-	nop			; 0b73   00         .
-	ajmp	X0a00		; 0b74   41 00      A.
-;
-	inc	r0		; 0b76   08         .
-	nop			; 0b77   00         .
-	ajmp	X0a00		; 0b78   41 00      A.
-;
-	dec	a		; 0b7a   14         .
-	nop			; 0b7b   00         .
-	ajmp	X0824		; 0b7c   01 24      .$
-;
-	nop			; 0b7e   00         .
-	orl	rb0r0,a		; 0b7f   42 00      B.
-	ajmp	X0800		; 0b81   01 00      ..
-;
-	xrl	a,#1		; 0b83   64 01      d.
-	add	a,r5		; 0b85   2d         -
-	nop			; 0b86   00         .
-	ajmp	X0825		; 0b87   01 25      .%
-;
-	nop			; 0b89   00         .
-	ajmp	X082c		; 0b8a   01 2c      .,
-;
-	nop			; 0b8c   00         .
-	ajmp	X082b		; 0b8d   01 2b      .+
-;
-	nop			; 0b8f   00         .
-	nop			; 0b90   00         .
+	db	42h,0,20h,0,0,41h,0,5			; 0b3e B. ..A..
+	db	0,41h,0,4,0,5,26h,12h			; 0b46 .A....&.
+	db	23h,23h,45h,78h,48h,0,22h,0f8h		; 0b4e ##ExH."x
+	db	2fh,0f8h,2fh,0f8h,2fh,0f8h,2fh,48h	; 0b56 /x/x/x/H
+	db	0,9,0f8h,2fh,0f8h,2fh,0f8h,2fh		; 0b5e ..x/x/x/
+	db	0f8h,2fh,41h,0,3,0,41h,0		; 0b66 x/A...A.
+	db	0,0,41h,0,6,0,41h,0			; 0b6e ..A...A.
+	db	8,0,41h,0,14h,0,1,24h			; 0b76 ..A....$
+	db	0,42h,0,1,0,64h,1,2dh			; 0b7e .B...d.-
+	db	0,1,25h,0,1,2ch,0,1			; 0b86 ..%..,..
+	db	2bh,0,0					; 0b8e +..
 ; ***************************************************************************
 ; Timer 0 interrupt handler
 ;
 ; Sets the servo output timer 0
 ; ***************************************************************************
+;
 timer0_handler:
 	push	acc		; 0b91   c0 e0      @`
 	push	dph		; 0b93   c0 83      @.
@@ -3355,14 +3293,6 @@ RFCON_rfce	equ	0e8h
 RFCON_rfcsn	equ	0e9h
 RFCON_rfcken	equ	0eah
 ;
-;	Label equates
-;
-;  These are labels in the control file that reference
-;  the middle of a multibyte instruction or reference
-;  an address outside the initialized space
-;
-init_rodata	equ	885h
-;
 ;	Operand symbol equates
 ;
 ;  These are operand symbols from the control
@@ -3403,10 +3333,6 @@ X001d	equ	1dh
 X0021	equ	21h
 X0022	equ	22h
 X0028	equ	28h
-X0816	equ	816h
-X0825	equ	825h
-X082c	equ	82ch
-X2323	equ	2323h
 ;
 	end
 ;
