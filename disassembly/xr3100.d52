@@ -1,6 +1,6 @@
 ;
 ;  D52 V3.4.1 8052 Disassembly of xr3100.hex
-;  2014/11/13 10:01
+;  2014/11/13 10:41
 ;
 	org	0
 ;
@@ -74,8 +74,8 @@ init:	clr	a		; 004e   e4         d
 	mov	P0CON,#53h	; 005c   75 9e 53   u.S
 	anl	P0DIR,#5ch	; 005f   53 93 5c   S.\
 	anl	P1DIR,#0fch	; 0062   53 94 fc   S.|
-	setb	rfcken		; 0065   d2 ea      Rj
-	setb	pt0		; 0067   d2 b9      R9
+	setb	RFCON_rfcken	; 0065   d2 ea      Rj
+	setb	IEN1_rfirq	; 0067   d2 b9      R9
 	lcall	init_timer0	; 0069   12 11 85   ...
 	lcall	init_timer1	; 006c   12 12 42   ..B
 	mov	r7,#2		; 006f   7f 02      ..
@@ -127,11 +127,11 @@ init:	clr	a		; 004e   e4         d
 	lcall	rf_set_rx	; 00c5   12 0f b5   ..5
 	mov	r7,#1		; 00c8   7f 01      ..
 	lcall	rf_set_power_up	; 00ca   12 0f d8   ..X
-	setb	rfce		; 00cd   d2 e8      Rh
-	setb	tr0		; 00cf   d2 8c      R.
-	clr	ea		; 00d1   c2 af      B/
-	mov	ie,#ch1		; 00d3   75 a8 22   u("
-	setb	ea		; 00d6   d2 af      R/
+	setb	RFCON_rfce	; 00cd   d2 e8      Rh
+	setb	TCON_tr0	; 00cf   d2 8c      R.
+	clr	IEN0_all	; 00d1   c2 af      B/
+	mov	IEN0,#ch1	; 00d3   75 a8 22   u("
+	setb	IEN0_all	; 00d6   d2 af      R/
 	clr	p0.0		; 00d8   c2 80      B.
 	setb	p0.1		; 00da   d2 81      R.
 	jb	p0.3,X00e2	; 00dc   20 83 03    ..	; Bind switch checked at reset?!?
@@ -168,12 +168,12 @@ not_factory:
 	cjne	r7,#1,X0121	; 0112   bf 01 0c   ?..
 	setb	p0.1		; 0115   d2 81      R.
 	clr	p0.0		; 0117   c2 80      B.
-	clr	rfce		; 0119   c2 e8      Bh
+	clr	RFCON_rfce	; 0119   c2 e8      Bh
 	lcall	X0346		; 011b   12 03 46   ..F
-	mov	t2con,#41h	; 011e   75 c8 41   uHA
+	mov	T2CON,#41h	; 011e   75 c8 41   uHA
 X0121:	mov	a,24h		; 0121   e5 24      e$
 	jz	X014c		; 0123   60 27      `'
-	clr	rfce		; 0125   c2 e8      Bh
+	clr	RFCON_rfce	; 0125   c2 e8      Bh
 	lcall	spi_read_rf_status; 0127   12 11 4a   ..J
 	mov	rf_status,r7	; 012a   8f 0b      ..
 X012c:	lcall	spi_is_rx_fifo_empty; 012c   12 11 a3   ..#
@@ -191,7 +191,7 @@ fifo_is_empty:
 	mov	24h,a		; 0141   f5 24      u$
 	mov	rb1r4,#1	; 0143   75 0c 01   u..
 	mov	2dh,#1		; 0146   75 2d 01   u-.
-	orl	ie,#8		; 0149   43 a8 08   C(.
+	orl	IEN0,#8		; 0149   43 a8 08   C(.
 X014c:	mov	dptr,#X0008	; 014c   90 00 08   ...
 	movx	a,@dptr		; 014f   e0         `
 	jnz	X0164		; 0150   70 12      p.
@@ -202,7 +202,7 @@ X014c:	mov	dptr,#X0008	; 014c   90 00 08   ...
 	mov	dptr,#X0008	; 015a   90 00 08   ...
 	mov	a,#1		; 015d   74 01      t.
 	movx	@dptr,a		; 015f   f0         p
-	setb	rfce		; 0160   d2 e8      Rh
+	setb	RFCON_rfce	; 0160   d2 e8      Rh
 	sjmp	X01ae		; 0162   80 4a      .J
 ;
 X0164:	mov	dptr,#X0008	; 0164   90 00 08   ...
@@ -211,13 +211,13 @@ X0164:	mov	dptr,#X0008	; 0164   90 00 08   ...
 	cjne	a,#1,X018b	; 0169   b4 01 1f   4..
 	mov	a,rb1r4		; 016c   e5 0c      e.
 	jz	X01ae		; 016e   60 3e      `>
-	clr	rfce		; 0170   c2 e8      Bh
+	clr	RFCON_rfce	; 0170   c2 e8      Bh
 	clr	a		; 0172   e4         d
 	mov	rb1r4,a		; 0173   f5 0c      u.
 	mov	th2,#0fah	; 0175   75 cd fa   uMz
 	mov	tl2,#0cah	; 0178   75 cc ca   uLJ
 	mov	2ch,#1		; 017b   75 2c 01   u,.
-	mov	t2con,#41h	; 017e   75 c8 41   uHA	; T2 clock = f/12, Reload Mode 0
+	mov	T2CON,#41h	; 017e   75 c8 41   uHA	; T2 clock = f/12, Reload Mode 0
 	mov	a,#2		; 0181   74 02      t.
 	movx	@dptr,a		; 0183   f0         p
 	clr	a		; 0184   e4         d
@@ -233,11 +233,11 @@ X018b:	mov	a,r7		; 018b   ef         o
 	mov	rb1r4,a		; 0194   f5 0c      u.
 	mov	th2,#0fah	; 0196   75 cd fa   uMz
 	mov	tl2,#0cah	; 0199   75 cc ca   uLJ
-	mov	t2con,#41h	; 019c   75 c8 41   uHA	; T2 clock = f/12, Reload Mode 0
+	mov	T2CON,#41h	; 019c   75 c8 41   uHA	; T2 clock = f/12, Reload Mode 0
 	mov	2ch,#1		; 019f   75 2c 01   u,.
 	mov	dptr,#X0006	; 01a2   90 00 06   ...
 	movx	@dptr,a		; 01a5   f0         p
-	clr	rfce		; 01a6   c2 e8      Bh
+	clr	RFCON_rfce	; 01a6   c2 e8      Bh
 	mov	dptr,#X0001	; 01a8   90 00 01   ...
 	movx	@dptr,a		; 01ab   f0         p
 	inc	dptr		; 01ac   a3         #
@@ -248,7 +248,7 @@ X01ae:	mov	dptr,#X0006	; 01ae   90 00 06   ...
 	subb	a,#0fh		; 01b3   94 0f      ..
 	jc	X01bf		; 01b5   40 08      @.
 	clr	a		; 01b7   e4         d
-	mov	t2con,a		; 01b8   f5 c8      uH
+	mov	T2CON,a		; 01b8   f5 c8      uH
 	movx	@dptr,a		; 01ba   f0         p
 	mov	dptr,#X0008	; 01bb   90 00 08   ...
 	movx	@dptr,a		; 01be   f0         p
@@ -373,7 +373,7 @@ X01d2:	mov	dptr,#X0017	; 01d2   90 00 17   ...
 	movx	a,@dptr		; 026b   e0         `
 	addc	a,#0		; 026c   34 00      4.
 	movx	@dptr,a		; 026e   f0         p
-	clr	ea		; 026f   c2 af      B/
+	clr	IEN0_all	; 026f   c2 af      B/
 	mov	dptr,#X0009	; 0271   90 00 09   ...
 	movx	a,@dptr		; 0274   e0         `
 	mov	r7,a		; 0275   ff         .
@@ -418,7 +418,7 @@ X01d2:	mov	dptr,#X0017	; 01d2   90 00 17   ...
 	inc	dptr		; 02aa   a3         #
 	mov	a,r7		; 02ab   ef         o
 	movx	@dptr,a		; 02ac   f0         p
-	setb	ea		; 02ad   d2 af      R/
+	setb	IEN0_all	; 02ad   d2 af      R/
 	sjmp	X02de		; 02af   80 2d      .-
 ;
 ; ***************************************************************************
@@ -514,17 +514,17 @@ X0331:	mov	dptr,#ch1	; 0331   90 00 22   .."
 	movx	@dptr,a		; 0342   f0         p
 	ljmp	main		; 0343   02 00 eb   ..k
 ;
-X0346:	anl	ie,#0f7h	; 0346   53 a8 f7   S(w
+X0346:	anl	IEN0,#0f7h	; 0346   53 a8 f7   S(w
 	clr	a		; 0349   e4         d
 	mov	2dh,a		; 034a   f5 2d      u-
-	mov	t2con,a		; 034c   f5 c8      uH
+	mov	T2CON,a		; 034c   f5 c8      uH
 	mov	24h,a		; 034e   f5 24      u$
 	mov	r3,a		; 0350   fb         {
 	mov	r2,#0		; 0351   7a 00      z.
 	mov	r1,#ch3		; 0353   79 26      y&
 	mov	r7,a		; 0355   ff         .
 	lcall	rc_configure_receiver; 0356   12 0d 4c   ..L
-	clr	rfce		; 0359   c2 e8      Bh
+	clr	RFCON_rfce	; 0359   c2 e8      Bh
 	mov	r7,#51h		; 035b   7f 51      .Q
 	lcall	spi_set_rf_channel; 035d   12 11 0c   ...
 	clr	a		; 0360   e4         d
@@ -537,7 +537,7 @@ X0365:	inc	rb2r1		; 0365   05 11      ..
 X036d:	cjne	a,#88h,X0365	; 036d   b4 88 f5   4.u
 	mov	a,rb2r0		; 0370   e5 10      e.
 	cjne	a,#13h,X0365	; 0372   b4 13 f0   4.p
-	setb	rfce		; 0375   d2 e8      Rh
+	setb	RFCON_rfce	; 0375   d2 e8      Rh
 	clr	a		; 0377   e4         d
 	mov	rb3r1,a		; 0378   f5 19      u.
 	mov	rb3r2,a		; 037a   f5 1a      u.
@@ -964,7 +964,7 @@ X0626:	mov	a,r5		; 0626   ed         m
 	setb	p1.1		; 0643   d2 91      R.
 	sjmp	X0651		; 0645   80 0a      ..
 ;
-X0647:	clr	tr1		; 0647   c2 8e      B.
+X0647:	clr	TCON_tr1	; 0647   c2 8e      B.
 	clr	p0.5		; 0649   c2 85      B.
 X064b:	clr	p0.7		; 064b   c2 87      B.
 X064d:	clr	p1.0		; 064d   c2 90      B.
@@ -1374,7 +1374,7 @@ timer2_handler:
 	push	rb0r5		; 08e1   c0 05      @.
 	push	rb0r6		; 08e3   c0 06      @.
 	push	rb0r7		; 08e5   c0 07      @.
-	clr	0c0h.6		; 08e7   c2 c6      BF
+	clr	IRCON_tf2	; 08e7   c2 c6      BF
 	mov	th2,#0fah	; 08e9   75 cd fa   uMz
 	mov	tl2,#0cah	; 08ec   75 cc ca   uLJ
 	inc	2ch		; 08ef   05 2c      .,
@@ -1409,7 +1409,7 @@ timer2_handler:
 	movx	a,@dptr		; 0921   e0         `
 	inc	a		; 0922   04         .
 	movx	@dptr,a		; 0923   f0         p
-X0924:	setb	rfce		; 0924   d2 e8      Rh
+X0924:	setb	RFCON_rfce	; 0924   d2 e8      Rh
 X0926:	pop	rb0r7		; 0926   d0 07      P.
 	pop	rb0r6		; 0928   d0 06      P.
 	pop	rb0r5		; 092a   d0 05      P.
@@ -1450,7 +1450,7 @@ spi_read_is_0_or_1_or_5:
 	lcall	spi_get_number_of_address_bytes; 095a   12 11 99   ...
 	mov	rb3r7,r7	; 095d   8f 1f      ..
 	mov	20h,r7		; 095f   8f 20      . 
-	clr	rfcsn		; 0961   c2 e9      Bi
+	clr	RFCON_rfcsn	; 0961   c2 e9      Bi
 	mov	a,rb3r3		; 0963   e5 1b      e.
 	add	a,#0ah		; 0965   24 0a      $.
 	mov	r7,a		; 0967   ff         .
@@ -1466,7 +1466,7 @@ spi_read_is_8:
 	lcall	spi_read_rx_fifo_payload_width; 0975   12 12 36   ..6
 	mov	rb3r7,r7	; 0978   8f 1f      ..
 	mov	20h,r7		; 097a   8f 20      . 
-	clr	rfcsn		; 097c   c2 e9      Bi
+	clr	RFCON_rfcsn	; 097c   c2 e9      Bi
 	mov	r7,#61h		; 097e   7f 61      .a	; READ_RX_PAYLOAD
 X0980:	lcall	spi_write	; 0980   12 11 8f   ...
 	sjmp	X098a		; 0983   80 05      ..
@@ -1494,7 +1494,7 @@ X09a2:	dec	a		; 09a2   14         .
 	lcall	set_indirect_r1_r2; 09a5   12 06 a8   ..(
 	sjmp	X098a		; 09a8   80 e0      .`
 ;
-X09aa:	setb	rfcsn		; 09aa   d2 e9      Ri
+X09aa:	setb	RFCON_rfcsn	; 09aa   d2 e9      Ri
 	mov	a,rb3r3		; 09ac   e5 1b      e.
 	mov	r6,a		; 09ae   fe         ~
 	mov	a,20h		; 09af   e5 20      e 
@@ -1841,7 +1841,7 @@ timer0_handler:
 	movx	a,@dptr		; 0bd3   e0         `
 	inc	a		; 0bd4   04         .
 	movx	@dptr,a		; 0bd5   f0         p
-X0bd6:	setb	tr1		; 0bd6   d2 8e      R.
+X0bd6:	setb	TCON_tr1	; 0bd6   d2 8e      R.
 X0bd8:	pop	PSW		; 0bd8   d0 d0      PP
 	pop	dpl		; 0bda   d0 82      P.
 	pop	dph		; 0bdc   d0 83      P.
@@ -2100,7 +2100,7 @@ X0dbf:	mov	r5,rb1r7	; 0dbf   ad 0f      -.
 X0dfd:	mov	20h,r3		; 0dfd   8b 20      . 
 	mov	21h,r2		; 0dff   8a 21      .!
 	mov	22h,r1		; 0e01   89 22      ."
-	clr	rfcsn		; 0e03   c2 e9      Bi
+	clr	RFCON_rfcsn	; 0e03   c2 e9      Bi
 	mov	SPIRDAT,r7	; 0e05   8f e7      .g
 	clr	a		; 0e07   e4         d
 	mov	r7,a		; 0e08   ff         .
@@ -2125,7 +2125,7 @@ X0e1e:	mov	a,SPIRSTAT	; 0e1e   e5 e6      ef
 X0e2a:	mov	a,SPIRSTAT	; 0e2a   e5 e6      ef
 	jnb	acc.1,X0e2a	; 0e2c   30 e1 fb   0a{
 	mov	r6,SPIRDAT	; 0e2f   ae e7      .g
-	setb	rfcsn		; 0e31   d2 e9      Ri
+	setb	RFCON_rfcsn	; 0e31   d2 e9      Ri
 	ret			; 0e33   22         "
 ;
 	db	8fh,48h,8bh,49h,8ah,4ah,89h,4bh		; 0e34 .H.I.J.K
@@ -2478,7 +2478,7 @@ init_ports:
 ; ***************************************************************************
 spi_write_register:
 	mov	rb3r7,r5	; 109f   8d 1f      ..
-	clr	rfcsn		; 10a1   c2 e9      Bi
+	clr	RFCON_rfcsn	; 10a1   c2 e9      Bi
 	mov	a,r7		; 10a3   ef         o
 	add	a,#20h		; 10a4   24 20      $ 
 	mov	r7,a		; 10a6   ff         .
@@ -2486,7 +2486,7 @@ spi_write_register:
 	mov	20h,r7		; 10aa   8f 20      . 
 	mov	r7,rb3r7	; 10ac   af 1f      /.
 	lcall	spi_write	; 10ae   12 11 8f   ...
-	setb	rfcsn		; 10b1   d2 e9      Ri
+	setb	RFCON_rfcsn	; 10b1   d2 e9      Ri
 	mov	r7,20h		; 10b3   af 20      / 
 	ret			; 10b5   22         "
 ;
@@ -2576,12 +2576,12 @@ X1128:	djnz	r0,X1126	; 1128   d8 fc      X|
 ; In: A: command    Out: R7: read value
 ; ***************************************************************************
 spi_read_register:
-	clr	rfcsn		; 113d   c2 e9      Bi
+	clr	RFCON_rfcsn	; 113d   c2 e9      Bi
 	lcall	spi_write	; 113f   12 11 8f   ...
 	clr	a		; 1142   e4         d
 	mov	r7,a		; 1143   ff         .
 	lcall	spi_write	; 1144   12 11 8f   ...
-	setb	rfcsn		; 1147   d2 e9      Ri
+	setb	RFCON_rfcsn	; 1147   d2 e9      Ri
 	ret			; 1149   22         "
 ;
 ; ***************************************************************************
@@ -2633,8 +2633,8 @@ spi_read_rf_status:
 init_timer0:
 	mov	tmod,#1		; 1185   75 89 01   u..
 	clr	a		; 1188   e4         d
-	mov	tcon,a		; 1189   f5 88      u.
-	mov	ie,#2		; 118b   75 a8 02   u(.
+	mov	TCON,a		; 1189   f5 88      u.
+	mov	IEN0,#2		; 118b   75 a8 02   u(.
 	ret			; 118e   22         "
 ;
 ; ***************************************************************************
@@ -2702,33 +2702,33 @@ rf_read_rx_status:
 	mov	r7,a		; 11dd   ff         .
 	ret			; 11de   22         "
 ;
-	clr	rfcsn		; 11df   c2 e9      Bi	; 11df-11fc UNUSED CODE
+	clr	RFCON_rfcsn	; 11df   c2 e9      Bi	; 11df-11fc UNUSED CODE
 	mov	r7,#0e3h	; 11e1   7f e3      .c
 	lcall	spi_write	; 11e3   12 11 8f   ...
-	setb	rfcsn		; 11e6   d2 e9      Ri
+	setb	RFCON_rfcsn	; 11e6   d2 e9      Ri
 	ret			; 11e8   22         "
 ;
-	clr	rfcsn		; 11e9   c2 e9      Bi
+	clr	RFCON_rfcsn	; 11e9   c2 e9      Bi
 	mov	r7,#0e2h	; 11eb   7f e2      .b
 	lcall	spi_write	; 11ed   12 11 8f   ...
-	setb	rfcsn		; 11f0   d2 e9      Ri
+	setb	RFCON_rfcsn	; 11f0   d2 e9      Ri
 	ret			; 11f2   22         "
 ;
-	clr	rfcsn		; 11f3   c2 e9      Bi
+	clr	RFCON_rfcsn	; 11f3   c2 e9      Bi
 	mov	r7,#0e1h	; 11f5   7f e1      .a
 	lcall	spi_write	; 11f7   12 11 8f   ...
-	setb	rfcsn		; 11fa   d2 e9      Ri
+	setb	RFCON_rfcsn	; 11fa   d2 e9      Ri
 	ret			; 11fc   22         "
 ;
 spi_send_nop_command:
-	clr	rfcsn		; 11fd   c2 e9      Bi
+	clr	RFCON_rfcsn	; 11fd   c2 e9      Bi
 	mov	r7,#0ffh	; 11ff   7f ff      ..
 	lcall	spi_write	; 1201   12 11 8f   ...
-	setb	rfcsn		; 1204   d2 e9      Ri
+	setb	RFCON_rfcsn	; 1204   d2 e9      Ri
 	ret			; 1206   22         "
 ;
-	mov	t2con,#41h	; 1207   75 c8 41   uHA	; 1207-120d UNUSED CODE
-	orl	ie,#20h		; 120a   43 a8 20   C( 
+	mov	T2CON,#41h	; 1207   75 c8 41   uHA	; 1207-120d UNUSED CODE
+	orl	IEN0,#20h	; 120a   43 a8 20   C( 
 	ret			; 120d   22         "
 ;
 rf_set_payload_bytes:
@@ -2824,6 +2824,7 @@ rb3r7	equ	1fh
 ;
 ;	SFR Equates
 ;
+TCON	equ	88h
 P0DIR	equ	93h
 P1DIR	equ	94h
 S0CON	equ	98h
@@ -2836,6 +2837,8 @@ CLKCTRL	equ	0a3h
 PWRDWN	equ	0a4h
 WUCON	equ	0a5h
 MEMCON	equ	0a7h
+IEN0	equ	0a8h
+IP0	equ	0a9h
 S0RELL	equ	0aah
 RTC2CPT01	equ	0abh
 RTC2CPT10	equ	0ach
@@ -2848,7 +2851,13 @@ RTC2CON	equ	0b3h
 RTC2CMP0	equ	0b4h
 RTC2CMP1	equ	0b5h
 RTC2CPT00	equ	0b6h
+IEN1	equ	0b8h
+IP1	equ	0b9h
 S0RELH	equ	0bah
+SPISCON0	equ	0bch
+SPISSTAT	equ	0beh
+SPISDAT	equ	0bfh
+IRCON	equ	0c0h
 CCEN	equ	0c1h
 CCL1	equ	0c2h
 CCH1	equ	0c3h
@@ -2856,12 +2865,17 @@ CCL2	equ	0c4h
 CCH2	equ	0c5h
 CCL3	equ	0c6h
 CCH3	equ	0c7h
+T2CON	equ	0c8h
 MPAGE	equ	0c9h
 CRCL	equ	0cah
 CRCH	equ	0cbh
-WUOPC1	equ	0ceh
 WUOPC0	equ	0cfh
 PSW	equ	0d0h
+ADCCON3	equ	0d1h
+ADCCON2	equ	0d2h
+ADCCON1	equ	0d3h
+ADCDATH	equ	0d4h
+ADCDATL	equ	0d5h
 RNGCTL	equ	0d6h
 RNGDAT	equ	0d7h
 ADCON	equ	0d8h
@@ -2895,10 +2909,59 @@ SPIMDAT	equ	0ffh
 ;
 ;	SFR bit Equates
 ;
-f1	equ	0d1h
-rfce	equ	0e8h
-rfcsn	equ	0e9h
-rfcken	equ	0eah
+TCON_it0	equ	88h
+TCON_ie0	equ	89h
+TCON_it1	equ	8ah
+TCON_ie1	equ	8bh
+TCON_tr0	equ	8ch
+TCON_tf0	equ	8dh
+TCON_tr1	equ	8eh
+TCON_tf1	equ	8fh
+S0CON_ri0	equ	98h
+S0CON_ti0	equ	99h
+S0CON_rb80	equ	9ah
+S0CON_tb80	equ	9bh
+S0CON_ren0	equ	9ch
+S0CON_sm20	equ	9dh
+S0CON_sm0	equ	9eh
+S0CON_sm1	equ	9fh
+IEN0_ifp	equ	0a8h
+IEN0_tf0	equ	0a9h
+IEN0_pwrfail	equ	0aah
+IEN0_tf1	equ	0abh
+IEN0_serial	equ	0ach
+IEN0_tf2	equ	0adh
+IEN0.6	equ	0aeh
+IEN0_all	equ	0afh
+IEN1_rfready	equ	0b8h
+IEN1_rfirq	equ	0b9h
+IEN1_spi_iic	equ	0bah
+IEN1_wakeup	equ	0bbh
+IEN1_misc	equ	0bch
+IEN1_tick	equ	0bdh
+IEN1.6	equ	0beh
+IEN1_exf2	equ	0bfh
+IRCON_rfready	equ	0c0h
+IRCON_rfiry	equ	0c1h
+IRCON_spi_iic	equ	0c2h
+IRCON_wakeup	equ	0c3h
+IRCON_misc	equ	0c4h
+IRCON_tick	equ	0c5h
+IRCON_tf2	equ	0c6h
+IRCON_exf2	equ	0c7h
+T2CON_t2i0	equ	0c8h
+T2CON_t2i1	equ	0c9h
+T2CON_t2cm	equ	0cah
+T2CON_t2r0	equ	0cbh
+T2CON_t2r1	equ	0cch
+T2CON_i2fr	equ	0cdh
+T2CON_i3fr	equ	0ceh
+T2CON_t2ps	equ	0cfh
+PSW_f1	equ	0d1h
+ADCON_bd	equ	0dfh
+RFCON_rfce	equ	0e8h
+RFCON_rfcsn	equ	0e9h
+RFCON_rfcken	equ	0eah
 ;
 ;	Symbol equates
 ;
