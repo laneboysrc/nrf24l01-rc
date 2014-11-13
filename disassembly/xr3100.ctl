@@ -28,7 +28,7 @@ c 002b-002d	; pointers
 
 c 002e-0047	; Code space
 
-b 0048-004d	; 8-bit data
+c 0048-004d
 
 c 004e-06b9	; Code space
 
@@ -134,6 +134,12 @@ s 0024 ch2
 s 0026 ch3
 s 0028 ch4
 
+r 000b rf_status
+r 001c adr_flag
+r 001d adr_h
+r 001e adr_l
+s 002d rf_data_available
+
 ! 000e OBSERVE_TX ?!
 ! 001e FIFO_STATUS
 ! 0024 Masks out TX_FULL and TX_EMPTY
@@ -157,6 +163,11 @@ l 00eb main
 
 l 010f not_factory
 
+l 0140 fifo_is_empty
+
+! 017e T2 clock = f/12, Reload Mode 0
+! 019c T2 clock = f/12, Reload Mode 0
+
 # 01d2 ***************************************************************************
 # 01d2 This code below sets the servo pulse durations 0x55
 # 01d2 ***************************************************************************
@@ -177,6 +188,16 @@ l 05b3 servo_pulse_t1_handler
 # 05b3 ***************************************************************************
 
 l 0662 get_indirect_r1_r2
+# 0662 ***************************************************************************
+# 0662 get_indirect_r1_r2
+# 0662 r3: flag; 0 = return @r1, 1 = return @r2:r1
+# 0662 ***************************************************************************
+
+l 06a8 set_indirect_r1_r2
+# 06a8 ***************************************************************************
+# 06a8 set_indirect_r1_r2
+# 06a8 r3: flag; 0 = store at @r1, 1 = store at @r2:r1
+# 06a8 ***************************************************************************
 
 l 083e reset
 # 083e ***************************************************************************
@@ -199,6 +220,19 @@ l 08ca timer2_handler
 # 08ca
 # 08ca Seems to perform frequency hopping?!
 # 08ca ***************************************************************************
+
+l 0941 spi_read_rf_fifo_data
+# 0941 ***************************************************************************
+# 0941 spi_read_rf_fifo_data
+# 0941
+# 0941 r2:r1: address to store the information
+# 0941 r3: flag; 0 = store at @r1, 1 = store at @r2:r1
+# 0941 r7:
+# 0941 ***************************************************************************
+
+l 095a spi_read_is_0_or_1_or_5
+l 096a spi_read_is_8
+l 0985 spi_read_is_not_null
 
 ! 097e READ_RX_PAYLOAD
 
@@ -349,11 +383,16 @@ l 1236 spi_read_rx_fifo_payload_width
 # 1236 Returns the number of bytes of the top payload in the RX FIFO
 # 1236 ***************************************************************************
 
-l 123c spi_read_rf_fifo_data
+
+l 123c spi_read_rf_fifo
 # 123c ***************************************************************************
-# 123c spi_read_rf_fifo_data
+# 123c spi_read_rf_fifo
 # 123c
 # 123c Read data from the RF FIFO?
+# 123c  r3,#1,  r2,#0  r1,#16h
+# 123c r2:r1: address to store the information
+# 123c r3: flag; 0 = store at @r1, 1 = store at @r2:r1
+# 123c  sets r7,#8 then calls X0941
 # 123c ***************************************************************************
 
 l 1246 rf_handler
@@ -365,7 +404,12 @@ f e4 SPIRCON0
 f e5 SPIRCON1
 f e6 SPIRSTAT
 f e7 SPIRDAT
+
 f e8 RFCON
+k e8 rfce
+k e9 rfcsn
+k ea rfcken
+
 f e9 MD0
 f ea MD1
 f eb MD2
@@ -434,3 +478,6 @@ f 93 P0DIR
 f 94 P1DIR
 f 9e P0CON
 f 9f P1CON
+
+f d0 PSW
+k d1 f1
