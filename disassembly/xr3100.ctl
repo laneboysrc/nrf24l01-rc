@@ -476,8 +476,8 @@ l 1191 _spi_write_loop
 
 l 113d spi_read_register
 # 113d ***************************************************************************
-# 113d SPI Read Byte
-# 113d In: A: command    Out: R7: read value
+# 113d spi_read_register
+# 113d In: A: register    Out: R7: read value
 # 113d ***************************************************************************
 
 l 114a spi_read_rf_status

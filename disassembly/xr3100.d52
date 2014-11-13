@@ -1,6 +1,6 @@
 ;
 ;  D52 V3.4.1 8052 Disassembly of xr3100.hex
-;  2014/11/13 17:43
+;  2014/11/13 19:47
 ;
 	org	0
 ;
@@ -2928,8 +2928,8 @@ X1128:	djnz	r0,X1126	; 1128   d8 fc      X|
 	ret			; 113c   22         "
 ;
 ; ***************************************************************************
-; SPI Read Byte
-; In: A: command    Out: R7: read value
+; spi_read_register
+; In: A: register    Out: R7: read value
 ; ***************************************************************************
 spi_read_register:
 	clr	RFCON_rfcsn	; 113d   c2 e9      Bi
