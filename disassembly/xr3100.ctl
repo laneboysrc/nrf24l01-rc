@@ -14,80 +14,52 @@
 ;l 0053 Vector: SPI, I2C
 
 
-c 0000-000d	; Code space
+b 087d-0884 ; Bit masks!
+b 0b3e-0b90 ; Initialization values!
 
-c 000e-0012  ; 8-bit dat
 
-c 0013-001d	; Code space
 
-c 001e-0022	; 8-bit data
+c 0000-06b9	; Code space
 
-c 0023-002a	; Code space
+c 06ba-070e
+! 06ba 06ba-070e UNUSED CODE
 
-c 002b-002d	; pointers
+c 070f-0c30	; Code space
 
-c 002e-0047	; Code space
-
-c 0048-004d
-
-c 004e-06b9	; Code space
-
-b 06ba-070e ; 8-bit data
-
-c 070f-07ab	; Code space
-
-b 07ac-0811	; 8-bit data
-
-c 0812-081c	; Code space
-
-b 081d-082a	; 8-bit data
-
-c 082b-0830	; Code space
-
-b 0831-0835	; 8-bit data
-
-c 0836-087c	; Code space
-
-b 087d-0884	; pointers
-
-c 0885-0b3d	; Code space
-
-b 0b3e-0b90	; 8-bit data
-
-c 0b91-0c30	; Code space
-
-b 0c31-0c81	; 8-bit data
+c 0c31-0c81
+! 0c31 0c31-0c81 UNUSED CODE
 
 c 0c81-0d08	; Code space
 
-b 0d09-0d4b	; 8-bit data
+c 0d09-0d4b
+! 0d09 0d09-0d4b UNUSED CODE
 
 c 0d4c-0dc5	; Code space
 
-b 0dc6-0dfc	; 8-bit data
+c 0dc6-0dfc
+! 0dc6 0dc6-0dfc UNUSED CODE
 
 c 0dfd-0e33	; Code space
 
-b 0e34-0e7e	; 8-bit data
+c 0e34-0e7e
+! 0e34 0e34-0e7e UNUSED CODE
 
 c 0e7f-0e98	; Code space
 
-b 0e99-0ec4	; 8-bit data
+c 0e99-0ec4
+! 0e99 0e99-0ec4 UNUSED CODE
 
-c 0ec5-0eef	; Code space
+c 0ec5-1056	; Code space
 
-c 0ef0-101f	; 8-bit data
-
-c 1020-1056	; Code space
-
-b 1057-1070	; 8-bit data
+c 1057-1070
+! 1057 1057-1070 UNUSED CODE
 
 c 1071-10cb	; Code space
 
-b 10cc-10e1	; 8-bit data
+c 10cc-10e1
+! 10cc 10cc-10e1 UNUSED CODE
 
 c 10e2-111e	; Code space
-
 
 c 111f-113c
 ! 111f 111f-113c UNUSED CODE
@@ -104,7 +76,8 @@ c 11ad-11c0
 
 c 11c1-11ca	; Code space
 
-b 11cb-11d4	; 8-bit data
+c 11cb-11d4
+! 11cb 11cb-11d4 UNUSED CODE
 
 c 11d5-11de	; Code space
 
@@ -128,6 +101,8 @@ c 122a-1235
 
 c 1236-1249	; Code space
 
+
+
 i 124a-1ffe	; ignore data
 
 
@@ -148,6 +123,13 @@ x 0602 servo_output_state
 x 0617 servo_output_state
 x 0638 servo_output_state
 x 0bb2 servo_output_state
+
+x 00b1 hop_index ; X0004
+x 0186 hop_index
+x 08fc hop_index
+
+; X0005 used as temporary value in Timer2 int
+; X0006 is counting to 20 in interrupt?
 
 x 02bb failsafe_flag    ; X0007
 x 02fc failsafe_flag
@@ -221,23 +203,25 @@ x 01c7 payload+7
 x 02b2 payload+7
 
 
-x 0279 ch1      ; X0022
-x 0313 ch1
-x 0332 ch1
-x 05ce ch1
+x 0279 ch1_value      ; X0022
+x 0313 ch1_value
+x 0332 ch1_value
+x 05ce ch1_value
 
-x 0288 ch2      ; X0024
-x 0328 ch2
-x 05e9 ch2
+x 0288 ch2_value      ; X0024
+x 0328 ch2_value
+x 05e9 ch2_value
 
-x 0297 ch3      ; X0026
-x 060a ch3
+x 0297 ch3_value      ; X0026
+x 060a ch3_value
 
-x 02a6 ch4      ; X0028
-x 062b ch4
+x 02a6 ch4_value      ; X0028
+x 062b ch4_value
 
 x 0153 hop_data     ; X002A Comes from the EEPROM bind data, 20 bytes
 ! 0caf offset in hop_data
+! 00b5 offset in hop_data
+! 090a offset in hop_data
 
 x 0c8c bind_data    ; X003E Comes from the EEPROM bind data 5 (or 6) bytes
 x 009e bind_data
@@ -258,6 +242,7 @@ r 1c adr_flag
 r 1d adr_h
 r 1e adr_l
 
+r 2c div_4ms
 r 2d rf_data_avail
 
 
@@ -271,13 +256,17 @@ l 002e i2c_eeprom_read_one_byte
 
 
 
-k 80 LED_GREEN  ; p0.0
-k 81 LED_RED    ; p0.1
-
+k 80 LED_GREEN      ; p0.0
+k 81 LED_RED        ; p0.1
 k 83 BIND_BUTTON    ; p0.3
+k 85 PORT_CH1       ; p0.5
+k 87 PORT_CH2       ; p0.7
 
-k 93 SCL    ; p1.3
-k 94 SDA    ; p1.4
+k 90 PORT_CH3       ; p1.0
+k 91 PORT_CH4       ; p1.1
+k 93 SCL            ; p1.3
+k 94 SDA            ; p1.4
+
 
 
 l 004e init
@@ -368,7 +357,8 @@ l 08ca timer2_handler
 # 08ca ***************************************************************************
 # 08ca Timer 2 interrupt handler
 # 08ca
-# 08ca Seems to perform frequency hopping?!
+# 08ca Triggers every 1ms
+# 08ca Performs frequency hopping
 # 08ca ***************************************************************************
 
 l 0941 spi_read_rf_fifo_data
@@ -467,6 +457,12 @@ l 1088 init_ports
 # 1088 init_ports
 # 1088 ***************************************************************************
 
+l 109f spi_write_register
+# 109f ***************************************************************************
+# 109f SPI Write to a RF register
+# 109f In: R7: register number, R5: value
+# 109f ***************************************************************************
+
 l 10f7 init_rf_setup_address_width
 
 l 1185 init_timer0
@@ -490,6 +486,9 @@ l 114a spi_read_rf_status
 # 114a Reads and clears the RF status register. Output in R7
 # 114a ***************************************************************************
 
+! 1185 Set Timer0 as 16 bit timer
+! 118b Enable Timer0 interrupt
+
 l 1199 spi_get_number_of_address_bytes
 x 119a 03h
 ! 1199 SETUP_AW
@@ -497,12 +496,6 @@ x 119a 03h
 # 1199 SPI spi_get_number_of_address_bytes Byte
 # 1199 Out: R7: Number of address bytes in the receiver
 # 1199 ***************************************************************************
-
-l 109f spi_write_register
-# 109f ***************************************************************************
-# 109f SPI Write to a RF register
-# 109f In: R7: register number, R5: value
-# 109f ***************************************************************************
 
 l 110c spi_set_rf_channel
 # 110c ***************************************************************************
@@ -556,6 +549,8 @@ l 123c spi_read_rf_fifo
 # 123c r3: flag; 0 = store at @r1, 1 = store at @r2:r1
 # 123c  sets r7,#8 then calls X0941
 # 123c ***************************************************************************
+
+! 1242 Set Timer1 as 16 bit timer
 
 l 1246 rf_handler
 # 1246 ****************************************************
