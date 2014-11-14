@@ -1,6 +1,6 @@
 ;
 ;  D52 V3.4.1 8052 Disassembly of xr3100.hex
-;  2014/11/14 07:52
+;  2014/11/14 14:08
 ;
 	org	0
 ;
@@ -145,7 +145,7 @@ X00e2:	mov	a,factory	; 00e2   e5 2b      e+
 ; ***************************************************************************
 main:	mov	a,factory	; 00eb   e5 2b      e+
 	jz	not_factory	; 00ed   60 20      ` 
-	mov	dptr,#fs_data+3	; 00ef   90 00 14   ...
+	mov	dptr,#softtmr_1ms; 00ef   90 00 14   ...
 	movx	a,@dptr		; 00f2   e0         `
 	mov	r7,a		; 00f3   ff         .
 	jnb	acc.0,main	; 00f4   30 e0 f4   0`t
@@ -164,7 +164,7 @@ X0109:	clr	LED_GREEN	; 0109   c2 80      B.
 	sjmp	main		; 010d   80 dc      .\
 ;
 not_factory:
-	lcall	X0a82		; 010f   12 0a 82   ...
+	lcall	is_bind_button_pressed; 010f   12 0a 82   ...
 	cjne	r7,#1,X0121	; 0112   bf 01 0c   ?..
 	setb	LED_RED		; 0115   d2 81      R.
 	clr	LED_GREEN	; 0117   c2 80      B.
@@ -235,14 +235,14 @@ X018b:	mov	a,r7		; 018b   ef         o
 	mov	tl2,#0cah	; 0199   75 cc ca   uLJ
 	mov	T2CON,#41h	; 019c   75 c8 41   uHA	; T2 clock = f/12, Reload Mode 0
 	mov	div_4ms,#1	; 019f   75 2c 01   u,.
-	mov	dptr,#X0006	; 01a2   90 00 06   ...
+	mov	dptr,#inc_every_hop_to_20; 01a2   90 00 06   ...
 	movx	@dptr,a		; 01a5   f0         p
 	clr	RFCON_rfce	; 01a6   c2 e8      Bh
-	mov	dptr,#softtmr	; 01a8   90 00 01   ...
+	mov	dptr,#fs_timer	; 01a8   90 00 01   ...
 	movx	@dptr,a		; 01ab   f0         p
 	inc	dptr		; 01ac   a3         #
 	movx	@dptr,a		; 01ad   f0         p
-X01ae:	mov	dptr,#X0006	; 01ae   90 00 06   ...
+X01ae:	mov	dptr,#inc_every_hop_to_20; 01ae   90 00 06   ...
 	movx	a,@dptr		; 01b1   e0         `
 	setb	c		; 01b2   d3         S
 	subb	a,#0fh		; 01b3   94 0f      ..
@@ -254,7 +254,7 @@ X01ae:	mov	dptr,#X0006	; 01ae   90 00 06   ...
 	movx	@dptr,a		; 01be   f0         p
 X01bf:	mov	a,rf_data_avail	; 01bf   e5 2d      e-
 	jnz	process_rf_data	; 01c1   70 03      p.
-	ljmp	check_if_connected; 01c3   02 02 e1   ..a
+	ljmp	check_if_failsafe; 01c3   02 02 e1   ..a
 ;
 process_rf_data:
 	mov	dptr,#payload+7	; 01c6   90 00 1d   ...
@@ -435,29 +435,29 @@ X02b1:	mov	dptr,#payload+7	; 02b1   90 00 1d   ...
 	movx	@dptr,a		; 02bd   f0         p
 	mov	dptr,#payload	; 02be   90 00 16   ...
 	movx	a,@dptr		; 02c1   e0         `
-	mov	dptr,#fs_data+4	; 02c2   90 00 15   ...
+	mov	dptr,#fs_ch1h	; 02c2   90 00 15   ...
 	movx	@dptr,a		; 02c5   f0         p
 	mov	dptr,#payload+1	; 02c6   90 00 17   ...
 	movx	a,@dptr		; 02c9   e0         `
-	mov	dptr,#fs_data+2	; 02ca   90 00 13   ...
+	mov	dptr,#fs_ch1l	; 02ca   90 00 13   ...
 	movx	@dptr,a		; 02cd   f0         p
 	mov	dptr,#payload+2	; 02ce   90 00 18   ...
 	movx	a,@dptr		; 02d1   e0         `
-	mov	dptr,#fs_data+1	; 02d2   90 00 12   ...
+	mov	dptr,#fs_ch1h	; 02d2   90 00 12   ...
 	movx	@dptr,a		; 02d5   f0         p
 	mov	dptr,#payload+3	; 02d6   90 00 19   ...
 	movx	a,@dptr		; 02d9   e0         `
-	mov	dptr,#fs_data	; 02da   90 00 11   ...
+	mov	dptr,#fs_ch1l	; 02da   90 00 11   ...
 	movx	@dptr,a		; 02dd   f0         p
 rf_data_processed:
 	clr	a		; 02de   e4         d
 	mov	rf_data_avail,a	; 02df   f5 2d      u-
-check_if_connected:
+check_if_failsafe:
 	clr	c		; 02e1   c3         C
-	mov	dptr,#softtmr+1	; 02e2   90 00 02   ...
+	mov	dptr,#fs_timer+1; 02e2   90 00 02   ...
 	movx	a,@dptr		; 02e5   e0         `
-	subb	a,#28h		; 02e6   94 28      .(
-	mov	dptr,#softtmr	; 02e8   90 00 01   ...
+40;:	subb	a,#28h		; 02e6   94 28      .(
+	mov	dptr,#fs_timer	; 02e8   90 00 01   ...
 	movx	a,@dptr		; 02eb   e0         `
 	subb	a,#0		; 02ec   94 00      ..
 	jnc	output_failsafe	; 02ee   50 07      P.
@@ -472,11 +472,11 @@ output_failsafe:
 	movx	a,@dptr		; 02fe   e0         `
 	xrl	a,#5ah		; 02ff   64 5a      dZ
 	jnz	X0331		; 0301   70 2e      p.
-	mov	dptr,#fs_data+2	; 0303   90 00 13   ...
+	mov	dptr,#fs_ch1l	; 0303   90 00 13   ...
 	movx	a,@dptr		; 0306   e0         `
 	mov	r7,#0		; 0307   7f 00      ..
 	mov	r6,a		; 0309   fe         ~
-	mov	dptr,#fs_data+4	; 030a   90 00 15   ...
+	mov	dptr,#fs_ch1h	; 030a   90 00 15   ...
 	movx	a,@dptr		; 030d   e0         `
 	add	a,r7		; 030e   2f         /
 	mov	r7,a		; 030f   ff         .
@@ -487,7 +487,7 @@ output_failsafe:
 	inc	dptr		; 0316   a3         #
 	mov	a,r7		; 0317   ef         o
 	movx	@dptr,a		; 0318   f0         p
-	mov	dptr,#fs_data	; 0319   90 00 11   ...
+	mov	dptr,#fs_ch1l	; 0319   90 00 11   ...
 	movx	a,@dptr		; 031c   e0         `
 	mov	r7,#0		; 031d   7f 00      ..
 	mov	r6,a		; 031f   fe         ~
@@ -793,7 +793,7 @@ X051a:	mov	rf_int_fired,#1	; 051a   75 24 01   u$.
 	clr	a		; 0523   e4         d
 	mov	r7,a		; 0524   ff         .
 	lcall	rc_get_or_set_address_for_pipe; 0525   12 0d 4c   ..L
-	mov	dptr,#X0006	; 0528   90 00 06   ...
+	mov	dptr,#inc_every_hop_to_20; 0528   90 00 06   ...
 	mov	a,#14h		; 052b   74 14      t.
 	movx	@dptr,a		; 052d   f0         p
 	mov	th2,#0fah	; 052e   75 cd fa   uMz
@@ -801,7 +801,7 @@ X051a:	mov	rf_int_fired,#1	; 051a   75 24 01   u$.
 	mov	tl2,a		; 0532   f5 cc      uL
 	setb	LED_RED		; 0534   d2 81      R.
 	clr	LED_GREEN	; 0536   c2 80      B.
-	mov	dptr,#softtmr	; 0538   90 00 01   ...
+	mov	dptr,#fs_timer	; 0538   90 00 01   ...
 	movx	@dptr,a		; 053b   f0         p
 	inc	dptr		; 053c   a3         #
 	mov	a,#3ch		; 053d   74 3c      t<
@@ -863,7 +863,7 @@ X058b:	clr	c		; 058b   c3         C
 	clr	a		; 059d   e4         d
 	mov	r7,a		; 059e   ff         .
 	lcall	rc_get_or_set_address_for_pipe; 059f   12 0d 4c   ..L
-	mov	dptr,#X0006	; 05a2   90 00 06   ...
+	mov	dptr,#inc_every_hop_to_20; 05a2   90 00 06   ...
 	mov	a,#14h		; 05a5   74 14      t.
 	movx	@dptr,a		; 05a7   f0         p
 	mov	th2,#0fah	; 05a8   75 cd fa   uMz
@@ -894,7 +894,8 @@ servo_pulse_t1_handler:
 	mov	dptr,#servo_output_state; 05c6   90 00 03   ...
 	movx	a,@dptr		; 05c9   e0         `
 	mov	r5,a		; 05ca   fd         }
-	jnz	X05e4		; 05cb   70 17      p.
+	jnz	servo_pulse_ch2	; 05cb   70 17      p.
+servo_pulse_ch1:
 	mov	dptr,#ch1_value	; 05cd   90 00 22   .."
 	movx	a,@dptr		; 05d0   e0         `
 	mov	r2,a		; 05d1   fa         z
@@ -910,8 +911,9 @@ servo_pulse_t1_handler:
 	setb	PORT_CH1	; 05e0   d2 85      R.
 	sjmp	X064b		; 05e2   80 67      .g
 ;
-X05e4:	mov	a,r5		; 05e4   ed         m
-	cjne	a,#1,X0601	; 05e5   b4 01 19   4..
+servo_pulse_ch2:
+	mov	a,r5		; 05e4   ed         m
+	cjne	a,#1,servo_pulse_ch3; 05e5   b4 01 19   4..
 	mov	dptr,#ch2_value	; 05e8   90 00 24   ..$
 	movx	a,@dptr		; 05eb   e0         `
 	mov	r4,a		; 05ec   fc         |
@@ -928,10 +930,11 @@ X05e4:	mov	a,r5		; 05e4   ed         m
 	setb	PORT_CH2	; 05fd   d2 87      R.
 	sjmp	X064d		; 05ff   80 4c      .L
 ;
-X0601:	mov	dptr,#servo_output_state; 0601   90 00 03   ...
+servo_pulse_ch3:
+	mov	dptr,#servo_output_state; 0601   90 00 03   ...
 	movx	a,@dptr		; 0604   e0         `
 	mov	r5,a		; 0605   fd         }
-	cjne	a,#2,X0626	; 0606   b4 02 1d   4..
+	cjne	a,#2,servo_pulse_ch4; 0606   b4 02 1d   4..
 	mov	dptr,#ch3_value	; 0609   90 00 26   ..&
 	movx	a,@dptr		; 060c   e0         `
 	mov	r2,a		; 060d   fa         z
@@ -950,8 +953,9 @@ X0601:	mov	dptr,#servo_output_state; 0601   90 00 03   ...
 	clr	PORT_CH4	; 0622   c2 91      B.
 	sjmp	X0651		; 0624   80 2b      .+
 ;
-X0626:	mov	a,r5		; 0626   ed         m
-	cjne	a,#3,X0647	; 0627   b4 03 1d   4..
+servo_pulse_ch4:
+	mov	a,r5		; 0626   ed         m
+	cjne	a,#3,all_servos_done; 0627   b4 03 1d   4..
 	mov	dptr,#ch4_value	; 062a   90 00 28   ..(
 	movx	a,@dptr		; 062d   e0         `
 	mov	r4,a		; 062e   fc         |
@@ -970,7 +974,8 @@ X0626:	mov	a,r5		; 0626   ed         m
 	setb	PORT_CH4	; 0643   d2 91      R.
 	sjmp	X0651		; 0645   80 0a      ..
 ;
-X0647:	clr	TCON_tr1	; 0647   c2 8e      B.
+all_servos_done:
+	clr	TCON_tr1	; 0647   c2 8e      B.
 	clr	PORT_CH1	; 0649   c2 85      B.
 X064b:	clr	PORT_CH2	; 064b   c2 87      B.
 X064d:	clr	PORT_CH3	; 064d   c2 90      B.
@@ -1508,7 +1513,7 @@ timer2_handler:
 	subb	a,#4		; 08f4   94 04      ..
 	jc	X0926		; 08f6   40 2e      @.
 	mov	div_4ms,#0	; 08f8   75 2c 00   u,.
-	mov	dptr,#hop_index	; 08fb   90 00 04   ...
+	mov	dptr,#hop_index	; 08fb   90 00 04   ...	; hop_index = (hop_index + 1) % 20
 	movx	a,@dptr		; 08fe   e0         `
 	inc	a		; 08ff   04         .
 	movx	@dptr,a		; 0900   f0         p
@@ -1526,7 +1531,7 @@ timer2_handler:
 	movx	a,@dptr		; 0913   e0         `
 	mov	r7,a		; 0914   ff         .
 	lcall	spi_set_rf_channel; 0915   12 11 0c   ...
-	mov	dptr,#X0006	; 0918   90 00 06   ...
+	mov	dptr,#inc_every_hop_to_20; 0918   90 00 06   ...
 	movx	a,@dptr		; 091b   e0         `
 	clr	c		; 091c   c3         C
 	subb	a,#14h		; 091d   94 14      ..
@@ -1797,17 +1802,18 @@ X0a5d:	nop			; 0a5d   00         .
 	nop			; 0a80   00         .
 	ret			; 0a81   22         "
 ;
-X0a82:	mov	dptr,#fs_data+3	; 0a82   90 00 14   ...
+is_bind_button_pressed:
+	mov	dptr,#softtmr_1ms; 0a82   90 00 14   ...
 	movx	a,@dptr		; 0a85   e0         `
 	jnb	acc.0,X0ae1	; 0a86   30 e0 58   0`X
 	anl	a,#0feh		; 0a89   54 fe      T~
 	movx	@dptr,a		; 0a8b   f0         p
 	jb	BIND_BUTTON,X0ac3; 0a8c   20 83 34    .4
 	clr	c		; 0a8f   c3         C
-	mov	dptr,#X0021	; 0a90   90 00 21   ..!
+	mov	dptr,#bind_btn_timer+1; 0a90   90 00 21   ..!
 	movx	a,@dptr		; 0a93   e0         `
-	subb	a,#88h		; 0a94   94 88      ..
-	mov	dptr,#X0020	; 0a96   90 00 20   .. 
+	subb	a,#88h		; 0a94   94 88      ..	; 1388 => 5000ms
+	mov	dptr,#bind_btn_timer; 0a96   90 00 20   .. 
 	movx	a,@dptr		; 0a99   e0         `
 	subb	a,#13h		; 0a9a   94 13      ..
 	jnc	X0aaa		; 0a9c   50 0c      P.
@@ -1816,15 +1822,15 @@ X0a82:	mov	dptr,#fs_data+3	; 0a82   90 00 14   ...
 	inc	a		; 0aa0   04         .
 	movx	@dptr,a		; 0aa1   f0         p
 	jnz	X0aaa		; 0aa2   70 06      p.
-	mov	dptr,#X0020	; 0aa4   90 00 20   .. 
+	mov	dptr,#bind_btn_timer; 0aa4   90 00 20   .. 
 	movx	a,@dptr		; 0aa7   e0         `
 	inc	a		; 0aa8   04         .
 	movx	@dptr,a		; 0aa9   f0         p
 X0aaa:	setb	c		; 0aaa   d3         S
-	mov	dptr,#X0021	; 0aab   90 00 21   ..!
+	mov	dptr,#bind_btn_timer+1; 0aab   90 00 21   ..!
 	movx	a,@dptr		; 0aae   e0         `
 	subb	a,#20h		; 0aaf   94 20      . 
-	mov	dptr,#X0020	; 0ab1   90 00 20   .. 
+	mov	dptr,#bind_btn_timer; 0ab1   90 00 20   .. 
 	movx	a,@dptr		; 0ab4   e0         `
 	subb	a,#3		; 0ab5   94 03      ..
 	jc	X0ac0		; 0ab7   40 07      @.
@@ -1839,10 +1845,10 @@ X0ac0:	mov	r7,#0		; 0ac0   7f 00      ..
 	ret			; 0ac2   22         "
 ;
 X0ac3:	setb	c		; 0ac3   d3         S
-	mov	dptr,#X0021	; 0ac4   90 00 21   ..!
+	mov	dptr,#bind_btn_timer+1; 0ac4   90 00 21   ..!
 	movx	a,@dptr		; 0ac7   e0         `
 	subb	a,#20h		; 0ac8   94 20      . 
-	mov	dptr,#X0020	; 0aca   90 00 20   .. 
+	mov	dptr,#bind_btn_timer; 0aca   90 00 20   .. 
 	movx	a,@dptr		; 0acd   e0         `
 	subb	a,#3		; 0ace   94 03      ..
 	clr	a		; 0ad0   e4         d
@@ -1853,7 +1859,7 @@ X0ac3:	setb	c		; 0ac3   d3         S
 	mov	r7,#2		; 0ad6   7f 02      ..
 	ret			; 0ad8   22         "
 ;
-X0ad9:	mov	dptr,#X0020	; 0ad9   90 00 20   .. 
+X0ad9:	mov	dptr,#bind_btn_timer; 0ad9   90 00 20   .. 
 	movx	@dptr,a		; 0adc   f0         p
 	inc	dptr		; 0add   a3         #
 	movx	@dptr,a		; 0ade   f0         p
@@ -1917,21 +1923,30 @@ X0b30:	mov	r5,count_l	; 0b30   ad 10      -.
 	ljmp	spi_write_register; 0b3b   02 10 9f   ...
 ;
 ram_initialization_data:
-	db	42h,0,20h,0,0,41h,0,5			; 0b3e B. ..A..
-	db	0,41h,0,4,0,5,26h,12h			; 0b46 .A....&.
-	db	23h,23h,45h,78h,48h,0,22h,0f8h		; 0b4e ##ExH."x
-	db	2fh,0f8h,2fh,0f8h,2fh,0f8h,2fh,48h	; 0b56 /x/x/x/H
-	db	0,9,0f8h,2fh,0f8h,2fh,0f8h,2fh		; 0b5e ..x/x/x/
-	db	0f8h,2fh,41h,0,3,0,41h,0		; 0b66 x/A...A.
-	db	0,0,41h,0,6,0,41h,0			; 0b6e ..A...A.
-	db	8,0,41h,0,14h,0,1,24h			; 0b76 ..A....$
-	db	0,42h,0,1,0,64h,1,2dh			; 0b7e .B...d.-
-	db	0,1,25h,0,1,2ch,0,1			; 0b86 ..%..,..
-	db	2bh,0,0					; 0b8e +..
+	db	42h,0,20h,0,0				; 0b3e B. ..	; x0020 = 0, x0021 = 0
+	db	41h,0,5,0				; 0b43 A...	; x0005 = 0
+	db	41h,0,4,0				; 0b47 A...	; x0004 = 0
+	db	5,26h,12h,23h,23h,45h,78h		; 0b4b .&.##Ex	; 26h = 12h, 27h = 23h, 28h = 23h, 29h = 45h, 2ah = 78h
+	db	48h,0,22h,0f8h,2fh,0f8h,2fh,0f8h	; 0b52 H."x/x/x
+	db	2fh,0f8h,2fh				; 0b5a /x/	; x0022.. = f8h, 2fh, f8h, 2fh, f8h 2fh, f8h, 2fh (= 1500us timer value! servo pulse CH1..4)
+	db	48h,0,9,0f8h,2fh,0f8h,2fh,0f8h		; 0b5d H..x/x/x
+	db	2fh,0f8h,2fh				; 0b65 /x/	; x0009.. = f8h, 2fh, f8h, 2fh, f8h 2fh, f8h, 2fh (= 1500us timer value! stick data+2..10)
+	db	41h,0,3,0				; 0b68 A...	; x0003 = 0
+	db	41h,0,0,0				; 0b6c A...	; x0000 = 0
+	db	41h,0,6,0				; 0b70 A...	; x0006 = 0
+	db	41h,0,8,0				; 0b74 A...	; x0008 = 0
+	db	41h,0,14h,0				; 0b78 A...	; x0014 = 0
+	db	1,24h,0					; 0b7c .$.	; 24h = 0
+	db	42h,0,1,0,64h				; 0b7f B...d	; x0001 = 0, x0002 = 64h
+	db	1,2dh,0					; 0b84 .-.	; 2dh = 0
+	db	1,25h,0					; 0b87 .%.	; 25h = 0
+	db	1,2ch,0					; 0b8a .,.	; 2ch = 0
+	db	1,2bh,0					; 0b8d .+.	; 2bh = 0
+	db	0					; 0b90 .	; end marker
 ; ***************************************************************************
 ; Timer 0 interrupt handler
 ;
-; Sets the servo output timer 0
+; Sets the servo output timer 1 every 16ms
 ; ***************************************************************************
 ;
 timer0_handler:
@@ -1941,24 +1956,24 @@ timer0_handler:
 	push	PSW		; 0b97   c0 d0      @P
 	mov	th0,#0fah	; 0b99   75 8c fa   u.z
 	mov	tl0,#0cah	; 0b9c   75 8a ca   u.J
-	mov	dptr,#fs_data+3	; 0b9f   90 00 14   ...
+	mov	dptr,#softtmr_1ms; 0b9f   90 00 14   ...
 	mov	a,#0ffh		; 0ba2   74 ff      t.
 	movx	@dptr,a		; 0ba4   f0         p
-	inc	25h		; 0ba5   05 25      .%
-	mov	a,25h		; 0ba7   e5 25      e%
+	inc	div_16ms	; 0ba5   05 25      .%
+	mov	a,div_16ms	; 0ba7   e5 25      e%
 	setb	c		; 0ba9   d3         S
 	subb	a,#0fh		; 0baa   94 0f      ..
 	jc	X0bd8		; 0bac   40 2a      @*
-	mov	25h,#0		; 0bae   75 25 00   u%.
+	mov	div_16ms,#0	; 0bae   75 25 00   u%.
 	mov	dptr,#servo_output_state; 0bb1   90 00 03   ...
 	clr	a		; 0bb4   e4         d
 	movx	@dptr,a		; 0bb5   f0         p
 	mov	th1,#0ffh	; 0bb6   75 8d ff   u..
 	mov	tl1,#50h	; 0bb9   75 8b 50   u.P
-	mov	dptr,#softtmr+1	; 0bbc   90 00 02   ...
+	mov	dptr,#fs_timer+1; 0bbc   90 00 02   ...
 	movx	a,@dptr		; 0bbf   e0         `
 	subb	a,#32h		; 0bc0   94 32      .2
-	mov	dptr,#softtmr	; 0bc2   90 00 01   ...
+	mov	dptr,#fs_timer	; 0bc2   90 00 01   ...
 	movx	a,@dptr		; 0bc5   e0         `
 	subb	a,#0		; 0bc6   94 00      ..
 	jnc	X0bd6		; 0bc8   50 0c      P.
@@ -1967,7 +1982,7 @@ timer0_handler:
 	inc	a		; 0bcc   04         .
 	movx	@dptr,a		; 0bcd   f0         p
 	jnz	X0bd6		; 0bce   70 06      p.
-	mov	dptr,#softtmr	; 0bd0   90 00 01   ...
+	mov	dptr,#fs_timer	; 0bd0   90 00 01   ...
 	movx	a,@dptr		; 0bd3   e0         `
 	inc	a		; 0bd4   04         .
 	movx	@dptr,a		; 0bd5   f0         p
@@ -3139,6 +3154,7 @@ adr_h	equ	1dh
 adr_l	equ	1eh
 rb3r7	equ	1fh
 rf_int_fired	equ	24h
+div_16ms	equ	25h
 factory	equ	2bh
 div_4ms	equ	2ch
 rf_data_avail	equ	2dh
@@ -3298,18 +3314,27 @@ RFCON_rfcken	equ	0eah
 ;  These are operand symbols from the control
 ;  file that are referenced in the code
 ;
+bind_btn_timer	equ	20h
 bind_data	equ	3eh
 ch1_value	equ	22h
 ch2_value	equ	24h
 ch3_value	equ	26h
 ch4_value	equ	28h
 failsafe_flag	equ	7
-fs_data	equ	11h
+fs_ch1h	equ	15h
+fs_ch1h	equ	12h
+fs_ch1h	equ	15h
+fs_ch1l	equ	13h
+fs_ch1l	equ	11h
+fs_ch1l	equ	13h
+fs_ch1l	equ	11h
+fs_timer	equ	1
 hop_data	equ	2ah
 hop_index	equ	4
+inc_every_hop_to_20	equ	6
 payload	equ	16h
 servo_output_state	equ	3
-softtmr	equ	1
+softtmr_1ms	equ	14h
 ;
 ;	Miscellaneous equates
 ;

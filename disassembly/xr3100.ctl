@@ -107,20 +107,22 @@ c 122a-1235
 
 c 1236-1249	; Code space
 
-
-
 i 124a-1ffe	; ignore data
 
 
+;=========================================================
 
-x 01a9 softtmr  ; X0001
-x 02e9 softtmr
-x 0539 softtmr
-x 0bc3 softtmr
-x 0bd1 softtmr
+; X0000 Does not seem to be used, but is initialized?
 
-x 02e3 softtmr+1 ; X0002
-x 0bbd softtmr+1
+; Is incremented every 16ms by Timer 0 until it reaches 32h (50; takes 800ms)
+x 01a9 fs_timer  ; X0001
+x 02e9 fs_timer
+x 0539 fs_timer
+x 0bc3 fs_timer
+x 0bd1 fs_timer
+
+x 02e3 fs_timer+1 ; X0002
+x 0bbd fs_timer+1
 
 x 05c7 servo_output_state ; X0003
 x 05db servo_output_state
@@ -134,13 +136,19 @@ x 00b1 hop_index ; X0004
 x 0186 hop_index
 x 08fc hop_index
 
-; X0005 used as temporary value in Timer2 int
-; X0006 is counting to 20 in interrupt?
 
-x 02bb failsafe_flag    ; X0007
-x 02fc failsafe_flag
+; X0005 Does not seem to be used, but is initialized?
+
+; X0006 is incremented every hop until 20 in Timer 2 interrupt
+x 01a3 inc_every_hop_to_20  ; X0006
+x 01af inc_every_hop_to_20
+x 0529 inc_every_hop_to_20
+x 05a3 inc_every_hop_to_20
+x 0919 inc_every_hop_to_20
 
 ;s 0007 stick_data      ; X0007
+x 02bb failsafe_flag    ; X0007
+x 02fc failsafe_flag
 
 x 00ad stick_data+1     ; X0008
 x 014d stick_data+1
@@ -175,20 +183,22 @@ x 029f stick_data+8
 
 x 0263 stick_data+9     ; X0010
 
-x 031a fs_data      ; X0011
-x 02db fs_data
 
-x 02d3 fs_data+1    ; X0012
+x 031a fs_ch1l      ; X0011
+x 02db fs_ch1l
 
-x 02cb fs_data+2    ; X0013
-x 0304 fs_data+2
+x 02d3 fs_ch1h    ; X0012
 
-x 0a83 fs_data+3    ; X0014
-x 0ba0 fs_data+3
-x 00f0 fs_data+3
+x 02cb fs_ch1l    ; X0013
+x 0304 fs_ch1l
 
-x 02c3 fs_data+4    ; X0015
-x 030b fs_data+4
+x 00f0 softtmr_1ms
+x 0a83 softtmr_1ms    ; X0014
+x 0ba0 softtmr_1ms
+
+x 02c3 fs_ch1h    ; X0015
+x 030b fs_ch1h
+
 
 x 01e9 payload      ; X0016
 x 02bf payload
@@ -196,17 +206,31 @@ x 03a3 payload
 x 0405 payload
 x 044e payload
 x 0498 payload
-x 01d3 payload+1
+x 01d3 payload+1    ; X0017
 x 02c7 payload+1
-x 0211 payload+2
+x 0211 payload+2    ; X0018
 x 02cf payload+2
-x 01fb payload+3
+x 01fb payload+3    ; X0019
 x 02d7 payload+3
-x 0239 payload+4
-x 0223 payload+5
-x 025e payload+6
-x 01c7 payload+7
+x 0239 payload+4    ; X001a
+x 0223 payload+5    ; X001b
+x 025e payload+6    ; X001c
+x 01c7 payload+7    ; X001d
 x 02b2 payload+7
+
+; X001E ???
+; X001F ???
+
+; 16 bit timer, 1ms resolution
+x 0a97 bind_btn_timer   ; X0020
+x 0aa5 bind_btn_timer
+x 0ab2 bind_btn_timer
+x 0acb bind_btn_timer
+x 0ada bind_btn_timer
+
+x 0a91 bind_btn_timer+1 ; X0021
+x 0aac bind_btn_timer+1
+x 0ac5 bind_btn_timer+1
 
 
 x 0279 ch1_value      ; X0022
@@ -224,15 +248,44 @@ x 060a ch3_value
 x 02a6 ch4_value      ; X0028
 x 062b ch4_value
 
+
+; X0029 Does not seem to be used
+
 x 0153 hop_data     ; X002A Comes from the EEPROM bind data, 20 bytes
 ! 0caf offset in hop_data
 ! 00b5 offset in hop_data
 ! 090a offset in hop_data
 
-x 0c8c bind_data    ; X003E Comes from the EEPROM bind data 5 (or 6) bytes
+; X002B ???
+; X002C ???
+; X002D ???
+; X002E ???
+; X002F ???
+
+; X0030 ???
+; X0031 ???
+; X0032 ???
+; X0033 ???
+; X0034 ???
+; X0035 ???
+; X0036 ???
+; X0037 ???
+; X0038 ???
+; X0039 ???
+; X003A ???
+; X003B ???
+; X003C ???
+; X003D ???
+
+
+x 0c8c bind_data    ; X003E Comes from the EEPROM bind data 5 bytes
 x 009e bind_data
+; x bind_data+1     ; X003F
+; x bind_data+2     ; X0040
+; x bind_data+3     ; X0041
+; x bind_data+4     ; X0042
 
-
+;=========================================================
 
 r 0b rf_status
 r 0d rf_detected
@@ -249,6 +302,7 @@ r 1d adr_h
 r 1e adr_l
 
 r 24 rf_int_fired
+r 25 div_16ms
 r 2b factory
 r 2c div_4ms
 r 2d rf_data_avail
@@ -256,12 +310,7 @@ r 2d rf_data_avail
 
 
 
-! 000e OBSERVE_TX ?!
-! 001e FIFO_STATUS
-! 0024 Masks out TX_FULL and TX_EMPTY
-
-l 002e i2c_eeprom_read_one_byte
-
+;=========================================================
 
 
 k 80 LED_GREEN      ; p0.0
@@ -275,6 +324,16 @@ k 91 PORT_CH4       ; p1.1
 k 93 SCL            ; p1.3
 k 94 SDA            ; p1.4
 
+
+
+;=========================================================
+
+
+! 000e OBSERVE_TX ?!
+! 001e FIFO_STATUS
+! 0024 Masks out TX_FULL and TX_EMPTY
+
+l 002e i2c_eeprom_read_one_byte
 
 
 l 004e init
@@ -312,7 +371,8 @@ l 01d2 stick_data
 # 02b1 This code below sets failsafe 0xaa
 # 02b1 ***************************************************************************
 
-l 02e1 check_if_connected
+l 02e1 check_if_failsafe
+l 02e6 40; Trigger failsafe after 640ms
 
 x 02e7 28h
 l 02f7 output_failsafe
@@ -333,6 +393,12 @@ l 05b3 servo_pulse_t1_handler
 # 05b3 for timing
 # 05b3 Timing values are stored in RAM 0x22, 0x24, 0x26, 0x28
 # 05b3 ***************************************************************************
+
+l 05cd servo_pulse_ch1
+l 05e4 servo_pulse_ch2
+l 0601 servo_pulse_ch3
+l 0626 servo_pulse_ch4
+l 0647 all_servos_done
 
 l 0662 get_indirect_r1_r2
 # 0662 ***************************************************************************
@@ -364,6 +430,26 @@ l 084d init_rodata_page0
 ! 088f init_count -> r7
 # 08af At this point r2:r0 contains the address to store values, r6:r7 the count
 
+! 0b42 x0020 = 0, x0021 = 0
+! 0b46 x0005 = 0
+! 0b4a x0004 = 0
+! 0b51 26h = 12h, 27h = 23h, 28h = 23h, 29h = 45h, 2ah = 78h
+! 0b5c x0022.. = f8h, 2fh, f8h, 2fh, f8h 2fh, f8h, 2fh (= 1500us timer value! servo pulse CH1..4)
+! 0b67 x0009.. = f8h, 2fh, f8h, 2fh, f8h 2fh, f8h, 2fh (= 1500us timer value! stick data+2..10)
+! 0b6b x0003 = 0
+! 0b6f x0000 = 0
+! 0b73 x0006 = 0
+! 0b77 x0008 = 0
+! 0b7b x0014 = 0
+! 0b7e 24h = 0
+! 0b83 x0001 = 0, x0002 = 64h
+! 0b86 2dh = 0
+! 0b89 25h = 0
+! 0b8c 2ch = 0
+! 0b8f 2bh = 0
+! 0b90 end marker
+
+
 
 l 08ca timer2_handler
 # 08ca ***************************************************************************
@@ -372,6 +458,8 @@ l 08ca timer2_handler
 # 08ca Triggers every 1ms
 # 08ca Performs frequency hopping
 # 08ca ***************************************************************************
+
+! 08fb hop_index = (hop_index + 1) % 20
 
 l 0941 spi_read_rf_fifo_data
 # 0941 ***************************************************************************
@@ -403,7 +491,12 @@ l 09d3 rf_cfg_r7_is_7
 ! 09c9 Jump if r7 is NOT 8 (jump if 7?)
 l 0a14 rf_modify_execute
 
+! 0a94 1388 => 5000ms
+
 l 0ae4 init_rf_data_pipes
+
+l 0a82 is_bind_button_pressed
+
 
 ! 0b2d Disable ‘Auto Acknowledgment’
 ! 0b28 Enable ‘Auto Acknowledgment’ on all pipes
@@ -415,7 +508,7 @@ l 0b91 timer0_handler
 # 0b91 ***************************************************************************
 # 0b91 Timer 0 interrupt handler
 # 0b91
-# 0b91 Sets the servo output timer 0
+# 0b91 Sets the servo output timer 1 every 16ms
 # 0b91 ***************************************************************************
 
 l 0c81 read_bind_data
