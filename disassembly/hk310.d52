@@ -1,6 +1,6 @@
 ;
 ;  D52 V3.4.1 8052 Disassembly of hk310.hex
-;  2014/11/14 21:59
+;  2014/11/14 22:00
 ;
 	org	0
 ;
@@ -3559,6 +3559,7 @@ CCH3	equ	0c7h
 MPAGE	equ	0c9h
 CRCL	equ	0cah
 CRCH	equ	0cbh
+WUOPC1	equ	0ceh
 WUOPC0	equ	0cfh
 ADCCON3	equ	0d1h
 ADCCON2	equ	0d2h

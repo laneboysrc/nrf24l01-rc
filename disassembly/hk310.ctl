@@ -238,7 +238,7 @@ k cf T2CON_t2ps
 f c9 MPAGE
 f ca CRCL
 f cb CRCH
-    f ce WUOPC1
+f ce WUOPC1
 f cf WUOPC0
 
 ;f d0 PSW
