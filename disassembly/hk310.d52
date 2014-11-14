@@ -1,12 +1,12 @@
 ;
 ;  D52 V3.4.1 8052 Disassembly of hk310.hex
-;  2014/11/14 17:55
+;  2014/11/14 18:22
 ;
 	org	0
 ;
 X0000:	ljmp	reset		; 0000   02 09 df   .._	; Vector: Reset
 ;
-X0003:	lcall	X13fe		; 0003   12 13 fe   ..~	; Vector: Interrupt from pin GP INT0, GP INT1 or GP INT2
+X0003:	lcall	rf_get_status	; 0003   12 13 fe   ..~	; Vector: Interrupt from pin GP INT0, GP INT1 or GP INT2
 X0006:	mov	a,r7		; 0006   ef         o
 X0007:	anl	a,#70h		; 0007   54 70      Tp
 	mov	r7,a		; 0009   ff         .
@@ -40,7 +40,7 @@ X0030:	orl	a,r4		; 0030   4c         L
 	mov	dpl,r7		; 0033   8f 82      ..
 	mov	dph,r6		; 0035   8e 83      ..
 	movx	a,@dptr		; 0037   e0         `
-	lcall	X0835		; 0038   12 08 35   ..5
+	lcall	set_indirect_r1_r2; 0038   12 08 35   ..5
 	inc	r7		; 003b   0f         .
 	cjne	r7,#0,X0040	; 003c   bf 00 01   ?..
 X003f:	inc	r6		; 003f   0e         .
@@ -613,7 +613,7 @@ X0380:	mov	a,model_count	; 0380   e5 1b      e.
 	mov	r5,rb3r1	; 03be   ad 19      -.
 	mov	r7,#9ah		; 03c0   7f 9a      ..
 	mov	r6,#1		; 03c2   7e 01      ~.
-X03c4:	lcall	write_byte_to_eeprom; 03c4   12 11 74   ..t
+	lcall	write_byte_to_eeprom; 03c4   12 11 74   ..t
 	mov	r5,rb3r2	; 03c7   ad 1a      -.
 	mov	r7,#9bh		; 03c9   7f 9b      ..
 	mov	r6,#1		; 03cb   7e 01      ~.
@@ -646,7 +646,7 @@ X03de:	mov	dptr,#X00a8	; 03de   90 00 a8   ..(
 	mov	dph,a		; 03fb   f5 83      u.
 	mov	a,r7		; 03fd   ef         o
 	movx	@dptr,a		; 03fe   f0         p
-X03ff:	inc	model_count	; 03ff   05 1b      ..
+	inc	model_count	; 03ff   05 1b      ..
 	mov	a,model_count	; 0401   e5 1b      e.
 	clr	c		; 0403   c3         C
 	subb	a,#5		; 0404   94 05      ..
@@ -703,7 +703,7 @@ rf_interrupt_handler:
 	push	rb0r5		; 0454   c0 05      @.
 	push	rb0r6		; 0456   c0 06      @.
 	push	rb0r7		; 0458   c0 07      @.
-	lcall	X1305		; 045a   12 13 05   ...
+	lcall	rf_enable_interrupts; 045a   12 13 05   ...
 	mov	a,r7		; 045d   ef         o
 	add	a,#0f0h		; 045e   24 f0      $p
 	jnz	X0465		; 0460   70 03      p.
@@ -1259,7 +1259,7 @@ X07f8:	jnc	X07fc		; 07f8   50 02      P.
 	ret			; 07fb   22         "
 ;
 X07fc:	cjne	r3,#0feh,X0801	; 07fc   bb fe 02   ;~.
-X07ff:	movx	a,@r1		; 07ff   e3         c
+	movx	a,@r1		; 07ff   e3         c
 	ret			; 0800   22         "
 ;
 X0801:	mov	dpl,r1		; 0801   89 82      ..
@@ -1278,7 +1278,7 @@ get_indirect_dptr_plus_r1_r2:
 	add	a,r1		; 080d   29         )
 	mov	dpl,a		; 080e   f5 82      u.
 	mov	a,dph		; 0810   e5 83      e.
-X0812:	addc	a,r2		; 0812   3a         :
+	addc	a,r2		; 0812   3a         :
 	mov	dph,a		; 0813   f5 83      u.
 	movx	a,@dptr		; 0815   e0         `
 	ret			; 0816   22         "
@@ -1307,7 +1307,12 @@ X0828:	mov	a,dpl		; 0828   e5 82      e.
 	movc	a,@a+dptr	; 0833   93         .
 	ret			; 0834   22         "
 ;
-X0835:	cjne	r3,#1,X083e	; 0835   bb 01 06   ;..
+; ***************************************************************************
+; set_indirect_r1_r2
+; r3: flag; 0 = store at @r1, 1 = store at @r2:r1
+; ***************************************************************************
+set_indirect_r1_r2:
+	cjne	r3,#1,X083e	; 0835   bb 01 06   ;..
 	mov	dpl,r1		; 0838   89 82      ..
 	mov	dph,r2		; 083a   8a 83      ..
 	movx	@dptr,a		; 083c   f0         p
@@ -1646,7 +1651,7 @@ reset:	mov	r0,#7fh		; 09df   78 7f      x.
 _clear_ram:
 	mov	@r0,a		; 09e2   f6         v
 	djnz	r0,_clear_ram	; 09e3   d8 fd      X}
-X09e5:	mov	sp,#63h		; 09e5   75 81 63   u.c
+	mov	sp,#63h		; 09e5   75 81 63   u.c
 	ljmp	X0a26		; 09e8   02 0a 26   ..&
 ;
 init_ljmp:
@@ -1766,7 +1771,7 @@ X0a84:	lcall	rf_get_number_of_address_bytes; 0a84   12 13 9a   ...
 	mov	r7,a		; 0a91   ff         .
 	sjmp	X0aaa		; 0a92   80 16      ..
 ;
-X0a94:	lcall	X13d6		; 0a94   12 13 d6   ..V
+X0a94:	lcall	rf_get_data_pipe_ready; 0a94   12 13 d6   ..V
 	mov	3bh,r7		; 0a97   8f 3b      .;
 	mov	a,r7		; 0a99   ef         o
 	clr	c		; 0a9a   c3         C
@@ -1799,7 +1804,7 @@ X0ab4:	mov	r7,3fh		; 0ab4   af 3f      /?
 X0acc:	dec	a		; 0acc   14         .
 	mov	r1,a		; 0acd   f9         y
 	mov	a,r7		; 0ace   ef         o
-	lcall	X0835		; 0acf   12 08 35   ..5
+	lcall	set_indirect_r1_r2; 0acf   12 08 35   ..5
 	sjmp	X0ab4		; 0ad2   80 e0      .`
 ;
 X0ad4:	setb	RFCON_rfcsn	; 0ad4   d2 e9      Ri
@@ -3001,52 +3006,88 @@ rng_is_result_ready:
 X128f:	mov	r7,#0		; 128f   7f 00      ..
 X1291:	ret			; 1291   22         "
 ;
-	db	0efh,60h				; 1292 o`
-	dw	X09e5		; 1294   09 e5      .e
+set_keep_osc_in_retention_mode:
+	mov	a,r7		; 1292   ef         o
+	jz	X129e		; 1293   60 09      `.
+	mov	a,CLKCTRL	; 1295   e5 a3      e#
+	orl	a,#80h		; 1297   44 80      D.
+	anl	a,#0f7h		; 1299   54 f7      Tw
+	mov	CLKCTRL,a	; 129b   f5 a3      u#
+	ret			; 129d   22         "
 ;
-	db	0a3h,44h,80h,54h,0f7h,0f5h,0a3h,22h	; 1296 #D.Twu#"
-	db	53h,0a3h,77h,22h,0e5h,0adh,54h,80h	; 129e S#w"e-T.
-	db	0d3h,94h,0,40h,4,7fh			; 12a6 S..@..
-	dw	X0180		; 12ac   01 80      ..
-	dw	X027f		; 12ae   02 7f      ..
-	dw	X0022		; 12b0   00 22      ."
+X129e:	anl	CLKCTRL,#77h	; 129e   53 a3 77   S#w
+	ret			; 12a1   22         "
 ;
-	db	0e5h,0adh,54h,40h,0d3h,94h,0,40h	; 12b2 e-T@S..@
-	db	4,7fh					; 12ba ..
-	dw	X0180		; 12bc   01 80      ..
-	dw	X027f		; 12be   02 7f      ..
-	dw	X0022		; 12c0   00 22      ."
+read_lf_clock_phase:
+	mov	a,CLKLFCTRL	; 12a2   e5 ad      e-
+	anl	a,#80h		; 12a4   54 80      T.
+	setb	c		; 12a6   d3         S
+	subb	a,#0		; 12a7   94 00      ..
+	jc	X12af		; 12a9   40 04      @.
+	mov	r7,#1		; 12ab   7f 01      ..
+	sjmp	X12b1		; 12ad   80 02      ..
 ;
-	db	0efh,54h				; 12c2 oT
-	dw	X03c4		; 12c4   03 c4      .D
+X12af:	mov	r7,#0		; 12af   7f 00      ..
+X12b1:	ret			; 12b1   22         "
 ;
-	db	54h,0f0h,0ffh,0e5h,0a3h,54h,0c7h,4fh	; 12c6 Tp.e#TGO
-	db	0f5h,0a3h,22h,7fh			; 12ce u#".
-	dw	X0812		; 12d2   08 12      ..
-	dw	spi_read_register		; 12d4   12 f8      .x
+is_lf_clock_ready:
+	mov	a,CLKLFCTRL	; 12b2   e5 ad      e-
+	anl	a,#40h		; 12b4   54 40      T@
+	setb	c		; 12b6   d3         S
+	subb	a,#0		; 12b7   94 00      ..
+	jc	X12bf		; 12b9   40 04      @.
+	mov	r7,#1		; 12bb   7f 01      ..
+	sjmp	X12c1		; 12bd   80 02      ..
 ;
-	db	0efh,54h,0f0h,0c4h,54h			; 12d6 oTpDT
-	dw	X0fff		; 12db   0f ff      ..
+X12bf:	mov	r7,#0		; 12bf   7f 00      ..
+X12c1:	ret			; 12c1   22         "
 ;
-	db	22h,7fh,17h				; 12dd "..
-	dw	X1212		; 12e0   12 12      ..
+set_started_oscillators:
+	mov	a,r7		; 12c2   ef         o
+	anl	a,#3		; 12c3   54 03      T.
+	swap	a		; 12c5   c4         D
+	anl	a,#0f0h		; 12c6   54 f0      Tp
+	mov	r7,a		; 12c8   ff         .
+	mov	a,CLKCTRL	; 12c9   e5 a3      e#
+	anl	a,#0c7h		; 12cb   54 c7      TG
+	orl	a,r7		; 12cd   4f         O
+	mov	CLKCTRL,a	; 12ce   f5 a3      u#
+	ret			; 12d0   22         "
 ;
-	db	0f8h,0efh,54h,30h,0c4h,54h		; 12e2 xoT0DT
-	dw	X0fff		; 12e8   0f ff      ..
-	db	22h					; 12ea "
-	dw	X1214		; 12eb   12 14      ..
+rf_get_lost_packet_count:
+	mov	r7,#8		; 12d1   7f 08      ..
+	lcall	spi_read_register; 12d3   12 12 f8   ..x
+	mov	a,r7		; 12d6   ef         o
+	anl	a,#0f0h		; 12d7   54 f0      Tp
+	swap	a		; 12d9   c4         D
+	anl	a,#0fh		; 12da   54 0f      T.
+	mov	r7,a		; 12dc   ff         .
+	ret			; 12dd   22         "
 ;
-	db	34h,0efh,54h,40h,0c4h			; 12ed 4oT@D
-	dw	X1313		; 12f2   13 13      ..
-	db	54h					; 12f4 T
-	dw	X03ff		; 12f5   03 ff      ..
+rf_get_tx_fifo_status:
+	mov	r7,#17h		; 12de   7f 17      ..
+	lcall	spi_read_register; 12e0   12 12 f8   ..x
+	mov	a,r7		; 12e3   ef         o
+	anl	a,#30h		; 12e4   54 30      T0
+	swap	a		; 12e6   c4         D
+	anl	a,#0fh		; 12e7   54 0f      T.
+	mov	r7,a		; 12e9   ff         .
+	ret			; 12ea   22         "
 ;
-	db	22h					; 12f7 "
+	lcall	rf_get_fifo_status; 12eb   12 14 34   ..4
+	mov	a,r7		; 12ee   ef         o
+	anl	a,#40h		; 12ef   54 40      T@
+	swap	a		; 12f1   c4         D
+	rrc	a		; 12f2   13         .
+	rrc	a		; 12f3   13         .
+	anl	a,#3		; 12f4   54 03      T.
+	mov	r7,a		; 12f6   ff         .
+	ret			; 12f7   22         "
+;
 ; ***************************************************************************
 ; spi_read_register
 ; In: A: register    Out: R7: read value
 ; ***************************************************************************
-;
 spi_read_register:
 	clr	RFCON_rfcsn	; 12f8   c2 e9      Bi
 	lcall	spi_write	; 12fa   12 14 08   ...
@@ -3056,7 +3097,8 @@ spi_read_register:
 	setb	RFCON_rfcsn	; 1302   d2 e9      Ri
 	ret			; 1304   22         "
 ;
-X1305:	mov	r5,#70h		; 1305   7d 70      }p
+rf_enable_interrupts:
+	mov	r5,#70h		; 1305   7d 70      }p
 	mov	r7,#7		; 1307   7f 07      ..
 	lcall	spi_write_register; 1309   12 11 c7   ..G
 	mov	a,r7		; 130c   ef         o
@@ -3064,9 +3106,9 @@ X1305:	mov	r5,#70h		; 1305   7d 70      }p
 	mov	r7,a		; 130f   ff         .
 	ret			; 1310   22         "
 ;
-	db	7fh,17h					; 1311 ..
-;
-X1313:	lcall	spi_read_register; 1313   12 12 f8   ..x
+rf_is_rx_fifo_full:
+	mov	r7,#17h		; 1311   7f 17      ..
+	lcall	spi_read_register; 1313   12 12 f8   ..x
 	mov	a,r7		; 1316   ef         o
 	clr	c		; 1317   c3         C
 	rrc	a		; 1318   13         .
@@ -3074,18 +3116,23 @@ X1313:	lcall	spi_read_register; 1313   12 12 f8   ..x
 	mov	r7,a		; 131b   ff         .
 	ret			; 131c   22         "
 ;
-	db	7fh,17h					; 131d ..
-	dw	X1212		; 131f   12 12      ..
+rf_is_tx_fifo_full:
+	mov	r7,#17h		; 131d   7f 17      ..
+	lcall	spi_read_register; 131f   12 12 f8   ..x
+	mov	a,r7		; 1322   ef         o
+	swap	a		; 1323   c4         D
+	rrc	a		; 1324   13         .
+	anl	a,#1		; 1325   54 01      T.
+	mov	r7,a		; 1327   ff         .
+	ret			; 1328   22         "
 ;
-	db	0f8h,0efh,0c4h				; 1321 xoD
-	dw	X1354		; 1324   13 54      .T
-	dw	X01ff		; 1326   01 ff      ..
-;
-	db	22h,0efh,54h,3fh,0f5h,62h,0adh,62h	; 1328 "oT?ub-b
-	db	7fh,1ch					; 1330 ..
-	dw	X0211		; 1332   02 11      ..
-;
-	db	0c7h					; 1334 G
+rf_enable_dynamic_payload:
+	mov	a,r7		; 1329   ef         o
+	anl	a,#3fh		; 132a   54 3f      T?
+	mov	62h,a		; 132c   f5 62      ub
+	mov	r5,62h		; 132e   ad 62      -b
+	mov	r7,#1ch		; 1330   7f 1c      ..
+	ljmp	spi_write_register; 1332   02 11 c7   ..G
 ;
 read_current_model_no_from_eeprom:
 	clr	a		; 1335   e4         d
@@ -3097,16 +3144,22 @@ read_current_model_no_from_eeprom:
 	movx	@dptr,a		; 133f   f0         p
 	ret			; 1340   22         "
 ;
-	db	0efh,54h				; 1341 oT
-	dw	X07ff		; 1343   07 ff      ..
+set_system_clock_frequency:
+	mov	a,r7		; 1341   ef         o
+	anl	a,#7		; 1342   54 07      T.
+	mov	r7,a		; 1344   ff         .
+	mov	a,CLKCTRL	; 1345   e5 a3      e#
+	anl	a,#0f0h		; 1347   54 f0      Tp
+	orl	a,r7		; 1349   4f         O
+	mov	CLKCTRL,a	; 134a   f5 a3      u#
+	ret			; 134c   22         "
 ;
-	db	0e5h,0a3h,54h,0f0h,4fh,0f5h,0a3h,22h	; 1345 e#TpOu#"
-	db	0efh,54h				; 134d oT
-	dw	X07ff		; 134f   07 ff      ..
-;
-	db	0e5h,0adh,54h				; 1351 e-T
-;
-X1354:	mov	r0,a		; 1354   f8         x
+set_lf_clock_frequency:
+	mov	a,r7		; 134d   ef         o
+	anl	a,#7		; 134e   54 07      T.
+	mov	r7,a		; 1350   ff         .
+	mov	a,CLKLFCTRL	; 1351   e5 ad      e-
+	anl	a,#0f8h		; 1353   54 f8      Tx
 	orl	a,r7		; 1355   4f         O
 	mov	CLKLFCTRL,a	; 1356   f5 ad      u-
 	ret			; 1358   22         "
@@ -3124,7 +3177,7 @@ get_osc_status:
 X1361:	mov	r7,#1		; 1361   7f 01      ..
 	ret			; 1363   22         "
 ;
-rf_get_tx_fifo_status:
+rf_is_tx_fifo_empty:
 	mov	r7,#17h		; 1364   7f 17      ..
 	lcall	spi_read_register; 1366   12 12 f8   ..x
 	mov	a,r7		; 1369   ef         o
@@ -3217,7 +3270,8 @@ rf_write_ack_payload:
 	mov	21h,4ah		; 13d0   85 4a 21   .J!
 	ljmp	spi_write_stream; 13d3   02 0f 05   ...
 ;
-X13d6:	lcall	X13fe		; 13d6   12 13 fe   ..~
+rf_get_data_pipe_ready:
+	lcall	rf_get_status	; 13d6   12 13 fe   ..~
 	mov	a,r7		; 13d9   ef         o
 	anl	a,#0eh		; 13da   54 0e      T.
 	clr	c		; 13dc   c3         C
@@ -3246,7 +3300,8 @@ rf_flush_tx:
 	setb	RFCON_rfcsn	; 13fb   d2 e9      Ri
 	ret			; 13fd   22         "
 ;
-X13fe:	clr	RFCON_rfcsn	; 13fe   c2 e9      Bi
+rf_get_status:
+	clr	RFCON_rfcsn	; 13fe   c2 e9      Bi
 	mov	r7,#0ffh	; 1400   7f ff      ..
 	lcall	spi_write	; 1402   12 14 08   ...
 	setb	RFCON_rfcsn	; 1405   d2 e9      Ri
@@ -3482,7 +3537,6 @@ X0004	equ	4
 X0005	equ	5
 X0012	equ	12h
 X0015	equ	15h
-X0022	equ	22h
 X003d	equ	3dh
 X003e	equ	3eh
 X0041	equ	41h
@@ -3507,7 +3561,6 @@ X1180	equ	1180h
 X11d7	equ	11d7h
 X1208	equ	1208h
 X1212	equ	1212h
-X1214	equ	1214h
 X1280	equ	1280h
 X1414	equ	1414h
 ;

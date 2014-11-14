@@ -138,45 +138,20 @@ c 1223-124c	; Code space
 c 124d-127e
 
 c 127f-1291	; Code space
-b 1292-1293	; 8-bit data
-a 1294-1295	; pointers
-b 1296-12ab	; 8-bit data
-a 12ac-12b1	; pointers
-b 12b2-12bb	; 8-bit data
-a 12bc-12c1	; pointers
-b 12c2-12c3	; 8-bit data
-a 12c4-12c5	; pointers
-b 12c6-12d1	; 8-bit data
-a 12d2-12d5	; pointers
-b 12d6-12da	; 8-bit data
-a 12db-12dc	; pointers
-b 12dd-12df	; 8-bit data
-a 12e0-12e1	; pointers
-b 12e2-12e7	; 8-bit data
-a 12e8-12e9	; pointers
-b 12ea		; 8-bit data
-a 12eb-12ec	; pointers
-b 12ed-12f1	; 8-bit data
-a 12f2-12f3	; pointers
-b 12f4		; 8-bit data
-a 12f5-12f6	; pointers
-b 12f7		; 8-bit data
+
+c 1292-12f7
+
 c 12f8-1310	; Code space
-b 1311-1312	; 8-bit data
+
+c 1311-1312
 c 1313-131c	; Code space
-b 131d-131e	; 8-bit data
-a 131f-1320	; pointers
-b 1321-1323	; 8-bit data
-a 1324-1327	; pointers
-b 1328-1331	; 8-bit data
-a 1332-1333	; pointers
-b 1334		; 8-bit data
+
+c 131d-1334
+
 c 1335-1340	; Code space
-b 1341-1342	; 8-bit data
-a 1343-1344	; pointers
-b 1345-134e	; 8-bit data
-a 134f-1350	; pointers
-b 1351-1353	; 8-bit data
+
+c 1341-1353
+
 c 1354-1363	; Code space
 
 c 1364-136e
@@ -487,6 +462,13 @@ l 0808 get_indirect_dptr_plus_r1_r2
 # 0808 r3: flag; 0 = return @dptr+r1, 1 = return @dptr+r2:r1
 # 0808 ***************************************************************************
 
+l 0835 set_indirect_r1_r2
+# 0835 ***************************************************************************
+# 0835 set_indirect_r1_r2
+# 0835 r3: flag; 0 = store at @r1, 1 = store at @r2:r1
+# 0835 ***************************************************************************
+
+
 l 0847 mul_16
 ! 0847 used in servo data packing?!
 
@@ -592,6 +574,13 @@ l 12f8 spi_read_register
 # 12f8 In: A: register    Out: R7: read value
 # 12f8 ***************************************************************************
 
+l 12a2 read_lf_clock_phase
+l 12b2 is_lf_clock_ready
+l 12c2 set_started_oscillators
+l 1292 set_keep_osc_in_retention_mode
+l 1341 set_system_clock_frequency
+l 134d set_lf_clock_frequency
+
 
 l 1359 get_osc_status
 # 1359 ************************************************************************
@@ -608,12 +597,18 @@ l 0d56 rf_set_crc
 # 0d56 In: R7: Number of bytes of CRC to use, 0 to turn it off
 # 0d56 ***************************************************************************
 
+l 1305 rf_enable_interrupts
+l 12d1 rf_get_lost_packet_count
 l 0c10 rf_enable_data_pipes
 l 0e1b rf_get_or_set_address
 l 1112 rf_set_power_up
-l 1364 rf_get_tx_fifo_status
+l 1311 rf_is_rx_fifo_full
+l 131d rf_is_tx_fifo_full
+l 1329 rf_enable_dynamic_payload
+l 1364 rf_is_tx_fifo_empty
 l 13a4 rf_is_rx_fifo_empty
 l 13ae rf_get_rx_fifo_status
+l 12de rf_get_tx_fifo_status
 l 13b8 rf_get_retransmit_count
 l 13c2 rf_get_power_detected
 l 13cc rf_write_ack_payload
@@ -623,9 +618,8 @@ l 13f4 rf_flush_tx
 l 142e rf_get_observe_tx
 l 1434 rf_get_fifo_status
 l 143a rf_get_rx_payload_width
-
-;l 13fe extint_handler
-
+l 13fe rf_get_status
+l 13d6 rf_get_data_pipe_ready
 
 l 137a rng_power_on_off
 l 1385 rng_bias_corrector_on_off
