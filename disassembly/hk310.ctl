@@ -9,94 +9,39 @@ c 004e-043c	; Code space
 c 043d-053e
 
 c 053f-094c	; Code space
-b 094d-094f	; 8-bit data
-a 0950-0953	; pointers
-b 0954-0956	; 8-bit data
-a 0957-095a	; pointers
-b 095b-096e	; 8-bit data
-a 096f-0970	; pointers
-b 0971-0975	; 8-bit data
-a 0976-0977	; pointers
-b 0978-0981	; 8-bit data
-a 0982-0985	; pointers
-b 0986-098a	; 8-bit data
-a 098b-098c	; pointers
-b 098d-0990	; 8-bit data
-a 0991-0992	; pointers
-b 0993		; 8-bit data
-a 0994-0995	; pointers
-b 0996-0999	; 8-bit data
-a 099a-099b	; pointers
-b 099c-09a0	; 8-bit data
-a 09a1-09a6	; pointers
-b 09a7-09aa	; 8-bit data
-a 09ab-09ae	; pointers
-b 09af-09b4	; 8-bit data
-a 09b5-09b6	; pointers
-b 09b7-09bc	; 8-bit data
-a 09bd-09be	; pointers
-b 09bf-09c1	; 8-bit data
-a 09c2-09c5	; pointers
-b 09c6-09ca	; 8-bit data
-a 09cb-09ce	; pointers
-b 09cf-09d0	; 8-bit data
-a 09d1-09d2	; pointers
-b 09d3-09de	; 8-bit data
+
+c 094d-09de
+! 094d 094d-09de UNUSED CODE
+
 c 09df-0a1d	; Code space
 
 b 0a1e-0a25 ; bit masks
 ! 0a25 bit masks
 
 c 0a26-0a6a	; Code space
-b 0a6b-0a76	; 8-bit data
-a 0a77-0a78	; pointers
-b 0a79-0a7a	; 8-bit data
-a 0a7b-0a7c	; pointers
-b 0a7d-0a7e	; 8-bit data
-a 0a7f-0a82	; pointers
-b 0a83		; 8-bit data
-a 0a84-0a85	; pointers
-b 0a86-0a8f	; 8-bit data
-a 0a90-0a91	; pointers
-b 0a92-0a93	; 8-bit data
-a 0a94-0a95	; pointers
-b 0a96-0a9b	; 8-bit data
-a 0a9c-0aa1	; pointers
-b 0aa2-0aa3	; 8-bit data
+
+c 0a6b-0aa3
+! 0a6b 0a6b-0aa3 UNUSED CODE
+
 c 0aa4-0aae	; Code space
-b 0aaf-0ab3	; 8-bit data
+
+c 0aaf-0ab3
+! 0aaf 0aaf-0ab3 UNUSED CODE
+
 c 0ab4-0cbb	; Code space
-b 0cbc-0cd4	; 8-bit data
-a 0cd5-0cd6	; pointers
-b 0cd7-0ce3	; 8-bit data
-a 0ce4-0ce5	; pointers
-b 0ce6-0ce8	; 8-bit data
-a 0ce9-0cea	; pointers
-b 0ceb-0cf3	; 8-bit data
-a 0cf4-0cf5	; pointers
-b 0cf6-0d0b	; 8-bit data
+
+c 0cbc-0d0b
+! 0cbc 0cbc-0d0b UNUSED CODE
 
 b 0d0c-0d55 ; ram_initialization_data
 
 
 
 c 0d56-0d98	; Code space
-b 0d99-0d9b	; 8-bit data
-a 0d9c-0d9f	; pointers
-b 0da0-0da2	; 8-bit data
-a 0da3-0da6	; pointers
-b 0da7-0dad	; 8-bit data
-a 0dae-0db1	; pointers
-b 0db2-0db7	; 8-bit data
-a 0db8-0dbb	; pointers
-b 0dbc		; 8-bit data
-a 0dbd-0dbe	; pointers
-b 0dbf-0dc7	; 8-bit data
-a 0dc8-0dc9	; pointers
-b 0dca-0dd0	; 8-bit data
-a 0dd1-0dd4	; pointers
-b 0dd5-0dd7	; 8-bit data
-a 0dd8-0ddb	; pointers
+
+c 0d99-0ddb
+! 0d99 0d99-0ddb UNUSED CODE
+
 c 0ddc-0ecd	; Code space
 b 0ece-0ed0	; 8-bit data
 a 0ed1-0ed2	; pointers
@@ -189,21 +134,9 @@ b 11ad-11c6	; 8-bit data
 c 11c7-1221	; Code space
 b 1222		; 8-bit data
 c 1223-124c	; Code space
-b 124d-1251	; 8-bit data
-a 1252-1253	; pointers
-b 1254-1257	; 8-bit data
-a 1258-1259	; pointers
-b 125a-125c	; 8-bit data
-a 125d-125e	; pointers
-b 125f-1260	; 8-bit data
-a 1261-1264	; pointers
-b 1265		; 8-bit data
-a 1266-1267	; pointers
-b 1268-126c	; 8-bit data
-a 126d-1270	; pointers
-b 1271-1272	; 8-bit data
-a 1273-1274	; pointers
-b 1275-127e	; 8-bit data
+
+c 124d-127e
+
 c 127f-1291	; Code space
 b 1292-1293	; 8-bit data
 a 1294-1295	; pointers
@@ -245,56 +178,30 @@ b 1345-134e	; 8-bit data
 a 134f-1350	; pointers
 b 1351-1353	; 8-bit data
 c 1354-1363	; Code space
-b 1364-1365	; 8-bit data
-a 1366-1367	; pointers
-b 1368-136b	; 8-bit data
-a 136c-136d	; pointers
-b 136e		; 8-bit data
+
+c 1364-136e
+
 c 136f-13a3	; Code space
-b 13a4-13a5	; 8-bit data
-a 13a6-13a7	; pointers
-b 13a8-13aa	; 8-bit data
-a 13ab-13ac	; pointers
-b 13ad-13af	; 8-bit data
-a 13b0-13b1	; pointers
-b 13b2-13b4	; 8-bit data
-a 13b5-13b6	; pointers
-b 13b7-13b8	; 8-bit data
-a 13b9-13bc	; pointers
-b 13bd-13be	; 8-bit data
-a 13bf-13c0	; pointers
-b 13c1-13c2	; 8-bit data
-a 13c3-13c6	; pointers
-b 13c7-13c8	; 8-bit data
-a 13c9-13ca	; pointers
-b 13cb-13d2	; 8-bit data
-a 13d3-13d4	; pointers
-b 13d5		; 8-bit data
-a 13d6-13d7	; pointers
-b 13d8-13da	; 8-bit data
-a 13db-13de	; pointers
-b 13df-13e3	; 8-bit data
-a 13e4-13e7	; pointers
-b 13e8-13ed	; 8-bit data
-a 13ee-13f1	; pointers
-b 13f2-13f3	; 8-bit data
+
+c 13a4-13f3 ; 8-bit data
+! 13a4 13a4-13f3 UNUSED CODE
+
 c 13f4-1411	; Code space
-b 1412-1413	; 8-bit data
+
+c 1412-1413	; 8-bit data
 c 1414-141f	; Code space
-b 1420-1423	; 8-bit data
+c 1420-1423	; 8-bit data
 c 1424-1426	; Code space
-b 1427-142e	; 8-bit data
-a 142f-1432	; pointers
-b 1433-1435	; 8-bit data
-a 1436-1437	; pointers
-b 1438-1439	; 8-bit data
+c 1427-1439	; 8-bit data
 c 143a-143f	; Code space
-b 1440		; 8-bit data
-a 1441-1442	; pointers
-b 1443-1445	; 8-bit data
+c 1440-1445	; 8-bit data
 c 1446-1448	; Code space
+
 i 1449-3ffe	; ignore data
 
+; ******************************************************
+; ******************************************************
+; ******************************************************
 
 
 ! 0000 Vector: Reset
@@ -307,6 +214,11 @@ i 1449-3ffe	; ignore data
 ! 0043 Vector: RF SPI ready
 ! 004b Vector: RF Interrupt
 ;l 0053 Vector: SPI, I2C
+
+; ******************************************************
+; ******************************************************
+; ******************************************************
+
 
 f 88 TCON
 k 88 TCON_it0
@@ -467,10 +379,44 @@ f fd SPIMCON1
 f fe SPIMSTAT
 f ff SPIMDAT
 
+
+; ******************************************************
+; ******************************************************
+; ******************************************************
+
+
+k 90 PORT_SCL       ; p1.0
+k 92 PORT_SDA       ; p1.2
+k 94 PORT_TX_OFF    ; p1.4
+
+; ******************************************************
+; ******************************************************
+; ******************************************************
+
 r 1b model_count
 r 1c count
 r 1f save_r2
 r 1e save_r3_r7
+
+
+
+; ******************************************************
+; ******************************************************
+; ******************************************************
+
+
+. x X0041 10 bytes of data sent over-the-air! BUT: other areas sent too!
+
+
+
+
+; ******************************************************
+; ******************************************************
+; ******************************************************
+
+
+
+
 
 l 000e rf_setup_address_width
 ! 001e SETUP_AW
@@ -502,7 +448,7 @@ l 0291 process_new_model
 
 l 02a0 change_model
 
-l 02bf read_bind_data_from_eepom
+l 02bf read_bind_data_from_eeprom
 
 l 0349 format_eeprom
 
@@ -511,10 +457,14 @@ l 043d rf_interrupt_handler
 # 043d RF Interrupt Handler
 # 043d ************************************************************************
 
+! 04af Channel 51h has a special meaning, used in the receiver too!
+
 l 053f timer0_handler
 # 053f ************************************************************************
 # 053f Timer0 Interrupt Handler
 # 053f ************************************************************************
+
+l 062e xxx???
 
 l 070f uart_handler
 # 070f ************************************************************************
@@ -597,13 +547,24 @@ l 1135 i2c_stop
 l 0c6a i2c_has_write_finished
 l 120c i2c_write_byte_to_device
 
-l 0fa1 rng_???
+l 0fa1 make_hop_data
+l 10c9 make_bind_data
+
+l 1155 rf_set_power
 
 l 1174 write_byte_to_eeprom
 # 1174 ***************************************************************************
 # 1174 write_byte_to_eeprom
 # 1174 In: r6:r7 address   r5: data
 # 1174 ***************************************************************************
+
+l 139a rf_get_number_of_address_bytes
+! 139a SETUP_AW
+# 139a ***************************************************************************
+# 139a rf_get_number_of_address_bytes Byte
+# 139a Out: R7: Number of address bytes
+# 139a ***************************************************************************
+
 
 
 l 1193 read_byte_from_eeprom
@@ -617,6 +578,12 @@ l 11c7 spi_write_register
 # 11c7 SPI Write to a RF register
 # 11c7 In: R7: register number, R5: value
 # 11c7 ***************************************************************************
+
+l 124d spi_set_rf_channel
+# 124d ***************************************************************************
+# 124d spi_set_rf_channel
+# 124d In: R7: channel number
+# 124d ***************************************************************************
 
 
 l 12f8 spi_read_register
@@ -632,12 +599,43 @@ l 1359 get_osc_status
 # 1359 Returns 2 if the XTAL OSC is ready, otherwise 1 if running from the RC OSC
 # 1359 ************************************************************************
 
-l 1335 read_model_data_from_eeprom
+l 1335 read_current_model_no_from_eeprom
 l 1390 init_timer0
-l 13fe extint_handler
+
+l 0d56 rf_set_crc
+# 0d56 ***************************************************************************
+# 0d56 rf_set_crc
+# 0d56 In: R7: Number of bytes of CRC to use, 0 to turn it off
+# 0d56 ***************************************************************************
+
+l 0c10 rf_enable_data_pipes
+l 0e1b rf_get_or_set_address
+l 1112 rf_set_power_up
+l 1364 rf_get_tx_fifo_status
+l 13a4 rf_is_rx_fifo_empty
+l 13ae rf_get_rx_fifo_status
+l 13b8 rf_get_retransmit_count
+l 13c2 rf_get_power_detected
+l 13cc rf_write_ack_payload
+l 13e0 rf_reuse_tx_payload
+l 13ea rf_flush_rx
+l 13f4 rf_flush_tx
+l 142e rf_get_observe_tx
+l 1434 rf_get_fifo_status
+l 143a rf_get_rx_payload_width
+
+;l 13fe extint_handler
+
+
+l 137a rng_power_on_off
+l 1385 rng_bias_corrector_on_off
+l 1282 rng_is_result_ready
+l 1446 rng_get_random_byte
 
 l 1408 spi_write
 l 140a _spi_write_loop
 
+l 1419 rf_write_tx_payload
+! 141b W_TX_PAYLOAD
 
 ; x X00a8 contains current active model no stored in eeprom (value from address 0)
