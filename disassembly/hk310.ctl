@@ -43,8 +43,10 @@ b 09cf-09d0	; 8-bit data
 a 09d1-09d2	; pointers
 b 09d3-09de	; 8-bit data
 c 09df-0a1d	; Code space
-a 0a1e-0a23	; pointers
-b 0a24-0a25	; 8-bit data
+
+b 0a1e-0a25 ; bit masks
+! 0a25 bit masks
+
 c 0a26-0a6a	; Code space
 b 0a6b-0a76	; 8-bit data
 a 0a77-0a78	; pointers
@@ -72,33 +74,12 @@ b 0ce6-0ce8	; 8-bit data
 a 0ce9-0cea	; pointers
 b 0ceb-0cf3	; 8-bit data
 a 0cf4-0cf5	; pointers
-b 0cf6-0d0c	; 8-bit data
-a 0d0d-0d0e	; pointers
-b 0d0f-0d10	; 8-bit data
-a 0d11-0d12	; pointers
-b 0d13-0d18	; 8-bit data
-a 0d19-0d1c	; pointers
-b 0d1d		; 8-bit data
-a 0d1e-0d1f	; pointers
-b 0d20-0d27	; 8-bit data
-i 0d28-0d29	; ignore data
-i 0d2a		; ignore data
-a 0d2b-0d2e	; pointers
-b 0d2f-0d31	; 8-bit data
-a 0d32-0d33	; pointers
-b 0d34-0d35	; 8-bit data
-a 0d36-0d37	; pointers
-b 0d38-0d39	; 8-bit data
-a 0d3a-0d3b	; pointers
-b 0d3c-0d3d	; 8-bit data
-a 0d3e-0d41	; pointers
-b 0d42		; 8-bit data
-a 0d43-0d44	; pointers
-b 0d45-0d47	; 8-bit data
-a 0d48-0d49	; pointers
-b 0d4a-0d51	; 8-bit data
-a 0d52-0d53	; pointers
-i 0d54-0d55	; ignore data
+b 0cf6-0d0b	; 8-bit data
+
+b 0d0c-0d55 ; ram_initialization_data
+
+
+
 c 0d56-0d98	; Code space
 b 0d99-0d9b	; 8-bit data
 a 0d9c-0d9f	; pointers
@@ -486,7 +467,8 @@ f fd SPIMCON1
 f fe SPIMSTAT
 f ff SPIMDAT
 
-
+r 1b model_count
+r 1c count
 r 1f save_r2
 r 1e save_r3_r7
 
@@ -504,7 +486,25 @@ l 00ae main
 # 00ae MAIN LOOP
 # 00ae ***************************************************************************
 
+l 00b5 servo_data_received
+l 00c0 copy_from_uart_buffer
+l 00f2 process_stick_data
+! 00f2 seems to do packing of data
+
+l 0228 check_if_failsafe_data
+
+l 0287 stick_data_processed
+
+l 028a check_model_cmd_received
+l 0291 process_new_model
+
+! 0294 payload+1: contains the model number!
+
 l 02a0 change_model
+
+l 02bf read_bind_data_from_eepom
+
+l 0349 format_eeprom
 
 l 043d rf_interrupt_handler
 # 043d ************************************************************************
@@ -523,10 +523,11 @@ l 070f uart_handler
 l 0722 uart_receive
 ! 072d Wait for first byte, which is FF
 ; s X0091 Receive_state
-; r 5eh is model_no_received flag
-; s X0094 model_no_DATA
-; r 5fh is receive flag
-; s X009a is UART receive buffer
+r 05e f_model_no
+; s X0094 model_no_data
+r 05f f_servo_data
+; s X009a is servo_data
+; s X0002.. is copied servo data in mainloop
 
 ; UART buf is copied from 009a.. to 0002.. if flag 5fh is set
 
@@ -536,11 +537,37 @@ l 0808 get_indirect_dptr_plus_r1_r2
 # 0808 r3: flag; 0 = return @dptr+r1, 1 = return @dptr+r2:r1
 # 0808 ***************************************************************************
 
+l 0847 mul_16
+! 0847 used in servo data packing?!
+
+l 0859 div_16
+
 
 l 09df reset
 # 09df ************************************************************************
 # 09df Reset
 # 09df ************************************************************************
+
+l 0d0c ram_initialization_data
+l 09eb init_ljmp
+
+! 0d0f X0012 = #0
+! 0d13 X0001 = #0
+! 0d17 X003f = #0
+! 0d1b X0013 = #0
+! 0d22 22h = #12h, 23h = #23h, 24h = #23h, 25h =#45H, 26h = #78h
+! 0d2a X004b = #55h, X004c..4f = #0
+! 0d2d 2ah = #0
+! 0d30 29h = #0
+! 0d34 X00a8 = #0
+! 0d38 X0093 = #0
+! 0d3c X0092 = #0
+! 0d40 X0091 = #0
+! 0d43 5fh = #0
+! 0d46 5eh = #0
+! 0d51 X00a0..A8 = #0f82f (4 times 1.5ms) BUT: is overwritten in init!
+! 0d54 63h = #0
+! 0d55 end marker
 
 
 l 0add rf_modify_config_bit
@@ -562,13 +589,28 @@ l 0f05 spi_write_stream
 
 l 11f5 init_gpio
 l 08ae ic2_write_address
-l 1238 i2c_read_byte_from_eeprom
+l 1238 i2c_read_byte_from_device
 l 0fcf i2c_start
 l 08b6 i2c_write_byte
 l 0b48 i2c_read_byte
 l 1135 i2c_stop
 l 0c6a i2c_has_write_finished
+l 120c i2c_write_byte_to_device
 
+l 0fa1 rng_???
+
+l 1174 write_byte_to_eeprom
+# 1174 ***************************************************************************
+# 1174 write_byte_to_eeprom
+# 1174 In: r6:r7 address   r5: data
+# 1174 ***************************************************************************
+
+
+l 1193 read_byte_from_eeprom
+# 1193 ***************************************************************************
+# 1193 read_byte_from_eeprom
+# 1193 In: r6:r7 address to read from
+# 1193 ***************************************************************************
 
 l 11c7 spi_write_register
 # 11c7 ***************************************************************************
@@ -590,9 +632,12 @@ l 1359 get_osc_status
 # 1359 Returns 2 if the XTAL OSC is ready, otherwise 1 if running from the RC OSC
 # 1359 ************************************************************************
 
-l 1335 read_bind_data_from_eeprom
+l 1335 read_model_data_from_eeprom
 l 1390 init_timer0
 l 13fe extint_handler
 
 l 1408 spi_write
 l 140a _spi_write_loop
+
+
+; x X00a8 contains current active model no stored in eeprom (value from address 0)
