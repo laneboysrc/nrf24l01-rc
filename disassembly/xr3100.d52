@@ -1,10 +1,10 @@
 ;
 ;  D52 V3.4.1 8052 Disassembly of xr3100.hex
-;  2014/11/15 11:48
+;  2014/11/15 14:34
 ;
 	org	0
 ;
-	ljmp	reset		; 0000   02 08 3e   ..>
+	ljmp	reset_handler	; 0000   02 08 3e   ..>
 ;
 X0003:	lcall	spi_send_nop_command; 0003   12 11 fd   ..}	; Vector: Interrupt from pin GP INT0, GP INT1 or GP INT2
 X0006:	mov	a,r7		; 0006   ef         o
@@ -130,11 +130,11 @@ init:	clr	a		; 004e   e4         d
 	setb	RFCON_rfce	; 00cd   d2 e8      Rh
 	setb	TCON_tr0	; 00cf   d2 8c      R.
 	clr	IEN0_all	; 00d1   c2 af      B/
-	mov	IEN0,#22h	; 00d3   75 a8 22   u("
+	mov	IEN0,#22h	; 00d3   75 a8 22   u("	; Enable Timer0 and Timer2 interrupts
 	setb	IEN0_all	; 00d6   d2 af      R/
 	clr	LED_GREEN	; 00d8   c2 80      B.
 	setb	LED_RED		; 00da   d2 81      R.
-	jb	BIND_BUTTON,X00e2; 00dc   20 83 03    ..	; Bind switch checked at reset?!?
+	jb	BIND_BUTTON,X00e2; 00dc   20 83 03    ..	; Bind switch checked at reset
 	mov	factory,#1	; 00df   75 2b 01   u+.
 X00e2:	mov	a,factory	; 00e2   e5 2b      e+
 	jz	main		; 00e4   60 05      `.
@@ -170,7 +170,7 @@ not_factory:
 	clr	LED_GREEN	; 0117   c2 80      B.
 	clr	RFCON_rfce	; 0119   c2 e8      Bh
 	lcall	perform_bind_procedure; 011b   12 03 46   ..F
-	mov	T2CON,#41h	; 011e   75 c8 41   uHA
+	mov	t2con,#41h	; 011e   75 c8 41   uHA
 no_bind_button:
 	mov	a,rf_int_fired	; 0121   e5 24      e$
 	jz	no_rf_data_pending; 0123   60 27      `'
@@ -178,7 +178,7 @@ no_bind_button:
 	lcall	spi_read_rf_status; 0127   12 11 4a   ..J
 	mov	rf_status,r7	; 012a   8f 0b      ..
 read_fifo_loop:
-	lcall	spi_is_rx_fifo_empty; 012c   12 11 a3   ..#
+	lcall	rf_is_rx_fifo_empty; 012c   12 11 a3   ..#
 	mov	a,r7		; 012f   ef         o
 	jnz	payload_read	; 0130   70 0e      p.
 	mov	r3,#1		; 0132   7b 01      {.
@@ -223,7 +223,7 @@ rcv_state_1:
 	mov	th2,#0fah	; 0175   75 cd fa   uMz
 	mov	tl2,#0cah	; 0178   75 cc ca   uLJ
 	mov	div_4ms,#1	; 017b   75 2c 01   u,.
-	mov	T2CON,#41h	; 017e   75 c8 41   uHA	; T2 clock = f/12, Reload Mode 0
+	mov	t2con,#41h	; 017e   75 c8 41   uHA	; T2 clock = f/12, Reload Mode 0
 	mov	a,#2		; 0181   74 02      t.
 	movx	@dptr,a		; 0183   f0         p
 	clr	a		; 0184   e4         d
@@ -241,7 +241,7 @@ rcv_state_2:
 	mov	got_rf_payload,a; 0194   f5 0c      u.
 	mov	th2,#0fah	; 0196   75 cd fa   uMz
 	mov	tl2,#0cah	; 0199   75 cc ca   uLJ
-	mov	T2CON,#41h	; 019c   75 c8 41   uHA	; T2 clock = f/12, Reload Mode 0
+	mov	t2con,#41h	; 019c   75 c8 41   uHA	; T2 clock = f/12, Reload Mode 0
 	mov	div_4ms,#1	; 019f   75 2c 01   u,.
 	mov	dptr,#inc_every_hop_to_20; 01a2   90 00 06   ...
 	movx	@dptr,a		; 01a5   f0         p
@@ -257,7 +257,7 @@ rcv_state_end:
 	subb	a,#0fh		; 01b3   94 0f      ..
 	jc	X01bf		; 01b5   40 08      @.
 	clr	a		; 01b7   e4         d
-	mov	T2CON,a		; 01b8   f5 c8      uH
+	mov	t2con,a		; 01b8   f5 c8      uH
 	movx	@dptr,a		; 01ba   f0         p
 	mov	dptr,#rcv_state	; 01bb   90 00 08   ...
 	movx	@dptr,a		; 01be   f0         p
@@ -473,7 +473,7 @@ check_if_failsafe:
 	clr	c		; 02e1   c3         C
 	mov	dptr,#fs_timer+1; 02e2   90 00 02   ...
 	movx	a,@dptr		; 02e5   e0         `
-40;:	subb	a,#28h		; 02e6   94 28      .(
+	subb	a,#28h		; 02e6   94 28      .(	; 40; Trigger failsafe after 640ms
 	mov	dptr,#fs_timer	; 02e8   90 00 01   ...
 	movx	a,@dptr		; 02eb   e0         `
 	subb	a,#0		; 02ec   94 00      ..
@@ -562,7 +562,7 @@ perform_bind_procedure:
 	anl	IEN0,#0f7h	; 0346   53 a8 f7   S(w	; disable Timer1 interrupt (servo pulses)
 	clr	a		; 0349   e4         d
 	mov	rf_data_avail,a	; 034a   f5 2d      u-
-	mov	T2CON,a		; 034c   f5 c8      uH
+	mov	t2con,a		; 034c   f5 c8      uH
 	mov	rf_int_fired,a	; 034e   f5 24      u$
 	mov	r3,a		; 0350   fb         {
 	mov	r2,#0		; 0351   7a 00      z.
@@ -594,7 +594,7 @@ bind_loop:
 	ljmp	bind_check_timeout; 0384   02 04 d8   ..X
 ;
 X0387:	lcall	spi_read_rf_status; 0387   12 11 4a   ..J
-X038a:	lcall	spi_is_rx_fifo_empty; 038a   12 11 a3   ..#
+X038a:	lcall	rf_is_rx_fifo_empty; 038a   12 11 a3   ..#
 	mov	a,r7		; 038d   ef         o
 	jnz	binding_got_payload; 038e   70 0b      p.
 	mov	r3,#1		; 0390   7b 01      {.
@@ -947,8 +947,8 @@ servo_pulse_t1_handler:
 	push	acc		; 05b3   c0 e0      @`
 	push	dph		; 05b5   c0 83      @.
 	push	dpl		; 05b7   c0 82      @.
-	push	PSW		; 05b9   c0 d0      @P
-	mov	PSW,#0		; 05bb   75 d0 00   uP.
+	push	psw		; 05b9   c0 d0      @P
+	mov	psw,#0		; 05bb   75 d0 00   uP.
 	push	rb0r2		; 05be   c0 02      @.
 	push	rb0r3		; 05c0   c0 03      @.
 	push	rb0r4		; 05c2   c0 04      @.
@@ -1046,7 +1046,7 @@ X0651:	pop	rb0r5		; 0651   d0 05      P.
 	pop	rb0r4		; 0653   d0 04      P.
 	pop	rb0r3		; 0655   d0 03      P.
 	pop	rb0r2		; 0657   d0 02      P.
-	pop	PSW		; 0659   d0 d0      PP
+	pop	psw		; 0659   d0 d0      PP
 	pop	dpl		; 065b   d0 82      P.
 	pop	dph		; 065d   d0 83      P.
 	pop	acc		; 065f   d0 e0      P`
@@ -1196,10 +1196,12 @@ X0709:	mov	r5,a		; 0709   fd         }
 	djnz	b,X06f8		; 070b   d5 f0 ea   Upj
 X070e:	ret			; 070e   22         "
 ;
+; ***************************************************************************
 ic2_write_address:
 	lcall	i2c_start	; 070f   12 0e c5   ..E
 	lcall	i2c_write_byte	; 0712   12 07 17   ...
 	mov	r7,rb0r5	; 0715   af 05      /.
+; ***************************************************************************
 i2c_write_byte:
 	clr	a		; 0717   e4         d
 	mov	r6,a		; 0718   fe         ~
@@ -1434,7 +1436,8 @@ X0836:	mov	a,42h		; 0836   e5 42      eB
 ; ***************************************************************************
 ; Program start
 ; ***************************************************************************
-reset:	mov	r0,#7fh		; 083e   78 7f      x.
+reset_handler:
+	mov	r0,#7fh		; 083e   78 7f      x.
 	clr	a		; 0840   e4         d
 _clear_ram:
 	mov	@r0,a		; 0841   f6         v
@@ -1556,8 +1559,8 @@ timer2_handler:
 	push	b		; 08cc   c0 f0      @p
 	push	dph		; 08ce   c0 83      @.
 	push	dpl		; 08d0   c0 82      @.
-	push	PSW		; 08d2   c0 d0      @P
-	mov	PSW,#0		; 08d4   75 d0 00   uP.
+	push	psw		; 08d2   c0 d0      @P
+	mov	psw,#0		; 08d4   75 d0 00   uP.
 	push	rb0r0		; 08d7   c0 00      @.
 	push	rb0r1		; 08d9   c0 01      @.
 	push	rb0r2		; 08db   c0 02      @.
@@ -1610,7 +1613,7 @@ X0926:	pop	rb0r7		; 0926   d0 07      P.
 	pop	rb0r2		; 0930   d0 02      P.
 	pop	rb0r1		; 0932   d0 01      P.
 	pop	rb0r0		; 0934   d0 00      P.
-	pop	PSW		; 0936   d0 d0      PP
+	pop	psw		; 0936   d0 d0      PP
 	pop	dpl		; 0938   d0 82      P.
 	pop	dph		; 093a   d0 83      P.
 	pop	b		; 093c   d0 f0      Pp
@@ -1772,6 +1775,7 @@ X0a17:	mov	r5,count_l	; 0a17   ad 10      -.
 	mov	r7,a		; 0a1a   ff         .
 	ljmp	spi_write_register; 0a1b   02 10 9f   ...
 ;
+; ***************************************************************************
 i2c_read_byte:
 	clr	a		; 0a1e   e4         d
 	mov	r7,a		; 0a1f   ff         .
@@ -1864,6 +1868,7 @@ X0a5d:	nop			; 0a5d   00         .
 	nop			; 0a80   00         .
 	ret			; 0a81   22         "
 ;
+; ***************************************************************************
 is_bind_button_pressed:
 	mov	dptr,#softtmr_1ms; 0a82   90 00 14   ...
 	movx	a,@dptr		; 0a85   e0         `
@@ -1931,6 +1936,7 @@ X0ad9:	mov	dptr,#bind_btn_timer; 0ad9   90 00 20   ..
 X0ae1:	mov	r7,#0		; 0ae1   7f 00      ..
 	ret			; 0ae3   22         "
 ;
+; ***************************************************************************
 init_rf_data_pipes:
 	mov	save_r7,r7	; 0ae4   8f 0e      ..
 	mov	save_r5,r5	; 0ae6   8d 0f      ..
@@ -2015,7 +2021,7 @@ timer0_handler:
 	push	acc		; 0b91   c0 e0      @`
 	push	dph		; 0b93   c0 83      @.
 	push	dpl		; 0b95   c0 82      @.
-	push	PSW		; 0b97   c0 d0      @P
+	push	psw		; 0b97   c0 d0      @P
 	mov	th0,#0fah	; 0b99   75 8c fa   u.z
 	mov	tl0,#0cah	; 0b9c   75 8a ca   u.J
 	mov	dptr,#softtmr_1ms; 0b9f   90 00 14   ...
@@ -2049,12 +2055,13 @@ timer0_handler:
 	inc	a		; 0bd4   04         .
 	movx	@dptr,a		; 0bd5   f0         p
 X0bd6:	setb	TCON_tr1	; 0bd6   d2 8e      R.
-X0bd8:	pop	PSW		; 0bd8   d0 d0      PP
+X0bd8:	pop	psw		; 0bd8   d0 d0      PP
 	pop	dpl		; 0bda   d0 82      P.
 	pop	dph		; 0bdc   d0 83      P.
 	pop	acc		; 0bde   d0 e0      P`
 	reti			; 0be0   32         2
 ;
+; ***************************************************************************
 i2c_has_write_finished:
 	mov	r7,#0a0h	; 0be1   7f a0      . 
 	clr	SDA		; 0be3   c2 94      B.
@@ -2118,7 +2125,7 @@ X0c2c:	clr	SCL		; 0c2c   c2 93      B.
 	mov	c,IEN0_all	; 0c37   a2 af      "/
 	mov	f0,c		; 0c39   92 d5      .U
 	clr	IEN0_all	; 0c3b   c2 af      B/
-	setb	xdata		; 0c3d   d2 fd      R}
+	setb	FSR_wen		; 0c3d   d2 fd      R}
 	mov	35h,r6		; 0c3f   8e 35      .5
 	mov	36h,r7		; 0c41   8f 36      .6
 X0c43:	mov	a,34h		; 0c43   e5 34      e4
@@ -2150,14 +2157,15 @@ X0c6c:	dec	a		; 0c6c   14         .
 	movx	@dptr,a		; 0c72   f0         p
 	sjmp	X0c43		; 0c73   80 ce      .N
 ;
-X0c75:	jnb	xactv,X0c7c	; 0c75   30 fc 04   0|.
-	clr	xdata		; 0c78   c2 fd      B}
+X0c75:	jnb	FSR_rdyn,X0c7c	; 0c75   30 fc 04   0|.
+	clr	FSR_wen		; 0c78   c2 fd      B}
 	sjmp	X0c75		; 0c7a   80 f9      .y
 ;
 X0c7c:	mov	c,f0		; 0c7c   a2 d5      "U
 	mov	IEN0_all,c	; 0c7e   92 af      ./
 	ret			; 0c80   22         "
 ;
+; ***************************************************************************
 read_bind_data:
 	clr	a		; 0c81   e4         d
 	mov	save_r7,a	; 0c82   f5 0e      u.
@@ -2224,6 +2232,7 @@ rf_set_crc:
 	mov	save_r5,a	; 0ce0   f5 0f      u.
 	sjmp	set_crc_write_config; 0ce2   80 1e      ..
 ;
+; ***************************************************************************
 set_crc_1byte:
 	mov	r7,save_r5	; 0ce4   af 0f      /.
 	mov	a,r7		; 0ce6   ef         o
@@ -2235,6 +2244,7 @@ set_crc_1byte:
 	mov	save_r5,a	; 0cf0   f5 0f      u.
 	sjmp	set_crc_write_config; 0cf2   80 0e      ..
 ;
+; ***************************************************************************
 set_crc_2bytes:
 	mov	r7,save_r5	; 0cf4   af 0f      /.
 	mov	a,r7		; 0cf6   ef         o
@@ -2246,6 +2256,7 @@ set_crc_2bytes:
 	mov	save_r5,a	; 0d00   f5 0f      u.
 set_crc_write_config:
 	mov	r5,save_r5	; 0d02   ad 0f      -.
+; ***************************************************************************
 	clr	a		; 0d04   e4         d	; CONFIG
 	mov	r7,a		; 0d05   ff         .
 	ljmp	spi_write_register; 0d06   02 10 9f   ...
@@ -2288,6 +2299,7 @@ X0d3e:	mov	r5,4dh		; 0d3e   ad 4d      -M
 	mov	r7,#1		; 0d47   7f 01      ..
 	ljmp	spi_write_register; 0d49   02 10 9f   ...
 ;
+; ***************************************************************************
 rc_get_or_set_address_for_pipe:
 	mov	pipe_no,r7	; 0d4c   8f 1b      ..
 	mov	adr_flag,r3	; 0d4e   8b 1c      ..
@@ -2311,6 +2323,7 @@ X0d63:	lcall	spi_get_number_of_address_bytes; 0d63   12 11 99   ...
 	mov	r1,adr_l	; 0d71   a9 1e      ).
 	ljmp	rf_write_register_sequence; 0d73   02 0d fd   ..}
 ;
+; ***************************************************************************
 rf_get_receive_address_for_pipe:
 	mov	a,pipe_no	; 0d76   e5 1b      e.
 	add	a,#0ah		; 0d78   24 0a      $.
@@ -2323,6 +2336,7 @@ rf_get_receive_address_for_pipe:
 	lcall	spi_write_register; 0d85   12 10 9f   ...
 X0d88:	ret			; 0d88   22         "
 ;
+; ***************************************************************************
 rf_set_data_rate:
 	mov	save_r7,r7	; 0d89   8f 0e      ..
 	mov	r7,#6		; 0d8b   7f 06      ..
@@ -2518,6 +2532,7 @@ X0eac:	mov	a,r7		; 0eac   ef         o
 	mov	r7,#6		; 0ec0   7f 06      ..
 	ljmp	spi_write_register; 0ec2   02 10 9f   ...
 ;
+; ***************************************************************************
 i2c_start:
 	orl	P1DIR,#10h	; 0ec5   43 94 10   C..
 	nop			; 0ec8   00         .
@@ -2674,6 +2689,7 @@ X0fab:	mov	a,#1		; 0fab   74 01      t.
 ;
 X0fb4:	ret			; 0fb4   22         "
 ;
+; ***************************************************************************
 rf_set_rx:
 	mov	save_r7,r7	; 0fb5   8f 0e      ..
 	clr	a		; 0fb7   e4         d
@@ -2696,6 +2712,7 @@ X0fd1:	mov	r5,save_r5	; 0fd1   ad 0f      -.
 	mov	r7,a		; 0fd4   ff         .
 	ljmp	spi_write_register; 0fd5   02 10 9f   ...
 ;
+; ***************************************************************************
 rf_set_power_up:
 	mov	save_r7,r7	; 0fd8   8f 0e      ..
 	clr	a		; 0fda   e4         d
@@ -2718,6 +2735,7 @@ X0ff4:	mov	r5,save_r5	; 0ff4   ad 0f      -.
 	mov	r7,a		; 0ff7   ff         .
 	ljmp	spi_write_register; 0ff8   02 10 9f   ...
 ;
+; ***************************************************************************
 write_bind_data_byte:
 	mov	r3,rb0r7	; 0ffb   ab 07      +.
 	mov	r2,rb0r6	; 0ffd   aa 06      *.
@@ -2741,6 +2759,8 @@ write_bind_data_byte:
 	mov	r3,rb0r4	; 1015   ab 04      +.
 	ljmp	i2c_write_byte_to_eeprom; 1017   02 10 b6   ..6
 ;
+; ***************************************************************************
+rf_set_tx_power:
 	mov	4fh,r7		; 101a   8f 4f      .O
 	mov	r7,#6		; 101c   7f 06      ..
 	lcall	spi_read_register; 101e   12 11 3d   ..=
@@ -2758,6 +2778,7 @@ write_bind_data_byte:
 	mov	r7,#6		; 1034   7f 06      ..
 	ljmp	spi_write_register; 1036   02 10 9f   ...
 ;
+; ***************************************************************************
 i2c_stop:
 	anl	P1DIR,#0efh	; 1039   53 94 ef   S.o
 	nop			; 103c   00         .
@@ -2785,16 +2806,18 @@ i2c_stop:
 	nop			; 1055   00         .
 	ret			; 1056   22         "
 ;
+; ***************************************************************************
+write_byte_to_flash:
 	mov	c,IEN0_all	; 1057   a2 af      "/	; 1057-1070 UNUSED CODE
 	mov	f0,c		; 1059   92 d5      .U
 	clr	IEN0_all	; 105b   c2 af      B/
-	setb	xdata		; 105d   d2 fd      R}
+	setb	FSR_wen		; 105d   d2 fd      R}
 	mov	dpl,r7		; 105f   8f 82      ..
 	mov	dph,r6		; 1061   8e 83      ..
 	mov	a,r5		; 1063   ed         m
 	movx	@dptr,a		; 1064   f0         p
-X1065:	jnb	xactv,X106c	; 1065   30 fc 04   0|.
-	clr	xdata		; 1068   c2 fd      B}
+X1065:	jnb	FSR_rdyn,X106c	; 1065   30 fc 04   0|.
+	clr	FSR_wen		; 1068   c2 fd      B}
 	sjmp	X1065		; 106a   80 f9      .y
 ;
 X106c:	mov	c,f0		; 106c   a2 d5      "U
@@ -2857,6 +2880,7 @@ spi_write_register:
 	mov	r7,20h		; 10b3   af 20      / 
 	ret			; 10b5   22         "
 ;
+; ***************************************************************************
 i2c_write_byte_to_eeprom:
 	mov	r6,rb0r7	; 10b6   ae 07      ..
 	mov	r4,rb0r3	; 10b8   ac 03      ,.
@@ -2872,16 +2896,17 @@ X10c5:	lcall	i2c_has_write_finished; 10c5   12 0b e1   ..a
 	mov	c,IEN0_all	; 10cc   a2 af      "/	; 10cc-10e1 UNUSED CODE
 	mov	f0,c		; 10ce   92 d5      .U
 	clr	IEN0_all	; 10d0   c2 af      B/
-	setb	xdata		; 10d2   d2 fd      R}
+	setb	FSR_wen		; 10d2   d2 fd      R}
 	mov	FCR,r7		; 10d4   8f fa      .z
-X10d6:	jnb	xactv,X10dd	; 10d6   30 fc 04   0|.
-	clr	xdata		; 10d9   c2 fd      B}
+X10d6:	jnb	FSR_rdyn,X10dd	; 10d6   30 fc 04   0|.
+	clr	FSR_wen		; 10d9   c2 fd      B}
 	sjmp	X10d6		; 10db   80 f9      .y
 ;
 X10dd:	mov	c,f0		; 10dd   a2 d5      "U
 	mov	IEN0_all,c	; 10df   92 af      ./
 	ret			; 10e1   22         "
 ;
+; ***************************************************************************
 i2c_read_byte_from_eeprom:
 	mov	r4,rb0r7	; 10e2   ac 07      ,.
 	lcall	ic2_write_address; 10e4   12 07 0f   ...
@@ -2894,6 +2919,7 @@ i2c_read_byte_from_eeprom:
 	lcall	i2c_stop	; 10f3   12 10 39   ..9
 	ret			; 10f6   22         "
 ;
+; ***************************************************************************
 init_rf_setup_address_width:
 	mov	a,r7		; 10f7   ef         o
 	add	a,#0feh		; 10f8   24 fe      $~
@@ -2909,7 +2935,6 @@ init_rf_setup_address_width:
 	ljmp	spi_write_register; 1109   02 10 9f   ...
 ;
 ; ***************************************************************************
-; spi_set_rf_channel
 ; In: R7: channel number
 ; ***************************************************************************
 spi_set_rf_channel:
@@ -2937,6 +2962,8 @@ X1128:	djnz	r0,X1126	; 1128   d8 fc      X|
 	mov	r7,#7		; 112b   7f 07      ..
 	ljmp	spi_write_register; 112d   02 10 9f   ...
 ;
+; ***************************************************************************
+rf_get_tx_reuse:
 	lcall	rf_read_fifo_status; 1130   12 12 30   ..0
 	mov	a,r7		; 1133   ef         o
 	anl	a,#40h		; 1134   54 40      T@
@@ -2973,6 +3000,8 @@ spi_read_rf_status:
 	mov	r7,a		; 1154   ff         .
 	ret			; 1155   22         "
 ;
+; ***************************************************************************
+rf_is_rx_fifo_full:
 	mov	r7,#17h		; 1156   7f 17      ..	; 1156-117f UNUSED CODE
 	lcall	spi_read_register; 1158   12 11 3d   ..=
 	mov	a,r7		; 115b   ef         o
@@ -2982,6 +3011,8 @@ spi_read_rf_status:
 	mov	r7,a		; 1160   ff         .
 	ret			; 1161   22         "
 ;
+; ***************************************************************************
+rf_is_tx_fifo_full:
 	mov	r7,#17h		; 1162   7f 17      ..
 	lcall	spi_read_register; 1164   12 11 3d   ..=
 	mov	a,r7		; 1167   ef         o
@@ -2991,6 +3022,8 @@ spi_read_rf_status:
 	mov	r7,a		; 116c   ff         .
 	ret			; 116d   22         "
 ;
+; ***************************************************************************
+rf_enable_dynamic_payload_length:
 	mov	a,r7		; 116e   ef         o
 	anl	a,#3fh		; 116f   54 3f      T?
 	mov	5dh,a		; 1171   f5 5d      u]
@@ -2998,6 +3031,8 @@ spi_read_rf_status:
 	mov	r7,#1ch		; 1175   7f 1c      ..
 	ljmp	spi_write_register; 1177   02 10 9f   ...
 ;
+; ***************************************************************************
+rf_is_tx_fifo_emtpy:
 	mov	r7,#17h		; 117a   7f 17      ..
 	lcall	spi_read_register; 117c   12 11 3d   ..=
 	mov	a,r7		; 117f   ef         o
@@ -3006,13 +3041,15 @@ spi_read_rf_status:
 	mov	r7,a		; 1183   ff         .
 	ret			; 1184   22         "
 ;
+; ***************************************************************************
 init_timer0:
 	mov	tmod,#1		; 1185   75 89 01   u..	; Set Timer0 as 16 bit timer
 	clr	a		; 1188   e4         d
-	mov	TCON,a		; 1189   f5 88      u.
+	mov	tcon,a		; 1189   f5 88      u.
 	mov	IEN0,#2		; 118b   75 a8 02   u(.	; Enable Timer0 interrupt
 	ret			; 118e   22         "
 ;
+; ***************************************************************************
 ; ***************************************************************************
 ; SPI Write
 ; ***************************************************************************
@@ -3037,11 +3074,9 @@ spi_get_number_of_address_bytes:
 	ret			; 11a2   22         "
 ;
 ; ***************************************************************************
-; spi_is_rx_fifo_empty
-;
 ; R7 is 1 if the RF RX FIFO is empty, 0 if it has data pending
 ; ***************************************************************************
-spi_is_rx_fifo_empty:
+rf_is_rx_fifo_empty:
 	mov	r7,#17h		; 11a3   7f 17      ..
 	lcall	spi_read_register; 11a5   12 11 3d   ..=
 	mov	a,r7		; 11a8   ef         o
@@ -3049,6 +3084,8 @@ spi_is_rx_fifo_empty:
 	mov	r7,a		; 11ab   ff         .
 	ret			; 11ac   22         "
 ;
+; ***************************************************************************
+rf_get_rx_fifo_status:
 	mov	r7,#17h		; 11ad   7f 17      ..	; 11ad-11c0 UNUSED CODE
 	lcall	spi_read_register; 11af   12 11 3d   ..=
 	mov	a,r7		; 11b2   ef         o
@@ -3056,6 +3093,8 @@ spi_is_rx_fifo_empty:
 	mov	r7,a		; 11b5   ff         .
 	ret			; 11b6   22         "
 ;
+; ***************************************************************************
+rf_retransmit_count:
 	mov	r7,#8		; 11b7   7f 08      ..
 	lcall	spi_read_register; 11b9   12 11 3d   ..=
 	mov	a,r7		; 11bc   ef         o
@@ -3076,12 +3115,15 @@ is_rf_power_detected:
 	mov	r7,a		; 11c9   ff         .
 	ret			; 11ca   22         "
 ;
+; ***************************************************************************
+rf_write_ack_payload:
 	mov	a,r7		; 11cb   ef         o	; 11cb-11d4 UNUSED CODE
 	orl	a,#0a8h		; 11cc   44 a8      D(
 	mov	r7,a		; 11ce   ff         .
 	mov	23h,47h		; 11cf   85 47 23   .G#
 	ljmp	rf_write_register_sequence; 11d2   02 0d fd   ..}
 ;
+; ***************************************************************************
 rf_read_rx_status:
 	lcall	spi_send_nop_command; 11d5   12 11 fd   ..}
 	mov	a,r7		; 11d8   ef         o
@@ -3091,24 +3133,31 @@ rf_read_rx_status:
 	mov	r7,a		; 11dd   ff         .
 	ret			; 11de   22         "
 ;
+; ***************************************************************************
+rf_set_reuse_tx_payload:
 	clr	RFCON_rfcsn	; 11df   c2 e9      Bi	; 11df-11fc UNUSED CODE
 	mov	r7,#0e3h	; 11e1   7f e3      .c
 	lcall	spi_write	; 11e3   12 11 8f   ...
 	setb	RFCON_rfcsn	; 11e6   d2 e9      Ri
 	ret			; 11e8   22         "
 ;
+; ***************************************************************************
+rf_flush_rx:
 	clr	RFCON_rfcsn	; 11e9   c2 e9      Bi
 	mov	r7,#0e2h	; 11eb   7f e2      .b
 	lcall	spi_write	; 11ed   12 11 8f   ...
 	setb	RFCON_rfcsn	; 11f0   d2 e9      Ri
 	ret			; 11f2   22         "
 ;
+; ***************************************************************************
+rf_flush_tx:
 	clr	RFCON_rfcsn	; 11f3   c2 e9      Bi
 	mov	r7,#0e1h	; 11f5   7f e1      .a
 	lcall	spi_write	; 11f7   12 11 8f   ...
 	setb	RFCON_rfcsn	; 11fa   d2 e9      Ri
 	ret			; 11fc   22         "
 ;
+; ***************************************************************************
 spi_send_nop_command:
 	clr	RFCON_rfcsn	; 11fd   c2 e9      Bi
 	mov	r7,#0ffh	; 11ff   7f ff      ..
@@ -3116,7 +3165,9 @@ spi_send_nop_command:
 	setb	RFCON_rfcsn	; 1204   d2 e9      Ri
 	ret			; 1206   22         "
 ;
-	mov	T2CON,#41h	; 1207   75 c8 41   uHA	; 1207-120d UNUSED CODE
+; ***************************************************************************
+enable_timer2:
+	mov	t2con,#41h	; 1207   75 c8 41   uHA	; 1207-120d UNUSED CODE
 	orl	IEN0,#20h	; 120a   43 a8 20   C( 
 	ret			; 120d   22         "
 ;
@@ -3131,24 +3182,33 @@ rf_set_payload_bytes:
 	mov	r7,a		; 1211   ff         .
 	ljmp	spi_write_register; 1212   02 10 9f   ...
 ;
+; ***************************************************************************
+rf_write_tx_payload:
 	mov	23h,r5		; 1215   8d 23      .#	; 1215-1222 UNUSED CODE
 	mov	r7,#0a0h	; 1217   7f a0      . 
 	ljmp	rf_write_register_sequence; 1219   02 0d fd   ..}
 ;
+; ***************************************************************************
+rf_write_tx_payload_no_ack:
 	mov	23h,r5		; 121c   8d 23      .#
 	mov	r7,#0b0h	; 121e   7f b0      .0
 	ljmp	rf_write_register_sequence; 1220   02 0d fd   ..}
 ;
+; ***************************************************************************
+get_indirect_r7_r6:
 	mov	dpl,r7		; 1223   8f 82      ..
 	mov	dph,r6		; 1225   8e 83      ..
 	movx	a,@dptr		; 1227   e0         `
 	mov	r7,a		; 1228   ff         .
 	ret			; 1229   22         "
 ;
+; ***************************************************************************
+rf_get_observe_tx:
 	mov	r7,#8		; 122a   7f 08      ..	; 122a-1235 UNUSED CODE
 	lcall	spi_read_register; 122c   12 11 3d   ..=
 	ret			; 122f   22         "
 ;
+; ***************************************************************************
 rf_read_fifo_status:
 	mov	r7,#17h		; 1230   7f 17      ..
 	lcall	spi_read_register; 1232   12 11 3d   ..=
@@ -3178,6 +3238,7 @@ spi_read_rf_fifo:
 	lcall	spi_read_rf_fifo_data; 123e   12 09 41   ..A
 	ret			; 1241   22         "
 ;
+; ***************************************************************************
 init_timer1:
 	orl	tmod,#10h	; 1242   43 89 10   C..	; Set Timer1 as 16 bit timer
 	ret			; 1245   22         "
@@ -3223,7 +3284,6 @@ rf_data_avail	equ	2dh
 ;
 ;	SFR Equates
 ;
-TCON	equ	88h
 P0DIR	equ	93h
 P1DIR	equ	94h
 S0CON	equ	98h
@@ -3264,12 +3324,10 @@ CCL2	equ	0c4h
 CCH2	equ	0c5h
 CCL3	equ	0c6h
 CCH3	equ	0c7h
-T2CON	equ	0c8h
 MPAGE	equ	0c9h
 CRCL	equ	0cah
 CRCH	equ	0cbh
 WUOPC0	equ	0cfh
-PSW	equ	0d0h
 ADCCON3	equ	0d1h
 ADCCON2	equ	0d2h
 ADCCON1	equ	0d3h
@@ -3277,7 +3335,6 @@ ADCDATH	equ	0d4h
 ADCDATL	equ	0d5h
 RNGCTL	equ	0d6h
 RNGDAT	equ	0d7h
-ADCON	equ	0d8h
 W2SADR	equ	0d9h
 W2DAT	equ	0dah
 COMPCON	equ	0dbh
@@ -3339,7 +3396,7 @@ IEN0_pwrfail	equ	0aah
 IEN0_tf1	equ	0abh
 IEN0_serial	equ	0ach
 IEN0_tf2	equ	0adh
-IEN0.6	equ	0aeh
+IEN0_6	equ	0aeh
 IEN0_all	equ	0afh
 IEN1_rfready	equ	0b8h
 IEN1_rfirq	equ	0b9h
@@ -3347,7 +3404,7 @@ IEN1_spi_iic	equ	0bah
 IEN1_wakeup	equ	0bbh
 IEN1_misc	equ	0bch
 IEN1_tick	equ	0bdh
-IEN1.6	equ	0beh
+IEN1_6	equ	0beh
 IEN1_exf2	equ	0bfh
 IRCON_rfready	equ	0c0h
 IRCON_rfiry	equ	0c1h
@@ -3370,6 +3427,14 @@ ADCON_bd	equ	0dfh
 RFCON_rfce	equ	0e8h
 RFCON_rfcsn	equ	0e9h
 RFCON_rfcken	equ	0eah
+FSR_0	equ	0f8h
+FSR_1	equ	0f9h
+FSR_rdismb	equ	0fah
+FSR_infen	equ	0fbh
+FSR_rdyn	equ	0fch
+FSR_wen	equ	0fdh
+FSR_stp	equ	0feh
+FSR_endebug	equ	0ffh
 ;
 ;	Operand symbol equates
 ;
