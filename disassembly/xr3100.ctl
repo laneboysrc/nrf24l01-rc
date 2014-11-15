@@ -146,42 +146,41 @@ x 0529 inc_every_hop_to_20
 x 05a3 inc_every_hop_to_20
 x 0919 inc_every_hop_to_20
 
-;s 0007 stick_data      ; X0007
 x 02bb failsafe_flag    ; X0007
 x 02fc failsafe_flag
 
-x 00ad stick_data+1     ; X0008
-x 014d stick_data+1
-x 015b stick_data+1
-x 0165 stick_data+1
-x 01bc stick_data+1
+x 00ad rcv_state     ; X0008
+x 014d rcv_state
+x 015b rcv_state
+x 0165 rcv_state
+x 01bc rcv_state
 
-x 01d8 stick_data+2     ; X0009
-x 01e5 stick_data+2
-x 01f4 stick_data+2
-x 0272 stick_data+2
+x 01d8 stick_data       ; X0009
+x 01e5 stick_data
+x 01f4 stick_data
+x 0272 stick_data
 
-x 01ee stick_data+3     ; X000a
+x 01ee stick_data+1     ; X000a
 
-x 0200 stick_data+4     ; X000b
-x 020d stick_data+4
-x 021c stick_data+4
-x 0281 stick_data+4
+x 0200 stick_data+2     ; X000b
+x 020d stick_data+2
+x 021c stick_data+2
+x 0281 stick_data+2
 
-x 0216 stick_data+5     ; X000c
+x 0216 stick_data+3     ; X000c
 
-x 0228 stick_data+6     ; X000d
-x 0235 stick_data+6
-x 0244 stick_data+6
+x 0228 stick_data+4     ; X000d
+x 0235 stick_data+4
+x 0244 stick_data+4
 
-x 023e stick_data+7     ; X000e
+x 023e stick_data+5     ; X000e
 
-x 024d stick_data+8     ; X000f
-x 025a stick_data+8
-x 0269 stick_data+8
-x 029f stick_data+8
+x 024d stick_data+6     ; X000f
+x 025a stick_data+6
+x 0269 stick_data+6
+x 029f stick_data+6
 
-x 0263 stick_data+9     ; X0010
+x 0263 stick_data+7     ; X0010
 
 
 x 031a fs_ch1l      ; X0011
@@ -189,15 +188,15 @@ x 02db fs_ch1l
 
 x 02d3 fs_ch1h    ; X0012
 
-x 02cb fs_ch1l    ; X0013
-x 0304 fs_ch1l
+x 02cb fs_ch2l    ; X0013
+x 0304 fs_ch2l
 
 x 00f0 softtmr_1ms
 x 0a83 softtmr_1ms    ; X0014
 x 0ba0 softtmr_1ms
 
-x 02c3 fs_ch1h    ; X0015
-x 030b fs_ch1h
+x 02c3 fs_ch2h    ; X0015
+x 030b fs_ch2h
 
 
 x 01e9 payload      ; X0016
@@ -295,6 +294,12 @@ r 0f save_r5
 r 10 count_l
 r 11 count_h
 
+r 14 adr_0
+r 15 adr_1
+r 16 adr_2
+r 17 adr_3
+r 18 adr_4
+
 r 1b pipe_no
 
 r 1c adr_flag
@@ -307,7 +312,10 @@ r 2b factory
 r 2c div_4ms
 r 2d rf_data_avail
 
-
+r 19 bind_state
+r 1a bind_timeout
+r 12 bind_blink_h
+r 13 bind_blink_l
 
 
 ;=========================================================
@@ -355,16 +363,24 @@ l 00eb main
 
 l 010f not_factory
 
-l 0140 fifo_is_empty
+l 0140 payload_read
+! 0149 Enable Timer 1 interrupt (servo pulses)
 
 ! 017e T2 clock = f/12, Reload Mode 0
 ! 019c T2 clock = f/12, Reload Mode 0
 
 
 
-l 01d2 stick_data
+l 01d2 stick_data_handler
 # 01d2 ***************************************************************************
 # 01d2 This code below sets the servo pulse durations 0x55
+# 01d2
+# 01d2 It copies 8 bytes starting at payload to CH1..CH4,
+# 01d2 swapping high/low byte along the way.
+# 01d2 Note that CH4H is always 55 because it is a marker for stick data
+# 01d2
+# 01d2 Maybe the fs was added to the 4-channel version, limiting
+# 01d2 the number of channels?
 # 01d2 ***************************************************************************
 
 # 02b1 ***************************************************************************
@@ -380,7 +396,76 @@ l 02f7 output_failsafe
 l 01c6 process_rf_data
 l 02de rf_data_processed
 
+l 0346 perform_bind_procedure
+# 0346 ***************************************************************************
+# 0346 The bind process works as follows:
+# 0346
+# 0346 The transmitter regularly sends data on the fixed channel 51h, with address
+# 0346 12:23:23:45:78.
+# 0346 This data is sent at a lower power. All transmitters do that all the time.
+# 0346
+# 0346 The transmitter cycles through 4 packets:
+# 0346 ff aa 55 a1 a2 a3 a4 a5
+# 0346 cc cc 00 ha hb hc hd he hf hg
+# 0346 cc cc 01 hh hi hj hk hl hm hn
+# 0346 cc cc 02 ho hp hq hr hs ht
+# 0346
+# 0346 ff aa 55 is the special marker for the first byte
+# 0346 a1..a5 are the 5 address bytes
+# 0346 cc cc is a 16 byte checksum of bytes a1..a5
+# 0346 ha..ht are the 20 hop data bytes
+# 0346
+# 0346 a1..a5 are stored in 14h..18h
+# 0346 ha..ht are stored in x002a..x003d
+# 0346
+# 0346 ***************************************************************************
+! 0346 disable Timer1 interrupt (servo pulses)
+! 0356 Set special address 12h 23h 23h 45h 78h
+! 035b Set bind channel 51h
+l 0380 bind_loop
+l 039b binding_got_payload
+l 03a2 bind_state_0
+l 0404 bind_state_1
+l 044d bind_state_2
+l 0497 bind_state_3
+# 03a2 Check if fist byte is 0ffh
+l 03ac bind_1st_byte_is_ff
+l 03b5 bind_2nd_byte_is_aa
+l 03be bind_3rd_byte_is_55
+! 03c6 payload+3
+! 03d2 write 14h..18h
+! 03ef loop 5 times until wrote 18h
+! 03f1 save checksum in save_r5:save_r7
+
+# 0407 Check if payload:payload+1 maches checksum
+# 0412 payload+2 must be 0
+! 041b payload+3
+! 0427 write x002a..x0030
+! 043b loop 7 times until wrote x0030h
+
+# 0450 Check if payload:payload+1 maches checksum
+# 045b payload+2 must be 1
+! 0466 payload+3
+! 0472 write x0031..x0037
+! 0486 loop 7 times until wrote X0037
+
+# 049a Check if payload:payload+1 maches checksum
+# 04a6 payload+2 must be 2
+! 04b0 payload+3
+! 04bc write x0038..x003d
+! 04d0 loop 6 times until wrote X003d
+
+l 04d8 bind_check_timeout
+l 04dd bind_timeout_delay_loop
+! 050b blink the red LED
+
+l 051a bind_failed
 l 0541 save_bind_data
+
+l 0546 save_bind_address_loop
+l 056a save_hop_data_loop
+! 0546 write 5 bytes address from 14h
+l 0594 use_new_bind_data
 
 
 l 05b3 servo_pulse_t1_handler

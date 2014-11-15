@@ -1,6 +1,6 @@
 ;
 ;  D52 V3.4.1 8052 Disassembly of xr3100.hex
-;  2014/11/14 21:59
+;  2014/11/15 11:00
 ;
 	org	0
 ;
@@ -110,7 +110,7 @@ init:	clr	a		; 004e   e4         d
 	mov	r7,a		; 00a7   ff         .
 	lcall	rf_set_payload_bytes; 00a8   12 12 0e   ...
 	clr	a		; 00ab   e4         d
-	mov	dptr,#stick_data+1; 00ac   90 00 08   ...
+	mov	dptr,#rcv_state	; 00ac   90 00 08   ...
 	movx	@dptr,a		; 00af   f0         p
 	mov	dptr,#hop_index	; 00b0   90 00 04   ...
 	movx	@dptr,a		; 00b3   f0         p
@@ -169,7 +169,7 @@ not_factory:
 	setb	LED_RED		; 0115   d2 81      R.
 	clr	LED_GREEN	; 0117   c2 80      B.
 	clr	RFCON_rfce	; 0119   c2 e8      Bh
-	lcall	X0346		; 011b   12 03 46   ..F
+	lcall	perform_bind_procedure; 011b   12 03 46   ..F
 	mov	T2CON,#41h	; 011e   75 c8 41   uHA
 X0121:	mov	a,rf_int_fired	; 0121   e5 24      e$
 	jz	X014c		; 0123   60 27      `'
@@ -178,7 +178,7 @@ X0121:	mov	a,rf_int_fired	; 0121   e5 24      e$
 	mov	rf_status,r7	; 012a   8f 0b      ..
 X012c:	lcall	spi_is_rx_fifo_empty; 012c   12 11 a3   ..#
 	mov	a,r7		; 012f   ef         o
-	jnz	fifo_is_empty	; 0130   70 0e      p.
+	jnz	payload_read	; 0130   70 0e      p.
 	mov	r3,#1		; 0132   7b 01      {.
 	mov	r2,#0		; 0134   7a 00      z.
 	mov	r1,#16h		; 0136   79 16      y.
@@ -186,26 +186,26 @@ X012c:	lcall	spi_is_rx_fifo_empty; 012c   12 11 a3   ..#
 	mov	rf_data_avail,#1; 013b   75 2d 01   u-.
 	sjmp	X012c		; 013e   80 ec      .l
 ;
-fifo_is_empty:
+payload_read:
 	clr	a		; 0140   e4         d
 	mov	rf_int_fired,a	; 0141   f5 24      u$
 	mov	rb1r4,#1	; 0143   75 0c 01   u..
 	mov	rf_data_avail,#1; 0146   75 2d 01   u-.
-	orl	IEN0,#8		; 0149   43 a8 08   C(.
-X014c:	mov	dptr,#stick_data+1; 014c   90 00 08   ...
+	orl	IEN0,#8		; 0149   43 a8 08   C(.	; Enable Timer 1 interrupt (servo pulses)
+X014c:	mov	dptr,#rcv_state	; 014c   90 00 08   ...
 	movx	a,@dptr		; 014f   e0         `
 	jnz	X0164		; 0150   70 12      p.
 	mov	dptr,#hop_data	; 0152   90 00 2a   ..*
 	movx	a,@dptr		; 0155   e0         `
 	mov	r7,a		; 0156   ff         .
 	lcall	spi_set_rf_channel; 0157   12 11 0c   ...
-	mov	dptr,#stick_data+1; 015a   90 00 08   ...
+	mov	dptr,#rcv_state	; 015a   90 00 08   ...
 	mov	a,#1		; 015d   74 01      t.
 	movx	@dptr,a		; 015f   f0         p
 	setb	RFCON_rfce	; 0160   d2 e8      Rh
 	sjmp	X01ae		; 0162   80 4a      .J
 ;
-X0164:	mov	dptr,#stick_data+1; 0164   90 00 08   ...
+X0164:	mov	dptr,#rcv_state	; 0164   90 00 08   ...
 	movx	a,@dptr		; 0167   e0         `
 	mov	r7,a		; 0168   ff         .
 	cjne	a,#1,X018b	; 0169   b4 01 1f   4..
@@ -250,7 +250,7 @@ X01ae:	mov	dptr,#inc_every_hop_to_20; 01ae   90 00 06   ...
 	clr	a		; 01b7   e4         d
 	mov	T2CON,a		; 01b8   f5 c8      uH
 	movx	@dptr,a		; 01ba   f0         p
-	mov	dptr,#stick_data+1; 01bb   90 00 08   ...
+	mov	dptr,#rcv_state	; 01bb   90 00 08   ...
 	movx	@dptr,a		; 01be   f0         p
 X01bf:	mov	a,rf_data_avail	; 01bf   e5 2d      e-
 	jnz	process_rf_data	; 01c1   70 03      p.
@@ -261,17 +261,24 @@ process_rf_data:
 	movx	a,@dptr		; 01c9   e0         `
 	mov	r5,a		; 01ca   fd         }
 	xrl	a,#55h		; 01cb   64 55      dU
-	jz	stick_data	; 01cd   60 03      `.
+	jz	stick_data_handler; 01cd   60 03      `.
 	ljmp	X02b1		; 01cf   02 02 b1   ..1
 ;
 ; ***************************************************************************
 ; This code below sets the servo pulse durations 0x55
+;
+; It copies 8 bytes starting at payload to CH1..CH4,
+; swapping high/low byte along the way.
+; Note that CH4H is always 55 because it is a marker for stick data
+;
+; Maybe the fs was added to the 4-channel version, limiting
+; the number of channels?
 ; ***************************************************************************
-stick_data:
+stick_data_handler:
 	mov	dptr,#payload+1	; 01d2   90 00 17   ...
 	movx	a,@dptr		; 01d5   e0         `
 	mov	r7,a		; 01d6   ff         .
-	mov	dptr,#stick_data+2; 01d7   90 00 09   ...
+	mov	dptr,#stick_data; 01d7   90 00 09   ...
 	clr	a		; 01da   e4         d
 	movx	@dptr,a		; 01db   f0         p
 	inc	dptr		; 01dc   a3         #
@@ -282,23 +289,23 @@ stick_data:
 	clr	a		; 01e1   e4         d
 	movx	@dptr,a		; 01e2   f0         p
 	mov	a,r0		; 01e3   e8         h
-	mov	dptr,#stick_data+2; 01e4   90 00 09   ...
+	mov	dptr,#stick_data; 01e4   90 00 09   ...
 	movx	@dptr,a		; 01e7   f0         p
 	mov	dptr,#payload	; 01e8   90 00 16   ...
 	movx	a,@dptr		; 01eb   e0         `
 	mov	r7,a		; 01ec   ff         .
-	mov	dptr,#stick_data+3; 01ed   90 00 0a   ...
+	mov	dptr,#stick_data+1; 01ed   90 00 0a   ...
 	movx	a,@dptr		; 01f0   e0         `
 	add	a,r7		; 01f1   2f         /
 	movx	@dptr,a		; 01f2   f0         p
-	mov	dptr,#stick_data+2; 01f3   90 00 09   ...
+	mov	dptr,#stick_data; 01f3   90 00 09   ...
 	movx	a,@dptr		; 01f6   e0         `
 	addc	a,#0		; 01f7   34 00      4.
 	movx	@dptr,a		; 01f9   f0         p
 	mov	dptr,#payload+3	; 01fa   90 00 19   ...
 	movx	a,@dptr		; 01fd   e0         `
 	mov	r7,a		; 01fe   ff         .
-	mov	dptr,#stick_data+4; 01ff   90 00 0b   ...
+	mov	dptr,#stick_data+2; 01ff   90 00 0b   ...
 	clr	a		; 0202   e4         d
 	movx	@dptr,a		; 0203   f0         p
 	inc	dptr		; 0204   a3         #
@@ -309,23 +316,23 @@ stick_data:
 	clr	a		; 0209   e4         d
 	movx	@dptr,a		; 020a   f0         p
 	mov	a,r0		; 020b   e8         h
-	mov	dptr,#stick_data+4; 020c   90 00 0b   ...
+	mov	dptr,#stick_data+2; 020c   90 00 0b   ...
 	movx	@dptr,a		; 020f   f0         p
 	mov	dptr,#payload+2	; 0210   90 00 18   ...
 	movx	a,@dptr		; 0213   e0         `
 	mov	r7,a		; 0214   ff         .
-	mov	dptr,#stick_data+5; 0215   90 00 0c   ...
+	mov	dptr,#stick_data+3; 0215   90 00 0c   ...
 	movx	a,@dptr		; 0218   e0         `
 	add	a,r7		; 0219   2f         /
 	movx	@dptr,a		; 021a   f0         p
-	mov	dptr,#stick_data+4; 021b   90 00 0b   ...
+	mov	dptr,#stick_data+2; 021b   90 00 0b   ...
 	movx	a,@dptr		; 021e   e0         `
 	addc	a,#0		; 021f   34 00      4.
 	movx	@dptr,a		; 0221   f0         p
 	mov	dptr,#payload+5	; 0222   90 00 1b   ...
 	movx	a,@dptr		; 0225   e0         `
 	mov	r7,a		; 0226   ff         .
-	mov	dptr,#stick_data+6; 0227   90 00 0d   ...
+	mov	dptr,#stick_data+4; 0227   90 00 0d   ...
 	clr	a		; 022a   e4         d
 	movx	@dptr,a		; 022b   f0         p
 	inc	dptr		; 022c   a3         #
@@ -336,22 +343,22 @@ stick_data:
 	clr	a		; 0231   e4         d
 	movx	@dptr,a		; 0232   f0         p
 	mov	a,r0		; 0233   e8         h
-	mov	dptr,#stick_data+6; 0234   90 00 0d   ...
+	mov	dptr,#stick_data+4; 0234   90 00 0d   ...
 	movx	@dptr,a		; 0237   f0         p
 	mov	dptr,#payload+4	; 0238   90 00 1a   ...
 	movx	a,@dptr		; 023b   e0         `
 	mov	r7,a		; 023c   ff         .
-	mov	dptr,#stick_data+7; 023d   90 00 0e   ...
+	mov	dptr,#stick_data+5; 023d   90 00 0e   ...
 	movx	a,@dptr		; 0240   e0         `
 	add	a,r7		; 0241   2f         /
 	movx	@dptr,a		; 0242   f0         p
-	mov	dptr,#stick_data+6; 0243   90 00 0d   ...
+	mov	dptr,#stick_data+4; 0243   90 00 0d   ...
 	movx	a,@dptr		; 0246   e0         `
 	addc	a,#0		; 0247   34 00      4.
 	movx	@dptr,a		; 0249   f0         p
 	mov	a,r5		; 024a   ed         m
 	mov	r7,a		; 024b   ff         .
-	mov	dptr,#stick_data+8; 024c   90 00 0f   ...
+	mov	dptr,#stick_data+6; 024c   90 00 0f   ...
 	clr	a		; 024f   e4         d
 	movx	@dptr,a		; 0250   f0         p
 	inc	dptr		; 0251   a3         #
@@ -362,21 +369,21 @@ stick_data:
 	clr	a		; 0256   e4         d
 	movx	@dptr,a		; 0257   f0         p
 	mov	a,r0		; 0258   e8         h
-	mov	dptr,#stick_data+8; 0259   90 00 0f   ...
+	mov	dptr,#stick_data+6; 0259   90 00 0f   ...
 	movx	@dptr,a		; 025c   f0         p
 	mov	dptr,#payload+6	; 025d   90 00 1c   ...
 	movx	a,@dptr		; 0260   e0         `
 	mov	r7,a		; 0261   ff         .
-	mov	dptr,#stick_data+9; 0262   90 00 10   ...
+	mov	dptr,#stick_data+7; 0262   90 00 10   ...
 	movx	a,@dptr		; 0265   e0         `
 	add	a,r7		; 0266   2f         /
 	movx	@dptr,a		; 0267   f0         p
-	mov	dptr,#stick_data+8; 0268   90 00 0f   ...
+	mov	dptr,#stick_data+6; 0268   90 00 0f   ...
 	movx	a,@dptr		; 026b   e0         `
 	addc	a,#0		; 026c   34 00      4.
 	movx	@dptr,a		; 026e   f0         p
 	clr	IEN0_all	; 026f   c2 af      B/
-	mov	dptr,#stick_data+2; 0271   90 00 09   ...
+	mov	dptr,#stick_data; 0271   90 00 09   ...
 	movx	a,@dptr		; 0274   e0         `
 	mov	r7,a		; 0275   ff         .
 	inc	dptr		; 0276   a3         #
@@ -387,7 +394,7 @@ stick_data:
 	inc	dptr		; 027d   a3         #
 	mov	a,r7		; 027e   ef         o
 	movx	@dptr,a		; 027f   f0         p
-	mov	dptr,#stick_data+4; 0280   90 00 0b   ...
+	mov	dptr,#stick_data+2; 0280   90 00 0b   ...
 	movx	a,@dptr		; 0283   e0         `
 	mov	r7,a		; 0284   ff         .
 	inc	dptr		; 0285   a3         #
@@ -409,7 +416,7 @@ stick_data:
 	inc	dptr		; 029b   a3         #
 	mov	a,r7		; 029c   ef         o
 	movx	@dptr,a		; 029d   f0         p
-	mov	dptr,#stick_data+8; 029e   90 00 0f   ...
+	mov	dptr,#stick_data+6; 029e   90 00 0f   ...
 	movx	a,@dptr		; 02a1   e0         `
 	mov	r7,a		; 02a2   ff         .
 	inc	dptr		; 02a3   a3         #
@@ -435,11 +442,11 @@ X02b1:	mov	dptr,#payload+7	; 02b1   90 00 1d   ...
 	movx	@dptr,a		; 02bd   f0         p
 	mov	dptr,#payload	; 02be   90 00 16   ...
 	movx	a,@dptr		; 02c1   e0         `
-	mov	dptr,#fs_ch1h	; 02c2   90 00 15   ...
+	mov	dptr,#fs_ch2h	; 02c2   90 00 15   ...
 	movx	@dptr,a		; 02c5   f0         p
 	mov	dptr,#payload+1	; 02c6   90 00 17   ...
 	movx	a,@dptr		; 02c9   e0         `
-	mov	dptr,#fs_ch1l	; 02ca   90 00 13   ...
+	mov	dptr,#fs_ch2l	; 02ca   90 00 13   ...
 	movx	@dptr,a		; 02cd   f0         p
 	mov	dptr,#payload+2	; 02ce   90 00 18   ...
 	movx	a,@dptr		; 02d1   e0         `
@@ -472,11 +479,11 @@ output_failsafe:
 	movx	a,@dptr		; 02fe   e0         `
 	xrl	a,#5ah		; 02ff   64 5a      dZ
 	jnz	X0331		; 0301   70 2e      p.
-	mov	dptr,#fs_ch1l	; 0303   90 00 13   ...
+	mov	dptr,#fs_ch2l	; 0303   90 00 13   ...
 	movx	a,@dptr		; 0306   e0         `
 	mov	r7,#0		; 0307   7f 00      ..
 	mov	r6,a		; 0309   fe         ~
-	mov	dptr,#fs_ch1h	; 030a   90 00 15   ...
+	mov	dptr,#fs_ch2h	; 030a   90 00 15   ...
 	movx	a,@dptr		; 030d   e0         `
 	add	a,r7		; 030e   2f         /
 	mov	r7,a		; 030f   ff         .
@@ -519,7 +526,30 @@ X0331:	mov	dptr,#ch1_value	; 0331   90 00 22   .."
 	movx	@dptr,a		; 0342   f0         p
 	ljmp	main		; 0343   02 00 eb   ..k
 ;
-X0346:	anl	IEN0,#0f7h	; 0346   53 a8 f7   S(w
+; ***************************************************************************
+; The bind process works as follows:
+;
+; The transmitter regularly sends data on the fixed channel 51h, with address
+; 12:23:23:45:78.
+; This data is sent at a lower power. All transmitters do that all the time.
+;
+; The transmitter cycles through 4 packets:
+; ff aa 55 a1 a2 a3 a4 a5
+; cc cc 00 ha hb hc hd he hf hg
+; cc cc 01 hh hi hj hk hl hm hn
+; cc cc 02 ho hp hq hr hs ht
+;
+; ff aa 55 is the special marker for the first byte
+; a1..a5 are the 5 address bytes
+; cc cc is a 16 byte checksum of bytes a1..a5
+; ha..ht are the 20 hop data bytes
+;
+; a1..a5 are stored in 14h..18h
+; ha..ht are stored in x002a..x003d
+;
+; ***************************************************************************
+perform_bind_procedure:
+	anl	IEN0,#0f7h	; 0346   53 a8 f7   S(w	; disable Timer1 interrupt (servo pulses)
 	clr	a		; 0349   e4         d
 	mov	rf_data_avail,a	; 034a   f5 2d      u-
 	mov	T2CON,a		; 034c   f5 c8      uH
@@ -528,9 +558,9 @@ X0346:	anl	IEN0,#0f7h	; 0346   53 a8 f7   S(w
 	mov	r2,#0		; 0351   7a 00      z.
 	mov	r1,#26h		; 0353   79 26      y&
 	mov	r7,a		; 0355   ff         .
-	lcall	rc_get_or_set_address_for_pipe; 0356   12 0d 4c   ..L
+	lcall	rc_get_or_set_address_for_pipe; 0356   12 0d 4c   ..L	; Set special address 12h 23h 23h 45h 78h
 	clr	RFCON_rfce	; 0359   c2 e8      Bh
-	mov	r7,#51h		; 035b   7f 51      .Q
+	mov	r7,#51h		; 035b   7f 51      .Q	; Set bind channel 51h
 	lcall	spi_set_rf_channel; 035d   12 11 0c   ...
 	clr	a		; 0360   e4         d
 	mov	count_l,a	; 0361   f5 10      u.
@@ -544,52 +574,59 @@ X036d:	cjne	a,#88h,X0365	; 036d   b4 88 f5   4.u
 	cjne	a,#13h,X0365	; 0372   b4 13 f0   4.p
 	setb	RFCON_rfce	; 0375   d2 e8      Rh
 	clr	a		; 0377   e4         d
-	mov	rb3r1,a		; 0378   f5 19      u.
-	mov	rb3r2,a		; 037a   f5 1a      u.
-	mov	rb2r2,a		; 037c   f5 12      u.
-	mov	rb2r3,a		; 037e   f5 13      u.
-X0380:	mov	a,rf_int_fired	; 0380   e5 24      e$
+	mov	bind_state,a	; 0378   f5 19      u.
+	mov	bind_timeout,a	; 037a   f5 1a      u.
+	mov	bind_blink_h,a	; 037c   f5 12      u.
+	mov	bind_blink_l,a	; 037e   f5 13      u.
+bind_loop:
+	mov	a,rf_int_fired	; 0380   e5 24      e$
 	jnz	X0387		; 0382   70 03      p.
-	ljmp	X04d8		; 0384   02 04 d8   ..X
+	ljmp	bind_check_timeout; 0384   02 04 d8   ..X
 ;
 X0387:	lcall	spi_read_rf_status; 0387   12 11 4a   ..J
 X038a:	lcall	spi_is_rx_fifo_empty; 038a   12 11 a3   ..#
 	mov	a,r7		; 038d   ef         o
-	jnz	X039b		; 038e   70 0b      p.
+	jnz	binding_got_payload; 038e   70 0b      p.
 	mov	r3,#1		; 0390   7b 01      {.
 	mov	r2,#0		; 0392   7a 00      z.
 	mov	r1,#16h		; 0394   79 16      y.
 	lcall	spi_read_rf_fifo; 0396   12 12 3c   ..<
 	sjmp	X038a		; 0399   80 ef      .o
 ;
-X039b:	clr	a		; 039b   e4         d
+binding_got_payload:
+	clr	a		; 039b   e4         d
 	mov	rf_int_fired,a	; 039c   f5 24      u$
-	mov	a,rb3r1		; 039e   e5 19      e.
+	mov	a,bind_state	; 039e   e5 19      e.
 	jnz	X03fe		; 03a0   70 5c      p\
+; Check if fist byte is 0ffh
+bind_state_0:
 	mov	dptr,#payload	; 03a2   90 00 16   ...
 	movx	a,@dptr		; 03a5   e0         `
 	cpl	a		; 03a6   f4         t
-	jz	X03ac		; 03a7   60 03      `.
-	ljmp	X04d8		; 03a9   02 04 d8   ..X
+	jz	bind_1st_byte_is_ff; 03a7   60 03      `.
+	ljmp	bind_check_timeout; 03a9   02 04 d8   ..X
 ;
-X03ac:	inc	dptr		; 03ac   a3         #
+bind_1st_byte_is_ff:
+	inc	dptr		; 03ac   a3         #
 	movx	a,@dptr		; 03ad   e0         `
 	xrl	a,#0aah		; 03ae   64 aa      d*
-	jz	X03b5		; 03b0   60 03      `.
-	ljmp	X04d8		; 03b2   02 04 d8   ..X
+	jz	bind_2nd_byte_is_aa; 03b0   60 03      `.
+	ljmp	bind_check_timeout; 03b2   02 04 d8   ..X
 ;
-X03b5:	inc	dptr		; 03b5   a3         #
+bind_2nd_byte_is_aa:
+	inc	dptr		; 03b5   a3         #
 	movx	a,@dptr		; 03b6   e0         `
 	xrl	a,#55h		; 03b7   64 55      dU
-	jz	X03be		; 03b9   60 03      `.
-	ljmp	X04d8		; 03bb   02 04 d8   ..X
+	jz	bind_3rd_byte_is_55; 03b9   60 03      `.
+	ljmp	bind_check_timeout; 03bb   02 04 d8   ..X
 ;
-X03be:	mov	r7,a		; 03be   ff         .
+bind_3rd_byte_is_55:
+	mov	r7,a		; 03be   ff         .
 	mov	r6,a		; 03bf   fe         ~
 	mov	count_l,a	; 03c0   f5 10      u.
 	mov	count_h,a	; 03c2   f5 11      u.
 X03c4:	mov	r5,count_h	; 03c4   ad 11      -.
-	mov	a,#19h		; 03c6   74 19      t.
+	mov	a,#19h		; 03c6   74 19      t.	; payload+3
 	add	a,r5		; 03c8   2d         -
 	mov	dpl,a		; 03c9   f5 82      u.
 	clr	a		; 03cb   e4         d
@@ -597,7 +634,7 @@ X03c4:	mov	r5,count_h	; 03c4   ad 11      -.
 	mov	dph,a		; 03ce   f5 83      u.
 	movx	a,@dptr		; 03d0   e0         `
 	mov	r4,a		; 03d1   fc         |
-	mov	a,#14h		; 03d2   74 14      t.
+	mov	a,#14h		; 03d2   74 14      t.	; write 14h..18h
 	add	a,r5		; 03d4   2d         -
 	mov	r0,a		; 03d5   f8         x
 	mov	@r0,rb0r4	; 03d6   a6 04      &.
@@ -616,18 +653,20 @@ X03c4:	mov	r5,count_h	; 03c4   ad 11      -.
 	inc	count_l		; 03e9   05 10      ..
 X03eb:	xrl	a,#5		; 03eb   64 05      d.
 	orl	a,count_l	; 03ed   45 10      E.
-	jnz	X03c4		; 03ef   70 d3      pS
-	mov	save_r7,r7	; 03f1   8f 0e      ..
+	jnz	X03c4		; 03ef   70 d3      pS	; loop 5 times until wrote 18h
+	mov	save_r7,r7	; 03f1   8f 0e      ..	; save checksum in save_r5:save_r7
 	mov	a,r6		; 03f3   ee         n
 	mov	r6,#0		; 03f4   7e 00      ~.
 	mov	save_r5,a	; 03f6   f5 0f      u.
-	mov	rb3r1,#1	; 03f8   75 19 01   u..
-	ljmp	X04d8		; 03fb   02 04 d8   ..X
+	mov	bind_state,#1	; 03f8   75 19 01   u..
+	ljmp	bind_check_timeout; 03fb   02 04 d8   ..X
 ;
-X03fe:	mov	a,rb3r1		; 03fe   e5 19      e.
+X03fe:	mov	a,bind_state	; 03fe   e5 19      e.
 	xrl	a,#1		; 0400   64 01      d.
 	jnz	X0447		; 0402   70 43      pC
+bind_state_1:
 	mov	dptr,#payload	; 0404   90 00 16   ...
+; Check if payload:payload+1 maches checksum
 	movx	a,@dptr		; 0407   e0         `
 	xrl	a,save_r7	; 0408   65 0e      e.
 	jnz	X0441		; 040a   70 35      p5
@@ -635,12 +674,13 @@ X03fe:	mov	a,rb3r1		; 03fe   e5 19      e.
 	movx	a,@dptr		; 040d   e0         `
 	cjne	a,save_r5,X0441	; 040e   b5 0f 30   5.0
 	inc	dptr		; 0411   a3         #
+; payload+2 must be 0
 	movx	a,@dptr		; 0412   e0         `
 	jnz	X0441		; 0413   70 2c      p,
 	mov	count_l,a	; 0415   f5 10      u.
 	mov	count_h,a	; 0417   f5 11      u.
 X0419:	mov	r7,count_h	; 0419   af 11      /.
-	mov	a,#19h		; 041b   74 19      t.
+	mov	a,#19h		; 041b   74 19      t.	; payload+3
 	add	a,r7		; 041d   2f         /
 	mov	dpl,a		; 041e   f5 82      u.
 	clr	a		; 0420   e4         d
@@ -648,7 +688,7 @@ X0419:	mov	r7,count_h	; 0419   af 11      /.
 	mov	dph,a		; 0423   f5 83      u.
 	movx	a,@dptr		; 0425   e0         `
 	mov	r6,a		; 0426   fe         ~
-	mov	a,#2ah		; 0427   74 2a      t*
+	mov	a,#2ah		; 0427   74 2a      t*	; write x002a..x0030
 	add	a,r7		; 0429   2f         /
 	mov	dpl,a		; 042a   f5 82      u.
 	clr	a		; 042c   e4         d
@@ -660,16 +700,18 @@ X0419:	mov	r7,count_h	; 0419   af 11      /.
 	mov	a,count_h	; 0435   e5 11      e.
 	jnz	X043b		; 0437   70 02      p.
 	inc	count_l		; 0439   05 10      ..
-X043b:	xrl	a,#7		; 043b   64 07      d.
+X043b:	xrl	a,#7		; 043b   64 07      d.	; loop 7 times until wrote x0030h
 	orl	a,count_l	; 043d   45 10      E.
 	jnz	X0419		; 043f   70 d8      pX
-X0441:	mov	rb3r1,#2	; 0441   75 19 02   u..
-	ljmp	X04d8		; 0444   02 04 d8   ..X
+X0441:	mov	bind_state,#2	; 0441   75 19 02   u..
+	ljmp	bind_check_timeout; 0444   02 04 d8   ..X
 ;
-X0447:	mov	a,rb3r1		; 0447   e5 19      e.
+X0447:	mov	a,bind_state	; 0447   e5 19      e.
 	xrl	a,#2		; 0449   64 02      d.
 	jnz	X0491		; 044b   70 44      pD
+bind_state_2:
 	mov	dptr,#payload	; 044d   90 00 16   ...
+; Check if payload:payload+1 maches checksum
 	movx	a,@dptr		; 0450   e0         `
 	xrl	a,save_r7	; 0451   65 0e      e.
 	jnz	X048c		; 0453   70 37      p7
@@ -677,13 +719,14 @@ X0447:	mov	a,rb3r1		; 0447   e5 19      e.
 	movx	a,@dptr		; 0456   e0         `
 	cjne	a,save_r5,X048c	; 0457   b5 0f 32   5.2
 	inc	dptr		; 045a   a3         #
+; payload+2 must be 1
 	movx	a,@dptr		; 045b   e0         `
 	cjne	a,#1,X048c	; 045c   b4 01 2d   4.-
 	clr	a		; 045f   e4         d
 	mov	count_l,a	; 0460   f5 10      u.
 	mov	count_h,a	; 0462   f5 11      u.
 X0464:	mov	r7,count_h	; 0464   af 11      /.
-	mov	a,#19h		; 0466   74 19      t.
+	mov	a,#19h		; 0466   74 19      t.	; payload+3
 	add	a,r7		; 0468   2f         /
 	mov	dpl,a		; 0469   f5 82      u.
 	clr	a		; 046b   e4         d
@@ -691,7 +734,7 @@ X0464:	mov	r7,count_h	; 0464   af 11      /.
 	mov	dph,a		; 046e   f5 83      u.
 	movx	a,@dptr		; 0470   e0         `
 	mov	r6,a		; 0471   fe         ~
-	mov	a,#31h		; 0472   74 31      t1
+	mov	a,#31h		; 0472   74 31      t1	; write x0031..x0037
 	add	a,r7		; 0474   2f         /
 	mov	dpl,a		; 0475   f5 82      u.
 	clr	a		; 0477   e4         d
@@ -703,30 +746,33 @@ X0464:	mov	r7,count_h	; 0464   af 11      /.
 	mov	a,count_h	; 0480   e5 11      e.
 	jnz	X0486		; 0482   70 02      p.
 	inc	count_l		; 0484   05 10      ..
-X0486:	xrl	a,#7		; 0486   64 07      d.
+X0486:	xrl	a,#7		; 0486   64 07      d.	; loop 7 times until wrote X0037
 	orl	a,count_l	; 0488   45 10      E.
 	jnz	X0464		; 048a   70 d8      pX
-X048c:	mov	rb3r1,#3	; 048c   75 19 03   u..
-	sjmp	X04d8		; 048f   80 47      .G
+X048c:	mov	bind_state,#3	; 048c   75 19 03   u..
+	sjmp	bind_check_timeout; 048f   80 47      .G
 ;
-X0491:	mov	a,rb3r1		; 0491   e5 19      e.
+X0491:	mov	a,bind_state	; 0491   e5 19      e.
 	xrl	a,#3		; 0493   64 03      d.
-	jnz	X04d8		; 0495   70 41      pA
+	jnz	bind_check_timeout; 0495   70 41      pA
+bind_state_3:
 	mov	dptr,#payload	; 0497   90 00 16   ...
+; Check if payload:payload+1 maches checksum
 	movx	a,@dptr		; 049a   e0         `
 	xrl	a,save_r7	; 049b   65 0e      e.
-	jnz	X04d8		; 049d   70 39      p9
+	jnz	bind_check_timeout; 049d   70 39      p9
 	inc	dptr		; 049f   a3         #
 	movx	a,@dptr		; 04a0   e0         `
-	cjne	a,save_r5,X04d8	; 04a1   b5 0f 34   5.4
+	cjne	a,save_r5,bind_check_timeout; 04a1   b5 0f 34   5.4
 	inc	dptr		; 04a4   a3         #
 	movx	a,@dptr		; 04a5   e0         `
-	cjne	a,#2,X04d8	; 04a6   b4 02 2f   4./
+; payload+2 must be 2
+	cjne	a,#2,bind_check_timeout; 04a6   b4 02 2f   4./
 	clr	a		; 04a9   e4         d
 	mov	count_l,a	; 04aa   f5 10      u.
 	mov	count_h,a	; 04ac   f5 11      u.
 X04ae:	mov	r7,count_h	; 04ae   af 11      /.
-	mov	a,#19h		; 04b0   74 19      t.
+	mov	a,#19h		; 04b0   74 19      t.	; payload+3
 	add	a,r7		; 04b2   2f         /
 	mov	dpl,a		; 04b3   f5 82      u.
 	clr	a		; 04b5   e4         d
@@ -734,7 +780,7 @@ X04ae:	mov	r7,count_h	; 04ae   af 11      /.
 	mov	dph,a		; 04b8   f5 83      u.
 	movx	a,@dptr		; 04ba   e0         `
 	mov	r6,a		; 04bb   fe         ~
-	mov	a,#38h		; 04bc   74 38      t8
+	mov	a,#38h		; 04bc   74 38      t8	; write x0038..x003d
 	add	a,r7		; 04be   2f         /
 	mov	dpl,a		; 04bf   f5 82      u.
 	clr	a		; 04c1   e4         d
@@ -746,47 +792,50 @@ X04ae:	mov	r7,count_h	; 04ae   af 11      /.
 	mov	a,count_h	; 04ca   e5 11      e.
 	jnz	X04d0		; 04cc   70 02      p.
 	inc	count_l		; 04ce   05 10      ..
-X04d0:	xrl	a,#6		; 04d0   64 06      d.
+X04d0:	xrl	a,#6		; 04d0   64 06      d.	; loop 6 times until wrote X003d
 	orl	a,count_l	; 04d2   45 10      E.
 	jnz	X04ae		; 04d4   70 d8      pX
 	sjmp	save_bind_data	; 04d6   80 69      .i
 ;
-X04d8:	clr	a		; 04d8   e4         d
+bind_check_timeout:
+	clr	a		; 04d8   e4         d
 	mov	count_l,a	; 04d9   f5 10      u.
 	mov	count_h,a	; 04db   f5 11      u.
-X04dd:	inc	count_h		; 04dd   05 11      ..
+bind_timeout_delay_loop:
+	inc	count_h		; 04dd   05 11      ..
 	mov	a,count_h	; 04df   e5 11      e.
 	jnz	X04e5		; 04e1   70 02      p.
 	inc	count_l		; 04e3   05 10      ..
-X04e5:	cjne	a,#0f4h,X04dd	; 04e5   b4 f4 f5   4tu
+X04e5:	cjne	a,#0f4h,bind_timeout_delay_loop; 04e5   b4 f4 f5   4tu
 	mov	a,count_l	; 04e8   e5 10      e.
-	cjne	a,#1,X04dd	; 04ea   b4 01 f0   4.p
+	cjne	a,#1,bind_timeout_delay_loop; 04ea   b4 01 f0   4.p
 	clr	c		; 04ed   c3         C
-	mov	a,rb2r3		; 04ee   e5 13      e.
+	mov	a,bind_blink_l	; 04ee   e5 13      e.
 	subb	a,#0e8h		; 04f0   94 e8      .h
-	mov	a,rb2r2		; 04f2   e5 12      e.
+	mov	a,bind_blink_h	; 04f2   e5 12      e.
 	subb	a,#3		; 04f4   94 03      ..
 	jnc	X0506		; 04f6   50 0e      P.
-	inc	rb2r3		; 04f8   05 13      ..
-	mov	a,rb2r3		; 04fa   e5 13      e.
+	inc	bind_blink_l	; 04f8   05 13      ..
+	mov	a,bind_blink_l	; 04fa   e5 13      e.
 	jz	X0501		; 04fc   60 03      `.
-	ljmp	X0380		; 04fe   02 03 80   ...
+	ljmp	bind_loop	; 04fe   02 03 80   ...
 ;
-X0501:	inc	rb2r2		; 0501   05 12      ..
-	ljmp	X0380		; 0503   02 03 80   ...
+X0501:	inc	bind_blink_h	; 0501   05 12      ..
+	ljmp	bind_loop	; 0503   02 03 80   ...
 ;
 X0506:	clr	a		; 0506   e4         d
-	mov	rb2r2,a		; 0507   f5 12      u.
-	mov	rb2r3,a		; 0509   f5 13      u.
-	xrl	p0,#2		; 050b   63 80 02   c..
-	inc	rb3r2		; 050e   05 1a      ..
-	mov	a,rb3r2		; 0510   e5 1a      e.
+	mov	bind_blink_h,a	; 0507   f5 12      u.
+	mov	bind_blink_l,a	; 0509   f5 13      u.
+	xrl	p0,#2		; 050b   63 80 02   c..	; blink the red LED
+	inc	bind_timeout	; 050e   05 1a      ..
+	mov	a,bind_timeout	; 0510   e5 1a      e.
 	setb	c		; 0512   d3         S
 	subb	a,#0fh		; 0513   94 0f      ..
-	jnc	X051a		; 0515   50 03      P.
-	ljmp	X0380		; 0517   02 03 80   ...
+	jnc	bind_failed	; 0515   50 03      P.
+	ljmp	bind_loop	; 0517   02 03 80   ...
 ;
-X051a:	mov	rf_int_fired,#1	; 051a   75 24 01   u$.
+bind_failed:
+	mov	rf_int_fired,#1	; 051a   75 24 01   u$.
 	mov	r3,#0		; 051d   7b 00      {.
 	mov	r2,#0		; 051f   7a 00      z.
 	mov	r1,#14h		; 0521   79 14      y.
@@ -812,7 +861,8 @@ save_bind_data:
 	clr	a		; 0541   e4         d
 	mov	count_l,a	; 0542   f5 10      u.
 	mov	count_h,a	; 0544   f5 11      u.
-X0546:	mov	a,#14h		; 0546   74 14      t.
+save_bind_address_loop:
+	mov	a,#14h		; 0546   74 14      t.	; write 5 bytes address from 14h
 	add	a,count_h	; 0548   25 11      %.
 	mov	r0,a		; 054a   f8         x
 	mov	a,@r0		; 054b   e6         f
@@ -828,11 +878,12 @@ X055c:	clr	c		; 055c   c3         C
 	subb	a,#5		; 055d   94 05      ..
 	mov	a,count_l	; 055f   e5 10      e.
 	subb	a,#0		; 0561   94 00      ..
-	jc	X0546		; 0563   40 e1      @a
+	jc	save_bind_address_loop; 0563   40 e1      @a
 	clr	a		; 0565   e4         d
 	mov	count_l,a	; 0566   f5 10      u.
 	mov	count_h,a	; 0568   f5 11      u.
-X056a:	mov	a,count_h	; 056a   e5 11      e.
+save_hop_data_loop:
+	mov	a,count_h	; 056a   e5 11      e.
 	add	a,#0ah		; 056c   24 0a      $.
 	mov	r7,a		; 056e   ff         .
 	clr	a		; 056f   e4         d
@@ -855,7 +906,8 @@ X058b:	clr	c		; 058b   c3         C
 	subb	a,#14h		; 058c   94 14      ..
 	mov	a,count_l	; 058e   e5 10      e.
 	subb	a,#0		; 0590   94 00      ..
-	jc	X056a		; 0592   40 d6      @V
+	jc	save_hop_data_loop; 0592   40 d6      @V
+use_new_bind_data:
 	mov	rf_int_fired,#1	; 0594   75 24 01   u$.
 	mov	r3,#0		; 0597   7b 00      {.
 	mov	r2,#0		; 0599   7a 00      z.
@@ -3144,10 +3196,10 @@ save_r7	equ	0eh
 save_r5	equ	0fh
 count_l	equ	10h
 count_h	equ	11h
-rb2r2	equ	12h
-rb2r3	equ	13h
-rb3r1	equ	19h
-rb3r2	equ	1ah
+bind_blink_h	equ	12h
+bind_blink_l	equ	13h
+bind_state	equ	19h
+bind_timeout	equ	1ah
 pipe_no	equ	1bh
 adr_flag	equ	1ch
 adr_h	equ	1dh
@@ -3321,20 +3373,19 @@ ch2_value	equ	24h
 ch3_value	equ	26h
 ch4_value	equ	28h
 failsafe_flag	equ	7
-fs_ch1h	equ	15h
 fs_ch1h	equ	12h
-fs_ch1h	equ	15h
-fs_ch1l	equ	13h
 fs_ch1l	equ	11h
-fs_ch1l	equ	13h
-fs_ch1l	equ	11h
+fs_ch2h	equ	15h
+fs_ch2l	equ	13h
 fs_timer	equ	1
 hop_data	equ	2ah
 hop_index	equ	4
 inc_every_hop_to_20	equ	6
 payload	equ	16h
+rcv_state	equ	8
 servo_output_state	equ	3
 softtmr_1ms	equ	14h
+stick_data	equ	9
 ;
 ;	Miscellaneous equates
 ;
