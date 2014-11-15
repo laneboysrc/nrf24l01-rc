@@ -1,6 +1,6 @@
 ;
 ;  D52 V3.4.1 8052 Disassembly of xr3100.hex
-;  2014/11/15 11:00
+;  2014/11/15 11:48
 ;
 	org	0
 ;
@@ -66,7 +66,7 @@ i2c_eeprom_read_one_byte:
 ; Initialization
 ; ***************************************************************************
 init:	clr	a		; 004e   e4         d
-	mov	rb1r4,a		; 004f   f5 0c      u.
+	mov	got_rf_payload,a; 004f   f5 0c      u.
 	mov	rf_detected,a	; 0051   f5 0d      u.
 	lcall	init_ports	; 0053   12 10 88   ...
 	lcall	read_bind_data	; 0056   12 0c 81   ...
@@ -165,18 +165,20 @@ X0109:	clr	LED_GREEN	; 0109   c2 80      B.
 ;
 not_factory:
 	lcall	is_bind_button_pressed; 010f   12 0a 82   ...
-	cjne	r7,#1,X0121	; 0112   bf 01 0c   ?..
+	cjne	r7,#1,no_bind_button; 0112   bf 01 0c   ?..
 	setb	LED_RED		; 0115   d2 81      R.
 	clr	LED_GREEN	; 0117   c2 80      B.
 	clr	RFCON_rfce	; 0119   c2 e8      Bh
 	lcall	perform_bind_procedure; 011b   12 03 46   ..F
 	mov	T2CON,#41h	; 011e   75 c8 41   uHA
-X0121:	mov	a,rf_int_fired	; 0121   e5 24      e$
-	jz	X014c		; 0123   60 27      `'
+no_bind_button:
+	mov	a,rf_int_fired	; 0121   e5 24      e$
+	jz	no_rf_data_pending; 0123   60 27      `'
 	clr	RFCON_rfce	; 0125   c2 e8      Bh
 	lcall	spi_read_rf_status; 0127   12 11 4a   ..J
 	mov	rf_status,r7	; 012a   8f 0b      ..
-X012c:	lcall	spi_is_rx_fifo_empty; 012c   12 11 a3   ..#
+read_fifo_loop:
+	lcall	spi_is_rx_fifo_empty; 012c   12 11 a3   ..#
 	mov	a,r7		; 012f   ef         o
 	jnz	payload_read	; 0130   70 0e      p.
 	mov	r3,#1		; 0132   7b 01      {.
@@ -184,17 +186,19 @@ X012c:	lcall	spi_is_rx_fifo_empty; 012c   12 11 a3   ..#
 	mov	r1,#16h		; 0136   79 16      y.
 	lcall	spi_read_rf_fifo; 0138   12 12 3c   ..<
 	mov	rf_data_avail,#1; 013b   75 2d 01   u-.
-	sjmp	X012c		; 013e   80 ec      .l
+	sjmp	read_fifo_loop	; 013e   80 ec      .l
 ;
 payload_read:
 	clr	a		; 0140   e4         d
 	mov	rf_int_fired,a	; 0141   f5 24      u$
-	mov	rb1r4,#1	; 0143   75 0c 01   u..
+	mov	got_rf_payload,#1; 0143   75 0c 01   u..
 	mov	rf_data_avail,#1; 0146   75 2d 01   u-.
 	orl	IEN0,#8		; 0149   43 a8 08   C(.	; Enable Timer 1 interrupt (servo pulses)
-X014c:	mov	dptr,#rcv_state	; 014c   90 00 08   ...
+no_rf_data_pending:
+	mov	dptr,#rcv_state	; 014c   90 00 08   ...
 	movx	a,@dptr		; 014f   e0         `
 	jnz	X0164		; 0150   70 12      p.
+rcv_state_0:
 	mov	dptr,#hop_data	; 0152   90 00 2a   ..*
 	movx	a,@dptr		; 0155   e0         `
 	mov	r7,a		; 0156   ff         .
@@ -203,17 +207,19 @@ X014c:	mov	dptr,#rcv_state	; 014c   90 00 08   ...
 	mov	a,#1		; 015d   74 01      t.
 	movx	@dptr,a		; 015f   f0         p
 	setb	RFCON_rfce	; 0160   d2 e8      Rh
-	sjmp	X01ae		; 0162   80 4a      .J
+	sjmp	rcv_state_end	; 0162   80 4a      .J
 ;
 X0164:	mov	dptr,#rcv_state	; 0164   90 00 08   ...
 	movx	a,@dptr		; 0167   e0         `
 	mov	r7,a		; 0168   ff         .
 	cjne	a,#1,X018b	; 0169   b4 01 1f   4..
-	mov	a,rb1r4		; 016c   e5 0c      e.
-	jz	X01ae		; 016e   60 3e      `>
+rcv_state_1:
+	mov	a,got_rf_payload; 016c   e5 0c      e.
+	jz	rcv_state_end	; 016e   60 3e      `>
+; Start hopping
 	clr	RFCON_rfce	; 0170   c2 e8      Bh
 	clr	a		; 0172   e4         d
-	mov	rb1r4,a		; 0173   f5 0c      u.
+	mov	got_rf_payload,a; 0173   f5 0c      u.
 	mov	th2,#0fah	; 0175   75 cd fa   uMz
 	mov	tl2,#0cah	; 0178   75 cc ca   uLJ
 	mov	div_4ms,#1	; 017b   75 2c 01   u,.
@@ -223,14 +229,16 @@ X0164:	mov	dptr,#rcv_state	; 0164   90 00 08   ...
 	clr	a		; 0184   e4         d
 	mov	dptr,#hop_index	; 0185   90 00 04   ...
 	movx	@dptr,a		; 0188   f0         p
-	sjmp	X01ae		; 0189   80 23      .#
+	sjmp	rcv_state_end	; 0189   80 23      .#
 ;
 X018b:	mov	a,r7		; 018b   ef         o
-	cjne	a,#2,X01ae	; 018c   b4 02 1f   4..
-	mov	a,rb1r4		; 018f   e5 0c      e.
-	jz	X01ae		; 0191   60 1b      `.
+	cjne	a,#2,rcv_state_end; 018c   b4 02 1f   4..
+rcv_state_2:
+	mov	a,got_rf_payload; 018f   e5 0c      e.
+; Receiver locked
+	jz	rcv_state_end	; 0191   60 1b      `.
 	clr	a		; 0193   e4         d
-	mov	rb1r4,a		; 0194   f5 0c      u.
+	mov	got_rf_payload,a; 0194   f5 0c      u.
 	mov	th2,#0fah	; 0196   75 cd fa   uMz
 	mov	tl2,#0cah	; 0199   75 cc ca   uLJ
 	mov	T2CON,#41h	; 019c   75 c8 41   uHA	; T2 clock = f/12, Reload Mode 0
@@ -242,7 +250,8 @@ X018b:	mov	a,r7		; 018b   ef         o
 	movx	@dptr,a		; 01ab   f0         p
 	inc	dptr		; 01ac   a3         #
 	movx	@dptr,a		; 01ad   f0         p
-X01ae:	mov	dptr,#inc_every_hop_to_20; 01ae   90 00 06   ...
+rcv_state_end:
+	mov	dptr,#inc_every_hop_to_20; 01ae   90 00 06   ...
 	movx	a,@dptr		; 01b1   e0         `
 	setb	c		; 01b2   d3         S
 	subb	a,#0fh		; 01b3   94 0f      ..
@@ -252,6 +261,7 @@ X01ae:	mov	dptr,#inc_every_hop_to_20; 01ae   90 00 06   ...
 	movx	@dptr,a		; 01ba   f0         p
 	mov	dptr,#rcv_state	; 01bb   90 00 08   ...
 	movx	@dptr,a		; 01be   f0         p
+; More than 16 hops done: resync on first hop frequency
 X01bf:	mov	a,rf_data_avail	; 01bf   e5 2d      e-
 	jnz	process_rf_data	; 01c1   70 03      p.
 	ljmp	check_if_failsafe; 01c3   02 02 e1   ..a
@@ -1539,7 +1549,7 @@ init_rodata_loop:
 ; Timer 2 interrupt handler
 ;
 ; Triggers every 1ms
-; Performs frequency hopping
+; Performs frequency hopping every 4ms
 ; ***************************************************************************
 timer2_handler:
 	push	acc		; 08ca   c0 e0      @`
@@ -3190,7 +3200,7 @@ rb0r5	equ	5
 rb0r6	equ	6
 rb0r7	equ	7
 rf_status	equ	0bh
-rb1r4	equ	0ch
+got_rf_payload	equ	0ch
 rf_detected	equ	0dh
 save_r7	equ	0eh
 save_r5	equ	0fh

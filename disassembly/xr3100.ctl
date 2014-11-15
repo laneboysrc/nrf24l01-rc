@@ -288,6 +288,7 @@ x 009e bind_data
 
 r 0b rf_status
 r 0d rf_detected
+r 0c got_rf_payload
 r 0e save_r7
 r 0f save_r5
 
@@ -362,14 +363,25 @@ l 00eb main
 ! 00e6 Set channel 70 in factory mode?
 
 l 010f not_factory
+l 0121 no_bind_button
+l 012c read_fifo_loop
 
 l 0140 payload_read
 ! 0149 Enable Timer 1 interrupt (servo pulses)
+l 014c no_rf_data_pending
+
+l 0152 rcv_state_0
+l 016c rcv_state_1
+l 018f rcv_state_2
+l 01ae rcv_state_end
+
+# 0170 Start hopping
+# 0191 Receiver locked
 
 ! 017e T2 clock = f/12, Reload Mode 0
 ! 019c T2 clock = f/12, Reload Mode 0
 
-
+# 01bf More than 16 hops done: resync on first hop frequency
 
 l 01d2 stick_data_handler
 # 01d2 ***************************************************************************
@@ -541,7 +553,7 @@ l 08ca timer2_handler
 # 08ca Timer 2 interrupt handler
 # 08ca
 # 08ca Triggers every 1ms
-# 08ca Performs frequency hopping
+# 08ca Performs frequency hopping every 4ms
 # 08ca ***************************************************************************
 
 ! 08fb hop_index = (hop_index + 1) % 20
