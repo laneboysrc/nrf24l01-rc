@@ -548,7 +548,10 @@ l 084d init_rodata_page0
 ! 0b8f 2bh = 0
 ! 0b90 end marker
 
+l 07ac rf_enable_auto_acknowledge
+# 07ac ***************************************************************************
 
+! 0865 Offset to bit_masks! (from @a+pc instruction below)
 
 l 08ca timer2_handler
 # 08ca ***************************************************************************
@@ -560,17 +563,15 @@ l 08ca timer2_handler
 
 ! 08fb hop_index = (hop_index + 1) % 20
 
-l 0941 spi_read_rf_fifo_data
+l 0941 rf_read_fifo_data
 # 0941 ***************************************************************************
-# 0941 spi_read_rf_fifo_data
-# 0941
 # 0941 r2:r1: address to store the information
 # 0941 r3: flag; 0 = store at @r1, 1 = store at @r2:r1
 # 0941 r7:
 # 0941 ***************************************************************************
-l 095a spi_read_is_0_or_1_or_5
-l 096a spi_read_is_8
-l 0985 spi_read_is_not_null
+l 095a rf_read_is_0_or_1_or_5
+l 096a rf_read_is_8
+l 0985 rf_read_is_not_null
 
 ! 097e READ_RX_PAYLOAD
 
@@ -590,7 +591,7 @@ l 0a14 rf_modify_execute
 
 ! 0a94 1388 => 5000ms
 
-l 0ae4 init_rf_data_pipes
+l 0ae4 rf_init_data_pipes
 # 0ae4 ***************************************************************************
 
 l 0a82 is_bind_button_pressed
@@ -609,6 +610,13 @@ l 0b91 timer0_handler
 # 0b91
 # 0b91 Sets the servo output timer 1 every 16ms
 # 0b91 ***************************************************************************
+
+l 0c31 write_bytes_to_flash
+# 0c31 ***************************************************************************
+# 0c31 r1:r2 (r3): pointer to source memory
+# 0c31 r6:r7: pointer to flash memory
+# 0c31 33h:34h: count
+# 0c31 ***************************************************************************
 
 l 0c81 read_bind_data
 # 0c81 ***************************************************************************
@@ -632,7 +640,6 @@ l 0cf4 set_crc_2bytes
 ! 0cfe set CRCO (2 bytes CRC)
 l 0d02 set_crc_write_config
 ! 0d04 CONFIG
-# 0d04 ***************************************************************************
 
 l 0d4c rc_get_or_set_address_for_pipe
 # 0d4c ***************************************************************************
@@ -666,7 +673,20 @@ l 0be1 i2c_has_write_finished
 l 10b6 i2c_write_byte_to_eeprom
 # 10b6 ***************************************************************************
 
-l 0fb5 rf_set_rx
+l 0dc6 rf_get_payload_count_in_pipe
+# 0dc6 ***************************************************************************
+
+l 0e34 rf_get_address
+# 0e34 ***************************************************************************
+
+l 0e69 rf_configure_auto_retransmission
+# 0e69 ***************************************************************************
+
+
+l 0ef0 rf_configure_dynamic_payload
+# 0ef0 ***************************************************************************
+
+l 0fb5 rf_enable_rx
 # 0fb5 ***************************************************************************
 l 0fd8 rf_set_power_up
 # 0fd8 ***************************************************************************
@@ -693,14 +713,16 @@ l 1088 init_ports
 # 1088 init_ports
 # 1088 ***************************************************************************
 
-l 109f spi_write_register
+l 109f rf_write_register
 # 109f ***************************************************************************
-# 109f SPI Write to a RF register
 # 109f In: R7: register number, R5: value
 # 109f ***************************************************************************
 
-l 10f7 init_rf_setup_address_width
+l 10f7 rf_setup_address_width
 # 10f7 ***************************************************************************
+
+l 10cc flash_erase_page
+# 10cc ***************************************************************************
 
 l 1185 init_timer0
 # 1185 ***************************************************************************
@@ -711,36 +733,30 @@ l 118f spi_write
 # 118f ***************************************************************************
 
 l 1191 _spi_write_loop
-# 118f ***************************************************************************
-# 118f SPI Write
-# 118f ***************************************************************************
 
 
 
-l 113d spi_read_register
+l 113d rf_read_register
 # 113d ***************************************************************************
-# 113d spi_read_register
 # 113d In: A: register    Out: R7: read value
 # 113d ***************************************************************************
 
-l 114a spi_read_rf_status
+l 114a rf_read_status
 # 114a ***************************************************************************
-# 114a spi_read_rf_status
 # 114a Reads and clears the RF status register. Output in R7
 # 114a ***************************************************************************
 
 ! 1185 Set Timer0 as 16 bit timer
 ! 118b Enable Timer0 interrupt
 
-l 1199 spi_get_number_of_address_bytes
+l 1199 rf_get_number_of_address_bytes
 x 119a 03h
 ! 1199 SETUP_AW
 # 1199 ***************************************************************************
-# 1199 SPI spi_get_number_of_address_bytes Byte
 # 1199 Out: R7: Number of address bytes in the receiver
 # 1199 ***************************************************************************
 
-l 110c spi_set_rf_channel
+l 110c rf_set_channel
 # 110c ***************************************************************************
 # 110c In: R7: channel number
 # 110c ***************************************************************************
@@ -784,7 +800,8 @@ l 11cb rf_write_ack_payload
 
 l 11d5 rf_read_rx_status
 # 11d5 ***************************************************************************
-l 11fd spi_send_nop_command
+
+l 11fd rf_get_status
 # 11fd ***************************************************************************
 
 l 11df rf_set_reuse_tx_payload
@@ -822,19 +839,15 @@ l 1230 rf_read_fifo_status
 # 1230 ***************************************************************************
 
 ! 1236 R_RX_PL_WID
-l 1236 spi_read_rx_fifo_payload_width
+l 1236 rf_read_rx_fifo_payload_width
 # 1236 ***************************************************************************
-# 1236 spi_read_rx_fifo_payload_width
-# 1236
 # 1236 Returns the number of bytes of the top payload in the RX FIFO
 # 1236 ***************************************************************************
 
 
-l 123c spi_read_rf_fifo
+l 123c rf_read_fifo
 # 123c ***************************************************************************
-# 123c spi_read_rf_fifo
-# 123c
-# 123c Read data from the RF FIFO?
+# 123c Read data from the RF FIFO
 # 123c  r3,#1,  r2,#0  r1,#16h
 # 123c r2:r1: address to store the information
 # 123c r3: flag; 0 = store at @r1, 1 = store at @r2:r1

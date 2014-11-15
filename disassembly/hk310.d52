@@ -1,6 +1,6 @@
 ;
 ;  D52 V3.4.1 8052 Disassembly of hk310.hex
-;  2014/11/14 22:00
+;  2014/11/15 20:21
 ;
 	org	0
 ;
@@ -65,7 +65,7 @@ X0049:	ret			; 0049   22         "
 init:	lcall	init_gpio	; 004e   12 11 f5   ..u
 	lcall	init_eeprom_bind_data; 0051   12 02 bf   ..?
 	lcall	read_current_model_no_from_eeprom; 0054   12 13 35   ..5
-	lcall	xxxxxxxxxxxxxxxx; 0057   12 06 2e   ...
+	lcall	make_bind_packets; 0057   12 06 2e   ...
 	setb	RFCON_rfcken	; 005a   d2 ea      Rj
 	setb	IEN1_rfirq	; 005c   d2 b9      R9
 	lcall	init_rf		; 005e   12 0d dc   ..\
@@ -159,7 +159,7 @@ X00c6:	mov	a,#9ah		; 00c6   74 9a      t.
 	inc	r7		; 00de   0f         .
 	cjne	r7,#6,X00c6	; 00df   bf 06 e4   ?.d
 	setb	IEN0_serial	; 00e2   d2 ac      R,
-	mov	dptr,#X0003	; 00e4   90 00 03   ...
+	mov	dptr,#uart_data+2; 00e4   90 00 03   ...
 	movx	a,@dptr		; 00e7   e0         `
 	mov	r7,a		; 00e8   ff         .
 	anl	a,#0f0h		; 00e9   54 f0      Tp
@@ -168,8 +168,22 @@ X00c6:	mov	a,#9ah		; 00c6   74 9a      t.
 	ljmp	check_if_failsafe_data; 00ef   02 02 28   ..(
 ;
 ; ***************************************************************************
+; Converts the stick data received from the UART into the data
+; sent across the air.
+;
+; The received data is 12 bit, with center (1500us) being 0x465
+; The data sent across the air is the timer value that has to be set
+; to give the desired time until the timer overflows. The timer tick is
+; 750ns.
+;
+; The algorithm to calculate the timer value is as follows:
+;
+;   timer_value = (uart_data * 14 / 10) + 0xf200
+;
+; Three channels are calculated that way
+; ***************************************************************************
 process_stick_data:
-	mov	dptr,#X00a0	; 00f2   90 00 a0   .. 	; seems to do packing of data
+	mov	dptr,#stick_data; 00f2   90 00 a0   .. 
 	movx	@dptr,a		; 00f5   f0         p
 	inc	dptr		; 00f6   a3         #
 	mov	a,r7		; 00f7   ef         o
@@ -177,26 +191,26 @@ process_stick_data:
 	movx	a,@dptr		; 00f9   e0         `
 	mov	r7,#0		; 00fa   7f 00      ..
 	mov	r6,a		; 00fc   fe         ~
-	mov	dptr,#X00a0	; 00fd   90 00 a0   .. 
+	mov	dptr,#stick_data; 00fd   90 00 a0   .. 
 	movx	@dptr,a		; 0100   f0         p
 	inc	dptr		; 0101   a3         #
 	mov	a,r7		; 0102   ef         o
 	movx	@dptr,a		; 0103   f0         p
 	mov	a,r6		; 0104   ee         n
 	anl	a,#0fh		; 0105   54 0f      T.
-	mov	dptr,#X00a0	; 0107   90 00 a0   .. 
+	mov	dptr,#stick_data; 0107   90 00 a0   .. 
 	movx	@dptr,a		; 010a   f0         p
 	inc	dptr		; 010b   a3         #
 	mov	a,r7		; 010c   ef         o
 	movx	@dptr,a		; 010d   f0         p
-	mov	dptr,#X0005	; 010e   90 00 05   ...
+	mov	dptr,#uart_data+3; 010e   90 00 05   ...
 	movx	a,@dptr		; 0111   e0         `
 	mov	r7,a		; 0112   ff         .
-	mov	dptr,#X00a1	; 0113   90 00 a1   ..!
+	mov	dptr,#stick_data+1; 0113   90 00 a1   ..!
 	movx	a,@dptr		; 0116   e0         `
 	add	a,r7		; 0117   2f         /
 	movx	@dptr,a		; 0118   f0         p
-	mov	dptr,#X00a0	; 0119   90 00 a0   .. 
+	mov	dptr,#stick_data; 0119   90 00 a0   .. 
 	movx	a,@dptr		; 011c   e0         `
 	addc	a,#0		; 011d   34 00      4.
 	movx	@dptr,a		; 011f   f0         p
@@ -208,13 +222,13 @@ process_stick_data:
 	mov	r4,#0		; 0125   7c 00      |.
 	mov	r5,#0eh		; 0127   7d 0e      }.
 	lcall	mul_16		; 0129   12 08 47   ..G
-	mov	dptr,#X00a0	; 012c   90 00 a0   .. 
+	mov	dptr,#stick_data; 012c   90 00 a0   .. 
 	mov	a,r6		; 012f   ee         n
 	movx	@dptr,a		; 0130   f0         p
 	inc	dptr		; 0131   a3         #
 	mov	a,r7		; 0132   ef         o
 	movx	@dptr,a		; 0133   f0         p
-	mov	dptr,#X00a0	; 0134   90 00 a0   .. 
+	mov	dptr,#stick_data; 0134   90 00 a0   .. 
 	movx	a,@dptr		; 0137   e0         `
 	mov	r6,a		; 0138   fe         ~
 	inc	dptr		; 0139   a3         #
@@ -222,7 +236,7 @@ process_stick_data:
 	mov	r7,a		; 013b   ff         .
 	mov	r5,#0ah		; 013c   7d 0a      }.
 	lcall	div_16		; 013e   12 08 59   ..Y
-	mov	dptr,#X00a0	; 0141   90 00 a0   .. 
+	mov	dptr,#stick_data; 0141   90 00 a0   .. 
 	mov	a,r6		; 0144   ee         n
 	movx	@dptr,a		; 0145   f0         p
 	inc	dptr		; 0146   a3         #
@@ -231,15 +245,15 @@ process_stick_data:
 	movx	a,@dptr		; 0149   e0         `
 	add	a,#0		; 014a   24 00      $.
 	movx	@dptr,a		; 014c   f0         p
-	mov	dptr,#X00a0	; 014d   90 00 a0   .. 
+	mov	dptr,#stick_data; 014d   90 00 a0   .. 
 	movx	a,@dptr		; 0150   e0         `
 	addc	a,#0f2h		; 0151   34 f2      4r
 	movx	@dptr,a		; 0153   f0         p
-	mov	dptr,#X0004	; 0154   90 00 04   ...
+	mov	dptr,#uart_data+2; 0154   90 00 04   ...
 	movx	a,@dptr		; 0157   e0         `
 	mov	r3,a		; 0158   fb         {
 	mov	r2,#0		; 0159   7a 00      z.
-	mov	dptr,#X00a2	; 015b   90 00 a2   .."
+	mov	dptr,#stick_data+2; 015b   90 00 a2   .."
 	mov	a,r2		; 015e   ea         j
 	movx	@dptr,a		; 015f   f0         p
 	inc	dptr		; 0160   a3         #
@@ -252,7 +266,7 @@ process_stick_data:
 	xch	a,r0		; 0168   c8         H
 	xrl	a,r0		; 0169   68         h
 	mov	r7,a		; 016a   ff         .
-	mov	dptr,#X00a2	; 016b   90 00 a2   .."
+	mov	dptr,#stick_data+2; 016b   90 00 a2   .."
 	movx	a,@dptr		; 016e   e0         `
 	swap	a		; 016f   c4         D
 	anl	a,#0f0h		; 0170   54 f0      Tp
@@ -264,19 +278,19 @@ process_stick_data:
 	movx	@dptr,a		; 0177   f0         p
 	mov	a,r6		; 0178   ee         n
 	anl	a,#0fh		; 0179   54 0f      T.
-	mov	dptr,#X00a2	; 017b   90 00 a2   .."
+	mov	dptr,#stick_data+2; 017b   90 00 a2   .."
 	movx	@dptr,a		; 017e   f0         p
 	inc	dptr		; 017f   a3         #
 	clr	a		; 0180   e4         d
 	movx	@dptr,a		; 0181   f0         p
-	mov	dptr,#X0006	; 0182   90 00 06   ...
+	mov	dptr,#uart_data+4; 0182   90 00 06   ...
 	movx	a,@dptr		; 0185   e0         `
 	mov	r7,a		; 0186   ff         .
-	mov	dptr,#X00a3	; 0187   90 00 a3   ..#
+	mov	dptr,#stick_data+3; 0187   90 00 a3   ..#
 	movx	a,@dptr		; 018a   e0         `
 	add	a,r7		; 018b   2f         /
 	movx	@dptr,a		; 018c   f0         p
-	mov	dptr,#X00a2	; 018d   90 00 a2   .."
+	mov	dptr,#stick_data+2; 018d   90 00 a2   .."
 	movx	a,@dptr		; 0190   e0         `
 	addc	a,#0		; 0191   34 00      4.
 	movx	@dptr,a		; 0193   f0         p
@@ -288,13 +302,13 @@ process_stick_data:
 	mov	r4,#0		; 0199   7c 00      |.
 	mov	r5,#0eh		; 019b   7d 0e      }.
 	lcall	mul_16		; 019d   12 08 47   ..G
-	mov	dptr,#X00a2	; 01a0   90 00 a2   .."
+	mov	dptr,#stick_data+2; 01a0   90 00 a2   .."
 	mov	a,r6		; 01a3   ee         n
 	movx	@dptr,a		; 01a4   f0         p
 	inc	dptr		; 01a5   a3         #
 	mov	a,r7		; 01a6   ef         o
 	movx	@dptr,a		; 01a7   f0         p
-	mov	dptr,#X00a2	; 01a8   90 00 a2   .."
+	mov	dptr,#stick_data+2; 01a8   90 00 a2   .."
 	movx	a,@dptr		; 01ab   e0         `
 	mov	r6,a		; 01ac   fe         ~
 	inc	dptr		; 01ad   a3         #
@@ -302,7 +316,7 @@ process_stick_data:
 	mov	r7,a		; 01af   ff         .
 	mov	r5,#0ah		; 01b0   7d 0a      }.
 	lcall	div_16		; 01b2   12 08 59   ..Y
-	mov	dptr,#X00a2	; 01b5   90 00 a2   .."
+	mov	dptr,#stick_data+2; 01b5   90 00 a2   .."
 	mov	a,r6		; 01b8   ee         n
 	movx	@dptr,a		; 01b9   f0         p
 	inc	dptr		; 01ba   a3         #
@@ -311,11 +325,11 @@ process_stick_data:
 	movx	a,@dptr		; 01bd   e0         `
 	add	a,#0		; 01be   24 00      $.
 	movx	@dptr,a		; 01c0   f0         p
-	mov	dptr,#X00a2	; 01c1   90 00 a2   .."
+	mov	dptr,#stick_data+2; 01c1   90 00 a2   .."
 	movx	a,@dptr		; 01c4   e0         `
 	addc	a,#0f2h		; 01c5   34 f2      4r
 	movx	@dptr,a		; 01c7   f0         p
-	mov	dptr,#X00a4	; 01c8   90 00 a4   ..$
+	mov	dptr,#stick_data+4; 01c8   90 00 a4   ..$
 	mov	a,r2		; 01cb   ea         j
 	movx	@dptr,a		; 01cc   f0         p
 	inc	dptr		; 01cd   a3         #
@@ -324,26 +338,26 @@ process_stick_data:
 	movx	a,@dptr		; 01d0   e0         `
 	mov	r7,#0		; 01d1   7f 00      ..
 	mov	r6,a		; 01d3   fe         ~
-	mov	dptr,#X00a4	; 01d4   90 00 a4   ..$
+	mov	dptr,#stick_data+4; 01d4   90 00 a4   ..$
 	movx	@dptr,a		; 01d7   f0         p
 	inc	dptr		; 01d8   a3         #
 	mov	a,r7		; 01d9   ef         o
 	movx	@dptr,a		; 01da   f0         p
 	mov	a,r6		; 01db   ee         n
 	anl	a,#0fh		; 01dc   54 0f      T.
-	mov	dptr,#X00a4	; 01de   90 00 a4   ..$
+	mov	dptr,#stick_data+4; 01de   90 00 a4   ..$
 	movx	@dptr,a		; 01e1   f0         p
 	inc	dptr		; 01e2   a3         #
 	mov	a,r7		; 01e3   ef         o
 	movx	@dptr,a		; 01e4   f0         p
-	mov	dptr,#X0007	; 01e5   90 00 07   ...
+	mov	dptr,#uart_data+5; 01e5   90 00 07   ...
 	movx	a,@dptr		; 01e8   e0         `
 	mov	r7,a		; 01e9   ff         .
-	mov	dptr,#X00a5	; 01ea   90 00 a5   ..%
+	mov	dptr,#stick_data+5; 01ea   90 00 a5   ..%
 	movx	a,@dptr		; 01ed   e0         `
 	add	a,r7		; 01ee   2f         /
 	movx	@dptr,a		; 01ef   f0         p
-	mov	dptr,#X00a4	; 01f0   90 00 a4   ..$
+	mov	dptr,#stick_data+4; 01f0   90 00 a4   ..$
 	movx	a,@dptr		; 01f3   e0         `
 	addc	a,#0		; 01f4   34 00      4.
 	movx	@dptr,a		; 01f6   f0         p
@@ -355,7 +369,7 @@ process_stick_data:
 	mov	r4,#0		; 01fc   7c 00      |.
 	mov	r5,#0eh		; 01fe   7d 0e      }.
 	lcall	mul_16		; 0200   12 08 47   ..G
-	mov	dptr,#X00a4	; 0203   90 00 a4   ..$
+	mov	dptr,#stick_data+4; 0203   90 00 a4   ..$
 	mov	a,r6		; 0206   ee         n
 	movx	@dptr,a		; 0207   f0         p
 	inc	dptr		; 0208   a3         #
@@ -363,7 +377,7 @@ process_stick_data:
 	movx	@dptr,a		; 020a   f0         p
 	mov	r5,#0ah		; 020b   7d 0a      }.
 	lcall	div_16		; 020d   12 08 59   ..Y
-	mov	dptr,#X00a4	; 0210   90 00 a4   ..$
+	mov	dptr,#stick_data+4; 0210   90 00 a4   ..$
 	mov	a,r6		; 0213   ee         n
 	movx	@dptr,a		; 0214   f0         p
 	inc	dptr		; 0215   a3         #
@@ -372,7 +386,7 @@ process_stick_data:
 	movx	a,@dptr		; 0218   e0         `
 	add	a,#0		; 0219   24 00      $.
 	movx	@dptr,a		; 021b   f0         p
-	mov	dptr,#X00a4	; 021c   90 00 a4   ..$
+	mov	dptr,#stick_data+4; 021c   90 00 a4   ..$
 	movx	a,@dptr		; 021f   e0         `
 	addc	a,#0f2h		; 0220   34 f2      4r
 	movx	@dptr,a		; 0222   f0         p
@@ -466,7 +480,7 @@ change_model:
 	mov	dptr,#X00a8	; 02b0   90 00 a8   ..(
 	movx	@dptr,a		; 02b3   f0         p
 	lcall	read_current_model_bind_data_from_eeprom; 02b4   12 0b ac   ..,
-	lcall	xxxxxxxxxxxxxxxx; 02b7   12 06 2e   ...
+	lcall	make_bind_packets; 02b7   12 06 2e   ...
 	setb	IEN1_rfirq	; 02ba   d2 b9      R9
 	ljmp	main		; 02bc   02 00 ae   ...
 ;
@@ -765,7 +779,7 @@ X0498:	mov	dptr,#X0013	; 0498   90 00 13   ...
 	mov	a,28h		; 04b4   e5 28      e(
 	mov	b,#0ah		; 04b6   75 f0 0a   up.
 	mul	ab		; 04b9   a4         $
-	add	a,#15h		; 04ba   24 15      $.
+	add	a,#15h		; 04ba   24 15      $.	; bind_data offset
 	mov	r1,a		; 04bc   f9         y
 	mov	a,#0		; 04bd   74 00      t.
 	addc	a,b		; 04bf   35 f0      5p
@@ -858,7 +872,7 @@ timer0_handler:
 	push	rb0r7		; 055a   c0 07      @.
 	mov	th0,#0fah	; 055c   75 8c fa   u.z
 	mov	tl0,#0cah	; 055f   75 8a ca   u.J
-	mov	dptr,#X0001	; 0562   90 00 01   ...
+	mov	dptr,#div_5ms	; 0562   90 00 01   ...
 	movx	a,@dptr		; 0565   e0         `
 	inc	a		; 0566   04         .
 	movx	@dptr,a		; 0567   f0         p
@@ -880,37 +894,37 @@ X0571:	setb	p1.5		; 0571   d2 95      R.
 	subb	a,#0ah		; 0581   94 0a      ..
 	jnc	X05bc		; 0583   50 37      P7
 	inc	2ah		; 0585   05 2a      .*
-	mov	dptr,#X00a0	; 0587   90 00 a0   .. 
+	mov	dptr,#stick_data; 0587   90 00 a0   .. 
 	movx	a,@dptr		; 058a   e0         `
 	mov	r6,a		; 058b   fe         ~
 	inc	dptr		; 058c   a3         #
 	movx	a,@dptr		; 058d   e0         `
-	mov	dptr,#X0041	; 058e   90 00 41   ..A
+	mov	dptr,#tx_packet	; 058e   90 00 41   ..A
 	movx	@dptr,a		; 0591   f0         p
 	mov	a,r6		; 0592   ee         n
 	inc	dptr		; 0593   a3         #
 	movx	@dptr,a		; 0594   f0         p
-	mov	dptr,#X00a2	; 0595   90 00 a2   .."
+	mov	dptr,#stick_data+2; 0595   90 00 a2   .."
 	movx	a,@dptr		; 0598   e0         `
 	mov	r6,a		; 0599   fe         ~
 	inc	dptr		; 059a   a3         #
 	movx	a,@dptr		; 059b   e0         `
-	mov	dptr,#X0043	; 059c   90 00 43   ..C
+	mov	dptr,#tx_packet+2; 059c   90 00 43   ..C
 	movx	@dptr,a		; 059f   f0         p
 	mov	a,r6		; 05a0   ee         n
 	inc	dptr		; 05a1   a3         #
 	movx	@dptr,a		; 05a2   f0         p
-	mov	dptr,#X00a4	; 05a3   90 00 a4   ..$
+	mov	dptr,#stick_data+4; 05a3   90 00 a4   ..$
 	movx	a,@dptr		; 05a6   e0         `
 	mov	r6,a		; 05a7   fe         ~
 	inc	dptr		; 05a8   a3         #
 	movx	a,@dptr		; 05a9   e0         `
-	mov	dptr,#X0045	; 05aa   90 00 45   ..E
+	mov	dptr,#tx_packet+4; 05aa   90 00 45   ..E
 	movx	@dptr,a		; 05ad   f0         p
 	mov	a,r6		; 05ae   ee         n
 	inc	dptr		; 05af   a3         #
 	movx	@dptr,a		; 05b0   f0         p
-	mov	dptr,#X0048	; 05b1   90 00 48   ..H
+	mov	dptr,#tx_packet+7; 05b1   90 00 48   ..H
 	mov	a,#55h		; 05b4   74 55      tU
 	movx	@dptr,a		; 05b6   f0         p
 	inc	dptr		; 05b7   a3         #
@@ -918,33 +932,33 @@ X0571:	setb	p1.5		; 0571   d2 95      R.
 	sjmp	X05ea		; 05ba   80 2e      ..
 ;
 X05bc:	mov	2ah,#0		; 05bc   75 2a 00   u*.
-	mov	dptr,#X0040	; 05bf   90 00 40   ..@
+	mov	dptr,#fs_data+3	; 05bf   90 00 40   ..@
 	movx	a,@dptr		; 05c2   e0         `
 	inc	dptr		; 05c3   a3         #
-	movx	@dptr,a		; 05c4   f0         p
-	mov	dptr,#X003e	; 05c5   90 00 3e   ..>
+	movx	@dptr,a		; 05c4   f0         p	; tx_packet
+	mov	dptr,#fs_data+1	; 05c5   90 00 3e   ..>
 	movx	a,@dptr		; 05c8   e0         `
-	mov	dptr,#X0042	; 05c9   90 00 42   ..B
+	mov	dptr,#tx_packet+1; 05c9   90 00 42   ..B
 	movx	@dptr,a		; 05cc   f0         p
-	mov	dptr,#X003d	; 05cd   90 00 3d   ..=
+	mov	dptr,#fs_data	; 05cd   90 00 3d   ..=
 	movx	a,@dptr		; 05d0   e0         `
-	mov	dptr,#X0043	; 05d1   90 00 43   ..C
+	mov	dptr,#tx_packet+2; 05d1   90 00 43   ..C
 	movx	@dptr,a		; 05d4   f0         p
 	mov	dptr,#X0014	; 05d5   90 00 14   ...
 	movx	a,@dptr		; 05d8   e0         `
-	mov	dptr,#X0044	; 05d9   90 00 44   ..D
+	mov	dptr,#tx_packet+3; 05d9   90 00 44   ..D
 	movx	@dptr,a		; 05dc   f0         p
-	mov	dptr,#X0048	; 05dd   90 00 48   ..H
+	mov	dptr,#tx_packet+7; 05dd   90 00 48   ..H
 	mov	a,#0aah		; 05e0   74 aa      t*
 	movx	@dptr,a		; 05e2   f0         p
 	mov	dptr,#X0000	; 05e3   90 00 00   ...
 	movx	a,@dptr		; 05e6   e0         `
-	mov	dptr,#X0049	; 05e7   90 00 49   ..I
+	mov	dptr,#tx_packet+8; 05e7   90 00 49   ..I
 X05ea:	movx	@dptr,a		; 05ea   f0         p
 	mov	63h,#0		; 05eb   75 63 00   uc.
 X05ee:	mov	r3,#1		; 05ee   7b 01      {.
 	mov	r2,#0		; 05f0   7a 00      z.
-	mov	r1,#41h		; 05f2   79 41      yA
+	mov	r1,#41h		; 05f2   79 41      yA	; tx_packet   ; X0041
 	mov	r5,#0ah		; 05f4   7d 0a      }.
 	lcall	rf_write_tx_payload; 05f6   12 14 19   ...
 	mov	rb1r0,#14h	; 05f9   75 08 14   u..
@@ -975,7 +989,8 @@ X0613:	pop	rb0r7		; 0613   d0 07      P.
 	pop	acc		; 062b   d0 e0      P`
 	reti			; 062d   32         2
 ;
-xxxxxxxxxxxxxxxx:
+; ************************************************************************
+make_bind_packets:
 	clr	a		; 062e   e4         d
 	mov	r7,a		; 062f   ff         .
 	mov	r6,a		; 0630   fe         ~
@@ -998,7 +1013,7 @@ X0632:	mov	a,#64h		; 0632   74 64      td
 	mov	r1,rb0r5	; 0648   a9 05      ).
 	mov	a,r6		; 064a   ee         n
 	mov	r7,a		; 064b   ff         .
-	mov	dptr,#X0015	; 064c   90 00 15   ...
+	mov	dptr,#bind_data	; 064c   90 00 15   ...
 	mov	a,#0ffh		; 064f   74 ff      t.
 	movx	@dptr,a		; 0651   f0         p
 	inc	dptr		; 0652   a3         #
@@ -1016,7 +1031,7 @@ X065c:	mov	a,#61h		; 065c   74 61      ta
 	mov	dph,a		; 0664   f5 83      u.
 	movx	a,@dptr		; 0666   e0         `
 	mov	r6,a		; 0667   fe         ~
-	mov	a,#15h		; 0668   74 15      t.
+	mov	a,#15h		; 0668   74 15      t.	; bind_data offset
 	add	a,r5		; 066a   2d         -
 	mov	dpl,a		; 066b   f5 82      u.
 	clr	a		; 066d   e4         d
@@ -1032,7 +1047,7 @@ X065c:	mov	a,#61h		; 065c   74 61      ta
 X067d:	mov	a,r5		; 067d   ed         m
 	mov	b,#0ah		; 067e   75 f0 0a   up.
 	mul	ab		; 0681   a4         $
-	add	a,#15h		; 0682   24 15      $.
+	add	a,#15h		; 0682   24 15      $.	; bind_data offset
 	mov	dpl,a		; 0684   f5 82      u.
 	clr	a		; 0686   e4         d
 	addc	a,#0		; 0687   34 00      4.
@@ -1560,6 +1575,8 @@ X0939:	clr	PORT_SCL	; 0939   c2 90      B.
 	mov	r7,#1		; 094a   7f 01      ..
 	ret			; 094c   22         "
 ;
+; ***************************************************************************
+rf_enable_auto_acknowledge:
 	mov	41h,r7		; 094d   8f 41      .A	; 094d-09de UNUSED CODE
 	mov	r7,#2		; 094f   7f 02      ..
 	lcall	spi_read_register; 0951   12 12 f8   ..x
@@ -2059,7 +2076,7 @@ X0bdc:	mov	dptr,#X00a8	; 0bdc   90 00 a8   ..(
 	clr	c		; 0c08   c3         C
 	subb	a,#14h		; 0c09   94 14      ..
 	jc	X0bdc		; 0c0b   40 cf      @O
-	ljmp	X136f		; 0c0d   02 13 6f   ..o
+	ljmp	save_current_model; 0c0d   02 13 6f   ..o
 ;
 ; ***************************************************************************
 rf_enable_data_pipes:
@@ -2174,6 +2191,12 @@ X0cb7:	clr	PORT_SCL	; 0cb7   c2 90      B.
 	mov	r7,#1		; 0cb9   7f 01      ..
 	ret			; 0cbb   22         "
 ;
+; ***************************************************************************
+; r1:r2 (r3): pointer to source memory
+; r6:r7: pointer to flash memory
+; 32h:33h: count
+; ***************************************************************************
+write_bytes_to_flash:
 	mov	2dh,r3		; 0cbc   8b 2d      .-	; 0cbc-0d0b UNUSED CODE
 	mov	2eh,r2		; 0cbe   8a 2e      ..
 	mov	2fh,r1		; 0cc0   89 2f      ./
@@ -2666,6 +2689,8 @@ i2c_start:
 	nop			; 0ffa   00         .
 	ret			; 0ffb   22         "
 ;
+; ***************************************************************************
+rf_configure_dynamic_payload:
 	mov	5ch,r7		; 0ffc   8f 5c      .\
 	mov	r7,#6		; 0ffe   7f 06      ..
 	lcall	spi_read_register; 1000   12 12 f8   ..x
@@ -2951,6 +2976,8 @@ read_byte_from_eeprom:
 	lcall	i2c_read_byte_from_device; 11a9   12 12 38   ..8
 	ret			; 11ac   22         "
 ;
+; ***************************************************************************
+write_byte_to_flash:
 	mov	c,IEN0_all	; 11ad   a2 af      "/
 	mov	f0,c		; 11af   92 d5      .U
 	clr	IEN0_all	; 11b1   c2 af      B/
@@ -3027,6 +3054,8 @@ X121b:	lcall	i2c_has_write_finished; 121b   12 0c 6a   ..j
 	jz	X121b		; 121f   60 fa      `z
 	ret			; 1221   22         "
 ;
+; ***************************************************************************
+flash_erase_page:
 	mov	c,IEN0_all	; 1222   a2 af      "/
 	mov	f0,c		; 1224   92 d5      .U
 	clr	IEN0_all	; 1226   c2 af      B/
@@ -3181,6 +3210,8 @@ rf_get_tx_fifo_status:
 	mov	r7,a		; 12e9   ff         .
 	ret			; 12ea   22         "
 ;
+; ***************************************************************************
+rf_get_tx_reuse:
 	lcall	rf_get_fifo_status; 12eb   12 14 34   ..4
 	mov	a,r7		; 12ee   ef         o
 	anl	a,#40h		; 12ef   54 40      T@
@@ -3280,7 +3311,6 @@ set_lf_clock_frequency:
 ; ************************************************************************
 ; Returns 2 if the XTAL OSC is ready, otherwise 1 if running from the RC OSC
 ; ************************************************************************
-; ************************************************************************
 get_osc_status:
 	mov	a,CLKLFCTRL	; 1359   e5 ad      e-
 	jnb	acc.3,X1361	; 135b   30 e3 03   0c.
@@ -3300,7 +3330,9 @@ rf_is_tx_fifo_empty:
 	mov	r7,a		; 136d   ff         .
 	ret			; 136e   22         "
 ;
-X136f:	mov	dptr,#X00a8	; 136f   90 00 a8   ..(
+; ***************************************************************************
+save_current_model:
+	mov	dptr,#X00a8	; 136f   90 00 a8   ..(
 	movx	a,@dptr		; 1372   e0         `
 	mov	r5,a		; 1373   fd         }
 	clr	a		; 1374   e4         d
@@ -3328,6 +3360,7 @@ rng_bias_corrector_on_off:
 X138c:	anl	RNGCTL,#0bfh	; 138c   53 d6 bf   SV?
 	ret			; 138f   22         "
 ;
+; ************************************************************************
 init_timer0:
 	mov	tmod,#1		; 1390   75 89 01   u..
 	clr	a		; 1393   e4         d
@@ -3663,6 +3696,22 @@ FSR_rdyn	equ	0fch
 FSR_wen	equ	0fdh
 FSR_stp	equ	0feh
 FSR_endebug	equ	0ffh
+;
+;	Operand symbol equates
+;
+;  These are operand symbols from the control
+;  file that are referenced in the code
+;
+bind_data	equ	15h
+div_5ms	equ	1
+fs_data	equ	3dh
+stick_data	equ	0a0h
+tx_packet	equ	41h
+uart_data+2	equ	3
+uart_data+2	equ	4
+uart_data+3	equ	5
+uart_data+4	equ	6
+uart_data+5	equ	7
 ;
 ;	Miscellaneous equates
 ;

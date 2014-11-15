@@ -327,6 +327,87 @@ r 1e save_r3_r7
 
 ; x X0041 10 bytes of data sent over-the-air! BUT: other areas sent too!
 
+; uart_data equ 0002h
+; uart_data+1 equ 0003h
+; uart_data+2 equ 0004h
+; uart_data+3 equ 0005h
+; uart_data+4 equ 0006h
+; uart_data+5 equ 0007h
+
+; stick_data equ 00a0h
+; stick_data+1 equ 00a1h
+; stick_data+2 equ 00a2h
+; stick_data+3 equ 00a3h
+; stick_data+4 equ 00a4h
+; stick_data+5 equ 00a5h
+
+x 00e5 uart_data+2
+x 00f3 stick_data
+x 00fe stick_data
+x 0108 stick_data
+x 010f uart_data+3
+x 0114 stick_data+1
+x 011a stick_data
+x 012d stick_data
+x 0135 stick_data
+x 0142 stick_data
+x 014e stick_data
+x 0155 uart_data+2
+x 015c stick_data+2
+x 016c stick_data+2
+x 017c stick_data+2
+x 0183 uart_data+4
+x 0188 stick_data+3
+x 018e stick_data+2
+x 01a1 stick_data+2
+x 01a9 stick_data+2
+x 01b6 stick_data+2
+x 01c2 stick_data+2
+x 01c9 stick_data+4
+x 01D5 stick_data+4
+x 01Df stick_data+4
+x 01e6 uart_data+5
+x 01eb stick_data+5
+x 01f1 stick_data+4
+x 0204 stick_data+4
+x 0211 stick_data+4
+x 021d stick_data+4
+
+
+x 0588 stick_data
+x 0596 stick_data+2
+x 05a4 stick_data+4
+
+x 0563 div_5ms    ; X0001
+
+x 064d bind_data
+! 0668 bind_data offset
+! 0682 bind_data offset
+! 04ba bind_data offset
+
+
+x 05ce fs_data  ; X003d
+x 05c6 fs_data+1  ; X003e
+x 05c0 fs_data+3  ; X0040
+
+! 05f2 tx_packet   ; X0041
+x 058f tx_packet
+! 05c4 tx_packet
+
+x 05ca tx_packet+1 ; X0042
+
+x 059d tx_packet+2  ; X0043
+x 05d2 tx_packet+2
+
+x 05da tx_packet+3  ; X0044
+
+
+x 05ab tx_packet+4  ; X0045
+
+x 05b2 tx_packet+7  ; X0048
+x 05de tx_packet+7
+
+x 05e8 tx_packet+8  ; X0049
 
 
 
@@ -359,7 +440,20 @@ l 00c0 copy_from_uart_buffer
 # 00c0 ***************************************************************************
 l 00f2 process_stick_data
 # 00f2 ***************************************************************************
-! 00f2 seems to do packing of data
+# 00f2 Converts the stick data received from the UART into the data
+# 00f2 sent across the air.
+# 00f2
+# 00f2 The received data is 12 bit, with center (1500us) being 0x465
+# 00f2 The data sent across the air is the timer value that has to be set
+# 00f2 to give the desired time until the timer overflows. The timer tick is
+# 00f2 750ns.
+# 00f2
+# 00f2 The algorithm to calculate the timer value is as follows:
+# 00f2
+# 00f2   timer_value = (uart_data * 14 / 10) + 0xf200
+# 00f2
+# 00f2 Three channels are calculated that way
+# 00f2 ***************************************************************************
 
 l 0228 check_if_failsafe_data
 # 0228 ***************************************************************************
@@ -400,7 +494,8 @@ l 053f timer0_handler
 # 053f Timer0 Interrupt Handler
 # 053f ************************************************************************
 
-l 062e xxxxxxxxxxxxxxxx
+l 062e make_bind_packets
+# 062e ************************************************************************
 
 l 070f uart_handler
 # 070f ************************************************************************
@@ -437,6 +532,8 @@ l 0847 mul_16
 l 0859 div_16
 # 0859 ***************************************************************************
 
+l 094d rf_enable_auto_acknowledge
+# 094d ***************************************************************************
 
 l 09df reset_ram
 # 09df ************************************************************************
@@ -445,6 +542,14 @@ l 09df reset_ram
 
 l 0bac read_current_model_bind_data_from_eeprom
 # 0bac ************************************************************************
+
+l 0cbc write_bytes_to_flash
+# 0cbc ***************************************************************************
+# 0cbc r1:r2 (r3): pointer to source memory
+# 0cbc r6:r7: pointer to flash memory
+# 0cbc 32h:33h: count
+# 0cbc ***************************************************************************
+
 
 l 0d0c ram_initialization_data
 # 0d0c ************************************************************************
@@ -523,6 +628,9 @@ l 120c i2c_write_byte_to_device
 l 0fa1 make_hop_data
 # 0fa1 ***************************************************************************
 
+l 0ffc rf_configure_dynamic_payload
+# 0ffc ***************************************************************************
+
 l 10c9 make_bind_data
 # 10c9 ***************************************************************************
 
@@ -533,6 +641,12 @@ l 1174 write_byte_to_eeprom
 # 1174 ***************************************************************************
 # 1174 In: r6:r7 address   r5: data
 # 1174 ***************************************************************************
+
+l 11ad write_byte_to_flash
+# 11ad ***************************************************************************
+
+l 1222 flash_erase_page
+# 1222 ***************************************************************************
 
 l 139a rf_get_number_of_address_bytes
 ! 139a SETUP_AW
@@ -557,6 +671,8 @@ l 124d spi_set_rf_channel
 # 124d In: R7: channel number
 # 124d ***************************************************************************
 
+l 12eb rf_get_tx_reuse
+# 12eb ***************************************************************************
 
 l 12f8 spi_read_register
 # 12f8 ***************************************************************************
@@ -585,7 +701,7 @@ l 1359 get_osc_status
 l 1335 read_current_model_no_from_eeprom
 # 1335 ************************************************************************
 l 1390 init_timer0
-# 1359 ************************************************************************
+# 1390 ************************************************************************
 
 l 0d56 rf_set_crc
 # 0d56 ***************************************************************************
@@ -610,6 +726,10 @@ l 1329 rf_enable_dynamic_payload
 # 1329 ***************************************************************************
 l 1364 rf_is_tx_fifo_empty
 # 1364 ***************************************************************************
+
+l 136f save_current_model
+# 136f ***************************************************************************
+
 l 13a4 rf_is_rx_fifo_empty
 # 13a4 ***************************************************************************
 l 13ae rf_get_rx_fifo_status
