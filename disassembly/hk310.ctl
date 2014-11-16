@@ -318,6 +318,8 @@ r 1c count
 r 1f save_r2
 r 1e save_r3_r7
 
+r 28 bind_packet_idx
+
 r 63 f_stick_data
 
 
@@ -354,6 +356,20 @@ x 0264 uart_data+4
 x 01e6 uart_data+5      ; X0007
 x 0231 uart_data+5
 
+x 0500 hop_index        ; X0012
+
+x 04e8 tx_state         ; X0013
+x 046f tx_state
+x 0499 tx_state
+x 060d tx_state
+
+X 050f hop_channels     ; X0050
+X 06b7 hop_channels
+X 0bf8 hop_channels
+X 0fbf hop_channels
+X 0333 hop_channels
+X 0397 hop_channels
+X 0427 hop_channels
 
 x 077c uart_payload_count   ; X0093
 x 078c uart_payload_count
@@ -403,10 +419,10 @@ x 05a4 stick_data+4
 x 01eb stick_data+5      ;X00A5
 
 
-x 064d bind_data
-! 0668 bind_data offset
-! 0682 bind_data offset
-! 04ba bind_data offset
+x 064d bind_packet
+! 0668 bind_packet offset
+! 0682 bind_packet offset
+! 04ba bind_packet offset
 
 x 0283 fs_th_h  ; X0014
 x 05d6 fs_th_h
@@ -439,7 +455,7 @@ x 05de tx_packet+7
 
 x 05e8 tx_packet+8  ; X0049
 
-
+x 04f9 bind_adr    ;X0064
 
 ; ******************************************************
 ; ******************************************************
@@ -532,9 +548,10 @@ l 043d rf_interrupt_handler
 
 ! 0462 Flush if MAX_RT
 ! 046c Process TX_DS
-! 047a X0013 is more than 2
-! 04a0 X0013 is 2
-! 04ef X0013 is 3
+! 047a tx_state is 1
+! 047e Send tx_packet
+! 04a0 tx_state is 2
+! 04ef tx_state is 3
 
 ! 04af Channel 51h has a special meaning: used for Binding with fixed address 12:23:23:45:78
 
@@ -542,6 +559,8 @@ l 053f timer0_handler
 # 053f ************************************************************************
 # 053f Timer0 Interrupt Handler
 # 053f ************************************************************************
+
+! 05b8 tx_packet+8 = #67h
 
 l 062e make_bind_packets
 # 062e ************************************************************************
@@ -680,7 +699,7 @@ l 0fa1 make_hop_data
 l 0ffc rf_configure_dynamic_payload
 # 0ffc ***************************************************************************
 
-l 10c9 make_bind_data
+l 10c9 generate_bind_data
 # 10c9 ***************************************************************************
 
 l 1155 rf_set_power

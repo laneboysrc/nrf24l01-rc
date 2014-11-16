@@ -1,6 +1,6 @@
 ;
 ;  D52 V3.4.1 8052 Disassembly of hk310.hex
-;  2014/11/16 09:22
+;  2014/11/16 10:46
 ;
 	org	0
 ;
@@ -560,7 +560,7 @@ X0317:	mov	dptr,#X00a8	; 0317   90 00 a8   ..(
 	addc	a,r6		; 032d   3e         >
 	mov	r6,a		; 032e   fe         ~
 	lcall	read_byte_from_eeprom; 032f   12 11 93   ...
-	mov	a,#50h		; 0332   74 50      tP
+	mov	a,#hop_channels	; 0332   74 50      tP
 	add	a,model_count	; 0334   25 1b      %.
 	mov	dpl,a		; 0336   f5 82      u.
 	clr	a		; 0338   e4         d
@@ -580,7 +580,7 @@ format_eeprom:
 	clr	a		; 0349   e4         d
 	mov	model_count,a	; 034a   f5 1b      u.
 X034c:	lcall	make_hop_data	; 034c   12 0f a1   ..!
-	lcall	make_bind_data	; 034f   12 10 c9   ..I
+	lcall	generate_bind_data; 034f   12 10 c9   ..I
 	clr	a		; 0352   e4         d
 	mov	count,a		; 0353   f5 1c      u.
 X0355:	mov	a,model_count	; 0355   e5 1b      e.
@@ -623,7 +623,7 @@ X0380:	mov	a,model_count	; 0380   e5 1b      e.
 	mov	a,r4		; 0393   ec         l
 	addc	a,r6		; 0394   3e         >
 	mov	r6,a		; 0395   fe         ~
-	mov	a,#50h		; 0396   74 50      tP
+	mov	a,#hop_channels	; 0396   74 50      tP
 	add	a,count		; 0398   25 1c      %.
 	mov	dpl,a		; 039a   f5 82      u.
 	clr	a		; 039c   e4         d
@@ -704,7 +704,7 @@ X040b:	mov	dptr,#X00a8	; 040b   90 00 a8   ..(
 	addc	a,r6		; 0421   3e         >
 	mov	r6,a		; 0422   fe         ~
 	lcall	read_byte_from_eeprom; 0423   12 11 93   ...
-	mov	a,#50h		; 0426   74 50      tP
+	mov	a,#hop_channels	; 0426   74 50      tP
 	add	a,model_count	; 0428   25 1b      %.
 	mov	dpl,a		; 042a   f5 82      u.
 	clr	a		; 042c   e4         d
@@ -748,7 +748,7 @@ X0465:	add	a,#0f0h		; 0465   24 f0      $p
 	ljmp	X0524		; 0469   02 05 24   ..$
 ;
 X046c:	clr	PORT_TX_OFF	; 046c   c2 94      B.	; Process TX_DS
-	mov	dptr,#X0013	; 046e   90 00 13   ...
+	mov	dptr,#tx_state	; 046e   90 00 13   ...
 	movx	a,@dptr		; 0471   e0         `
 	inc	a		; 0472   04         .
 	movx	@dptr,a		; 0473   f0         p
@@ -756,9 +756,9 @@ X046c:	clr	PORT_TX_OFF	; 046c   c2 94      B.	; Process TX_DS
 	clr	c		; 0475   c3         C
 	subb	a,#2		; 0476   94 02      ..
 	jnc	X0498		; 0478   50 1e      P.
-	mov	r3,#1		; 047a   7b 01      {.	; X0013 is more than 2
+	mov	r3,#1		; 047a   7b 01      {.	; tx_state is 1
 	mov	r2,#0		; 047c   7a 00      z.
-	mov	r1,#41h		; 047e   79 41      yA
+	mov	r1,#41h		; 047e   79 41      yA	; Send tx_packet
 	mov	r5,#0ah		; 0480   7d 0a      }.
 	lcall	rf_write_tx_payload; 0482   12 14 19   ...
 	setb	PORT_TX_OFF	; 0485   d2 94      R.
@@ -771,11 +771,11 @@ X048c:	mov	r7,rb1r6	; 048c   af 0e      /.
 	clr	RFCON_rfce	; 0493   c2 e8      Bh
 	ljmp	X0521		; 0495   02 05 21   ..!
 ;
-X0498:	mov	dptr,#X0013	; 0498   90 00 13   ...
+X0498:	mov	dptr,#tx_state	; 0498   90 00 13   ...
 	movx	a,@dptr		; 049b   e0         `
 	xrl	a,#2		; 049c   64 02      d.
 	jnz	X04e7		; 049e   70 47      pG
-	mov	r3,a		; 04a0   fb         {	; X0013 is 2
+	mov	r3,a		; 04a0   fb         {	; tx_state is 2
 	mov	r2,#0		; 04a1   7a 00      z.
 	mov	r1,#22h		; 04a3   79 22      y"
 	mov	r7,#6		; 04a5   7f 06      ..
@@ -785,10 +785,10 @@ X0498:	mov	dptr,#X0013	; 0498   90 00 13   ...
 	lcall	rf_set_power	; 04ac   12 11 55   ..U
 	mov	r7,#51h		; 04af   7f 51      .Q	; Channel 51h has a special meaning: used for Binding with fixed address 12:23:23:45:78
 	lcall	spi_set_rf_channel; 04b1   12 12 4d   ..M
-	mov	a,28h		; 04b4   e5 28      e(
+	mov	a,bind_packet_idx; 04b4   e5 28      e(
 	mov	b,#0ah		; 04b6   75 f0 0a   up.
 	mul	ab		; 04b9   a4         $
-	add	a,#15h		; 04ba   24 15      $.	; bind_data offset
+	add	a,#15h		; 04ba   24 15      $.	; bind_packet offset
 	mov	r1,a		; 04bc   f9         y
 	mov	a,#0		; 04bd   74 00      t.
 	addc	a,b		; 04bf   35 f0      5p
@@ -796,14 +796,14 @@ X0498:	mov	dptr,#X0013	; 0498   90 00 13   ...
 	mov	r3,#1		; 04c2   7b 01      {.
 	mov	r5,#0ah		; 04c4   7d 0a      }.
 	lcall	rf_write_tx_payload; 04c6   12 14 19   ...
-	mov	a,28h		; 04c9   e5 28      e(
+	mov	a,bind_packet_idx; 04c9   e5 28      e(
 	clr	c		; 04cb   c3         C
 	subb	a,#3		; 04cc   94 03      ..
 	jnc	X04d4		; 04ce   50 04      P.
-	inc	28h		; 04d0   05 28      .(
+	inc	bind_packet_idx	; 04d0   05 28      .(
 	sjmp	X04d7		; 04d2   80 03      ..
 ;
-X04d4:	mov	28h,#0		; 04d4   75 28 00   u(.
+X04d4:	mov	bind_packet_idx,#0; 04d4   75 28 00   u(.
 X04d7:	mov	rb1r6,#14h	; 04d7   75 0e 14   u..
 	setb	RFCON_rfce	; 04da   d2 e8      Rh
 X04dc:	mov	r7,rb1r6	; 04dc   af 0e      /.
@@ -813,18 +813,18 @@ X04dc:	mov	r7,rb1r6	; 04dc   af 0e      /.
 	clr	RFCON_rfce	; 04e3   c2 e8      Bh
 	sjmp	X0521		; 04e5   80 3a      .:
 ;
-X04e7:	mov	dptr,#X0013	; 04e7   90 00 13   ...
+X04e7:	mov	dptr,#tx_state	; 04e7   90 00 13   ...
 	movx	a,@dptr		; 04ea   e0         `
 	xrl	a,#3		; 04eb   64 03      d.
 	jnz	X0521		; 04ed   70 32      p2
-	mov	r7,#2		; 04ef   7f 02      ..	; X0013 is 3
+	mov	r7,#2		; 04ef   7f 02      ..	; tx_state is 3
 	lcall	rf_set_power	; 04f1   12 11 55   ..U
 	mov	r3,#1		; 04f4   7b 01      {.
 	mov	r2,#0		; 04f6   7a 00      z.
-	mov	r1,#64h		; 04f8   79 64      yd
+	mov	r1,#bind_adr	; 04f8   79 64      yd
 	mov	r7,#6		; 04fa   7f 06      ..
 	lcall	rf_get_or_set_address; 04fc   12 0e 1b   ...
-	mov	dptr,#X0012	; 04ff   90 00 12   ...
+	mov	dptr,#hop_index	; 04ff   90 00 12   ...
 	movx	a,@dptr		; 0502   e0         `
 	inc	a		; 0503   04         .
 	movx	@dptr,a		; 0504   f0         p
@@ -834,7 +834,7 @@ X04e7:	mov	dptr,#X0013	; 04e7   90 00 13   ...
 	mov	a,b		; 050a   e5 f0      ep
 	movx	@dptr,a		; 050c   f0         p
 	movx	a,@dptr		; 050d   e0         `
-	add	a,#50h		; 050e   24 50      $P
+	add	a,#hop_channels	; 050e   24 50      $P
 	mov	dpl,a		; 0510   f5 82      u.
 	clr	a		; 0512   e4         d
 	addc	a,#0		; 0513   34 00      4.
@@ -937,7 +937,7 @@ X0571:	setb	p1.5		; 0571   d2 95      R.
 	mov	a,#55h		; 05b4   74 55      tU
 	movx	@dptr,a		; 05b6   f0         p
 	inc	dptr		; 05b7   a3         #
-	mov	a,#67h		; 05b8   74 67      tg
+	mov	a,#67h		; 05b8   74 67      tg	; tx_packet+8 = #67h
 	sjmp	X05ea		; 05ba   80 2e      ..
 ;
 X05bc:	mov	2ah,#0		; 05bc   75 2a 00   u*.
@@ -979,7 +979,7 @@ X05fe:	mov	r7,rb1r0	; 05fe   af 08      /.
 	clr	RFCON_rfce	; 0605   c2 e8      Bh
 	setb	PORT_TX_OFF	; 0607   d2 94      R.
 	mov	27h,#1		; 0609   75 27 01   u'.
-	mov	dptr,#X0013	; 060c   90 00 13   ...
+	mov	dptr,#tx_state	; 060c   90 00 13   ...
 	clr	a		; 060f   e4         d
 	movx	@dptr,a		; 0610   f0         p
 	clr	p1.5		; 0611   c2 95      B.
@@ -1022,7 +1022,7 @@ X0632:	mov	a,#64h		; 0632   74 64      td
 	mov	r1,rb0r5	; 0648   a9 05      ).
 	mov	a,r6		; 064a   ee         n
 	mov	r7,a		; 064b   ff         .
-	mov	dptr,#bind_data	; 064c   90 00 15   ...
+	mov	dptr,#bind_packet; 064c   90 00 15   ...
 	mov	a,#0ffh		; 064f   74 ff      t.
 	movx	@dptr,a		; 0651   f0         p
 	inc	dptr		; 0652   a3         #
@@ -1040,7 +1040,7 @@ X065c:	mov	a,#61h		; 065c   74 61      ta
 	mov	dph,a		; 0664   f5 83      u.
 	movx	a,@dptr		; 0666   e0         `
 	mov	r6,a		; 0667   fe         ~
-	mov	a,#15h		; 0668   74 15      t.	; bind_data offset
+	mov	a,#15h		; 0668   74 15      t.	; bind_packet offset
 	add	a,r5		; 066a   2d         -
 	mov	dpl,a		; 066b   f5 82      u.
 	clr	a		; 066d   e4         d
@@ -1051,12 +1051,12 @@ X065c:	mov	a,#61h		; 065c   74 61      ta
 	inc	r5		; 0674   0d         .
 	cjne	r5,#8,X065c	; 0675   bd 08 e4   =.d
 	clr	a		; 0678   e4         d
-	mov	28h,a		; 0679   f5 28      u(
+	mov	bind_packet_idx,a; 0679   f5 28      u(
 	mov	r5,#1		; 067b   7d 01      }.
 X067d:	mov	a,r5		; 067d   ed         m
 	mov	b,#0ah		; 067e   75 f0 0a   up.
 	mul	ab		; 0681   a4         $
-	add	a,#15h		; 0682   24 15      $.	; bind_data offset
+	add	a,#15h		; 0682   24 15      $.	; bind_packet offset
 	mov	dpl,a		; 0684   f5 82      u.
 	clr	a		; 0686   e4         d
 	addc	a,#0		; 0687   34 00      4.
@@ -1090,7 +1090,7 @@ X067d:	mov	a,r5		; 067d   ed         m
 	cjne	r5,#4,X067d	; 06b1   bd 04 c9   =.I
 	clr	a		; 06b4   e4         d
 	mov	r5,a		; 06b5   fd         }
-X06b6:	mov	a,#50h		; 06b6   74 50      tP
+X06b6:	mov	a,#hop_channels	; 06b6   74 50      tP
 	add	a,r5		; 06b8   2d         -
 	mov	dpl,a		; 06b9   f5 82      u.
 	clr	a		; 06bb   e4         d
@@ -2072,7 +2072,7 @@ X0bdc:	mov	dptr,#X00a8	; 0bdc   90 00 a8   ..(
 	addc	a,r6		; 0bf2   3e         >
 	mov	r6,a		; 0bf3   fe         ~
 	lcall	read_byte_from_eeprom; 0bf4   12 11 93   ...
-	mov	a,#50h		; 0bf7   74 50      tP
+	mov	a,#hop_channels	; 0bf7   74 50      tP
 	add	a,rb3r1		; 0bf9   25 19      %.
 	mov	dpl,a		; 0bfb   f5 82      u.
 	clr	a		; 0bfd   e4         d
@@ -2645,7 +2645,7 @@ X0fa9:	lcall	rng_is_result_ready; 0fa9   12 12 82   ...
 X0fbb:	mov	a,r7		; 0fbb   ef         o
 	add	a,r6		; 0fbc   2e         .
 	mov	r5,a		; 0fbd   fd         }
-	mov	a,#50h		; 0fbe   74 50      tP
+	mov	a,#hop_channels	; 0fbe   74 50      tP
 	add	a,r6		; 0fc0   2e         .
 	mov	dpl,a		; 0fc1   f5 82      u.
 	clr	a		; 0fc3   e4         d
@@ -2821,7 +2821,7 @@ X10b6:	mov	a,r7		; 10b6   ef         o
 	ljmp	spi_write_register; 10c6   02 11 c7   ..G
 ;
 ; ***************************************************************************
-make_bind_data:
+generate_bind_data:
 	mov	r7,#1		; 10c9   7f 01      ..
 	lcall	rng_bias_corrector_on_off; 10cb   12 13 85   ...
 	clr	a		; 10ce   e4         d
@@ -3553,6 +3553,7 @@ count	equ	1ch
 rb3r5	equ	1dh
 save_r3_r7	equ	1eh
 save_r2	equ	1fh
+bind_packet_idx	equ	28h
 f_model_no	equ	5eh
 f_servo_data	equ	5fh
 f_stick_data	equ	63h
@@ -3712,15 +3713,19 @@ FSR_endebug	equ	0ffh
 ;  These are operand symbols from the control
 ;  file that are referenced in the code
 ;
-bind_data	equ	15h
+bind_adr	equ	64h
+bind_packet	equ	15h
 div_5ms	equ	1
 failsafe_tx_value	equ	0
 fs_st_h	equ	3eh
 fs_st_l	equ	40h
 fs_th_h	equ	14h
 fs_th_l	equ	3dh
+hop_channels	equ	50h
+hop_index	equ	12h
 stick_data	equ	0a0h
 tx_packet	equ	41h
+tx_state	equ	13h
 uart_data+1	equ	3
 uart_data+2	equ	3
 uart_data+2	equ	4
