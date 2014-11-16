@@ -36,8 +36,14 @@ k 94 SDA            ; p1.4
 ;k 84 SCL            ; p0.4
 ;k 83 SDA            ; p0.3
 
-p 0000 IS_HKR3000 equ 1
+;=========================================================
 
+p 0000 ;Uncomment the line below for HKR3100
+p 0000 ;Leave it commented out for XR3100
+p 0000
+p 0000 ;IS_HKR3000 equ 1
+p 0000
+p 0000
 p 0000 IFDEF IS_HKR3000
 p 0000 LED_GREEN_HKR3000 equ p1.2
 p 0000 LED_RED_HKR3000 equ p1.3
@@ -56,12 +62,236 @@ p 0059         anl     P1DIR,#0fch
 p 0059     ELSE
 p 0065     ENDIF
 
-p 00dc     IFDEF IS_HKR3000
-p 00dc         jb      BIND_BUTTON_HKR3000,X00e2
-p 00dc     ELSE
+p 00d8     IFDEF IS_HKR3000
+p 00d8         clr     LED_GREEN_HKR3000
+p 00d8         setb    LED_RED_HKR3000
+p 00d8         jb      BIND_BUTTON_HKR3000,X00e2
+p 00d8     ELSE
 p 00df     ENDIF
 
+p 0a8c     IFDEF IS_HKR3000
+p 0a8c         jb      BIND_BUTTON_HKR3000,X0ac3
+p 0a8c     ELSE
+p 0a8f     ENDIF
 
+p 0103     IFDEF IS_HKR3000
+p 0103         setb    LED_GREEN_HKR3000
+p 0103         setb    LED_RED_HKR3000
+p 0103     ELSE
+p 0107     ENDIF
+
+p 0109     IFDEF IS_HKR3000
+p 0109 X0109:  clr     LED_GREEN_HKR3000
+p 0109         clr     LED_RED_HKR3000
+p 0109     ELSE
+p 010d     ENDIF
+
+p 0115     IFDEF IS_HKR3000
+p 0115         setb    LED_RED_HKR3000
+p 0115         clr     LED_GREEN_HKR3000
+p 0115     ELSE
+p 0119     ENDIF
+
+p 02f0     IFDEF IS_HKR3000
+p 02f0         setb    LED_GREEN_HKR3000
+p 02f0         clr     LED_RED_HKR3000
+p 02f0     ELSE
+p 02f4     ENDIF
+
+p 02f7     IFDEF IS_HKR3000
+p 02f7 output_failsafe:
+p 02f7         clr     LED_GREEN_HKR3000
+p 02f7         setb    LED_RED_HKR3000
+p 02f7     ELSE
+p 02fb     ENDIF
+
+p 050b     IFDEF IS_HKR3000
+p 050b         xrl     p1,#8
+p 050b     ELSE
+p 050e     ENDIF
+
+p 0534     IFDEF IS_HKR3000
+p 0534         setb    LED_RED_HKR3000
+p 0534         clr     LED_GREEN_HKR3000
+p 0534     ELSE
+p 0538     ENDIF
+
+p 05ae     IFDEF IS_HKR3000
+p 05ae         clr     LED_RED_HKR3000
+p 05ae         setb    LED_GREEN_HKR3000
+p 05ae     ELSE
+p 05b2     ENDIF
+
+p 056c     IFDEF IS_HKR3000
+p 056c         add     a,#5
+p 056c     ELSE
+p 056e     ENDIF
+
+p 071d     IFDEF IS_HKR3000
+p 071d         orl     P0DIR,#8
+p 071d     ELSE
+p 0720     ENDIF
+
+p 0722     IFDEF IS_HKR3000
+p 0722 X0722:  anl     P0DIR,#0f7h
+p 0722     ELSE
+p 0725     ENDIF
+
+p 0738     IFDEF IS_HKR3000
+p 0738         setb    SCL_HKR3000
+p 0738     ELSE
+p 073a     ENDIF
+
+p 0749     IFDEF IS_HKR3000
+p 0749         clr     SCL_HKR3000
+p 0749     ELSE
+p 074b     ENDIF
+
+p 075e     IFDEF IS_HKR3000
+p 075e         orl     P0DIR,#8
+p 075e     ELSE
+p 0761     ENDIF
+
+p 0770     IFDEF IS_HKR3000
+p 0770         setb    SCL_HKR3000
+p 0770     ELSE
+p 0772     ENDIF
+
+p 0781     IFDEF IS_HKR3000
+p 0781         jnb     SDA_HKR3000,X0798
+p 0781         clr     SCL_HKR3000
+p 0781     ELSE
+p 0786     ENDIF
+
+p 0798     IFDEF IS_HKR3000
+p 0798 X0798:  clr     SCL_HKR3000
+p 0798     ELSE
+p 079a     ENDIF
+
+p 0a20     IFDEF IS_HKR3000
+p 0a20         orl     P0DIR,#8
+p 0a20     ELSE
+p 0a23     ENDIF
+
+p 0a33     IFDEF IS_HKR3000
+p 0a33         clr     SCL_HKR3000
+p 0a33     ELSE
+p 0a35     ENDIF
+
+p 0a44     IFDEF IS_HKR3000
+p 0a44         setb    SCL_HKR3000
+p 0a44     ELSE
+p 0a46     ENDIF
+
+p 0a59     IFDEF IS_HKR3000
+p 0a59         jnb     SDA_HKR3000,X0a5d
+p 0a59     ELSE
+p 0a5c     ENDIF
+
+p 0a70     IFDEF IS_HKR3000
+p 0a70         clr     SCL_HKR3000
+p 0a70     ELSE
+p 0a72     ENDIF
+
+p 0be3     IFDEF IS_HKR3000
+p 0be3         clr     SDA_HKR3000
+p 0be3         orl     P0DIR,#8
+p 0be3     ELSE
+p 0be8     ENDIF
+
+p 0bf1     IFDEF IS_HKR3000
+p 0bf1         orl     P0DIR,#8
+p 0bf1     ELSE
+p 0bf4     ENDIF
+
+p 0bf6     IFDEF IS_HKR3000
+p 0bf6 X0bf6:  anl     P0DIR,#0f7h
+p 0bf6     ELSE
+p 0bf9     ENDIF
+
+p 0bfd     IFDEF IS_HKR3000
+p 0bfd         setb    SCL_HKR3000
+p 0bfd     ELSE
+p 0bff     ENDIF
+
+p 0c04     IFDEF IS_HKR3000
+p 0c04         clr     SCL_HKR3000
+p 0c04     ELSE
+p 0c06     ENDIF
+
+p 0c0f     IFDEF IS_HKR3000
+p 0c0f         orl     P0DIR,#8
+p 0c0f     ELSE
+p 0c12     ENDIF
+
+p 0c1a     IFDEF IS_HKR3000
+p 0c1a         setb    SCL_HKR3000
+p 0c1a     ELSE
+p 0c1c     ENDIF
+
+p 0c24     IFDEF IS_HKR3000
+p 0c24         jnb     SDA_HKR3000,X0c2c
+p 0c24         clr     SCL_HKR3000
+p 0c24     ELSE
+p 0c29     ENDIF
+
+p 0ca6     IFDEF IS_HKR3000
+p 0ca6         add     a,#5
+p 0ca6     ELSE
+p 0ca8     ENDIF
+
+
+p 0c2c     IFDEF IS_HKR3000
+p 0c2c X0c2c:  clr     SCL_HKR3000
+p 0c2c     ELSE
+p 0c2e     ENDIF
+
+p 0ec5     IFDEF IS_HKR3000
+p 0ec5 i2c_start:
+p 0ec5         orl     P0DIR,#8
+p 0ec5         nop
+p 0ec5         nop
+p 0ec5         setb    SCL_HKR3000
+p 0ec5     ELSE
+p 0ecc     ENDIF
+
+p 0ed6     IFDEF IS_HKR3000
+p 0ed6         anl     P0DIR,#0f7h
+p 0ed6     ELSE
+p 0ed9     ENDIF
+
+p 0ee3     IFDEF IS_HKR3000
+p 0ee3         clr     SCL_HKR3000
+p 0ee3     ELSE
+p 0ee5     ENDIF
+
+p 1039     IFDEF IS_HKR3000
+p 1039 i2c_stop:
+p 1039         anl     P0DIR,#0f7h
+p 1039         nop
+p 1039         setb    SCL_HKR3000
+p 1039     ELSE
+p 103f     ENDIF
+
+p 1049     IFDEF IS_HKR3000
+p 1049         orl     P0DIR,#8
+p 1049     ELSE
+p 104c     ENDIF
+
+p 1088     IFDEF IS_HKR3000
+p 1088 init_ports:
+p 1088         mov     P0CON,#53h
+p 1088         mov     P0CON,#54h
+p 1088         clr     SCL_HKR3000
+p 1088         clr     SDA_HKR3000
+p 1088         anl     P0DIR,#0efh
+p 1088         orl     P0DIR,#8
+p 1088     ELSE
+p 1098     ENDIF
+
+;=========================================================
+;=========================================================
+;=========================================================
 
 
 
