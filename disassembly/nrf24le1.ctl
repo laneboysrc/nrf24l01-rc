@@ -119,8 +119,8 @@ f d5 ADCDATL
 f d6 RNGCTL
 f d7 RNGDAT
 
-;f d8 ADCON
-k df ADCON_bd
+f d8 SERCON
+k df SERCON_bd
 
 f d9 W2SADR
 f da W2DAT

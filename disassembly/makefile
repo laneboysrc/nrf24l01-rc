@@ -8,7 +8,7 @@ ASM_OPTS := --quiet --nocolor --no-bin --no-sim --assemble
 
 REASSEMBLY_SUFFIX := -reassembly
 
-OBJECTS := $(patsubst %.d52, %$(REASSEMBLY_SUFFIX).bin, $(OBJECTS))
+REASSEMBLED_OBJECTS := $(patsubst %.d52, %$(REASSEMBLY_SUFFIX).bin, $(OBJECTS))
 
 
 
@@ -24,12 +24,14 @@ OBJECTS := $(patsubst %.d52, %$(REASSEMBLY_SUFFIX).bin, $(OBJECTS))
 
 all: $(OBJECTS)
 
+bin: $(REASSEMBLED_OBJECTS)
+
 clean:
 	$(RM) -f *.lst*
 	$(RM) -f *.hex
 	$(RM) -f *$(REASSEMBLY_SUFFIX).bin
 	$(RM) -f *.d52
 
-.phony: all clean
+.phony: all bin clean
 
 

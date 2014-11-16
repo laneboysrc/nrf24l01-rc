@@ -252,8 +252,8 @@ f d5 ADCDATL
 f d6 RNGCTL
 f d7 RNGDAT
 
-;f d8 ADCON
-k df ADCON_bd
+f d8 SERCON
+k df SERCON_bd
 
 f d9 W2SADR
 f da W2DAT
@@ -341,11 +341,12 @@ x 0563 div_5ms    ; X0001
 
 ; x 0000 uart_data         ; X0002
 ! 00d2 uart_data
+x 00d3 uart_data
 
 x 229 uart_data+1       ; X0003
 
-x 00e5 uart_data+2      ; X0004
-x 0155 uart_data+2
+x 00e5 uart_data+1
+x 0155 uart_data+2      ; X0004
 
 x 010f uart_data+3      ; X0005
 x 0240 uart_data+3
