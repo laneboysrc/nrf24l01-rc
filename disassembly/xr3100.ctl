@@ -36,7 +36,17 @@ k 94 SDA            ; p1.4
 ;k 84 SCL            ; p0.4
 ;k 83 SDA            ; p0.3
 
+p 0000 ;IS_HKR3000 equ 1
 
+p 0059     IFDEF IS_HKR3000
+p 0059         clr     a
+p 0059         mov     P1DIR,a
+p 0059         anl     P0DIR,#0dfh
+p 0059         mov     P0CON,#56h
+p 0059         anl     P0DIR,#5fh
+p 0059         anl     P1DIR,#0fch
+p 0059     ELSE
+p 0065     ENDIF
 
 
 
