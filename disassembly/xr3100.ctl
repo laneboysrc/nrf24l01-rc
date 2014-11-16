@@ -36,7 +36,15 @@ k 94 SDA            ; p1.4
 ;k 84 SCL            ; p0.4
 ;k 83 SDA            ; p0.3
 
-p 0000 ;IS_HKR3000 equ 1
+p 0000 IS_HKR3000 equ 1
+
+p 0000 IFDEF IS_HKR3000
+p 0000 LED_GREEN_HKR3000 equ p1.2
+p 0000 LED_RED_HKR3000 equ p1.3
+p 0000 BIND_BUTTON_HKR3000 equ p0.6
+p 0000 SCL_HKR3000 equ p0.4
+p 0000 SDA_HKR3000 equ p0.3
+p 0000 ENDIF
 
 p 0059     IFDEF IS_HKR3000
 p 0059         clr     a
@@ -48,6 +56,10 @@ p 0059         anl     P1DIR,#0fch
 p 0059     ELSE
 p 0065     ENDIF
 
+p 00dc     IFDEF IS_HKR3000
+p 00dc         jb      BIND_BUTTON_HKR3000,X00e2
+p 00dc     ELSE
+p 00df     ENDIF
 
 
 
