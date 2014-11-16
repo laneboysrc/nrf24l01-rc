@@ -1,6 +1,6 @@
 ;
 ;  D52 V3.4.1 8052 Disassembly of hk310.hex
-;  2014/11/15 20:21
+;  2014/11/16 09:22
 ;
 	org	0
 ;
@@ -135,12 +135,13 @@ servo_data_received:
 	sjmp	X00c2		; 00be   80 02      ..
 ;
 ; ***************************************************************************
+; Copy 6 bytes from uart_buffer to uart_data
 copy_from_uart_buffer:
 	setb	TCON_tr0	; 00c0   d2 8c      R.
 X00c2:	clr	IEN0_serial	; 00c2   c2 ac      B,
 	clr	a		; 00c4   e4         d
 	mov	r7,a		; 00c5   ff         .
-X00c6:	mov	a,#9ah		; 00c6   74 9a      t.
+X00c6:	mov	a,#9ah		; 00c6   74 9a      t.	; uart_buffer
 	add	a,r7		; 00c8   2f         /
 	mov	dpl,a		; 00c9   f5 82      u.
 	clr	a		; 00cb   e4         d
@@ -148,7 +149,7 @@ X00c6:	mov	a,#9ah		; 00c6   74 9a      t.
 	mov	dph,a		; 00ce   f5 83      u.
 	movx	a,@dptr		; 00d0   e0         `
 	mov	r6,a		; 00d1   fe         ~
-	mov	a,#2		; 00d2   74 02      t.
+	mov	a,#2		; 00d2   74 02      t.	; uart_data
 	add	a,r7		; 00d4   2f         /
 	mov	dpl,a		; 00d5   f5 82      u.
 	clr	a		; 00d7   e4         d
@@ -159,6 +160,10 @@ X00c6:	mov	a,#9ah		; 00c6   74 9a      t.
 	inc	r7		; 00de   0f         .
 	cjne	r7,#6,X00c6	; 00df   bf 06 e4   ?.d
 	setb	IEN0_serial	; 00e2   d2 ac      R,
+; If high nibble of the received data byte 3 is 0xa0 we
+; are dealing with stick data.
+; Note: this is actually weird, because failsafe data is checked byte 2
+; being 0bbh. Byte 3 of failsafe is 0cch
 	mov	dptr,#uart_data+2; 00e4   90 00 03   ...
 	movx	a,@dptr		; 00e7   e0         `
 	mov	r7,a		; 00e8   ff         .
@@ -390,25 +395,29 @@ process_stick_data:
 	movx	a,@dptr		; 021f   e0         `
 	addc	a,#0f2h		; 0220   34 f2      4r
 	movx	@dptr,a		; 0222   f0         p
-	mov	63h,#1		; 0223   75 63 01   uc.
-	sjmp	stick_data_processed; 0226   80 5f      ._
+	mov	f_stick_data,#1	; 0223   75 63 01   uc.
+	sjmp	uart_data_processed; 0226   80 5f      ._
 ;
 ; ***************************************************************************
 check_if_failsafe_data:
-	mov	dptr,#X0003	; 0228   90 00 03   ...
+	mov	dptr,#uart_data+1; 0228   90 00 03   ...
 	movx	a,@dptr		; 022b   e0         `
+; Check if 2nd payload byte is 0bbh, which indicates failsafe
 	xrl	a,#0bbh		; 022c   64 bb      d;
-	jnz	stick_data_processed; 022e   70 57      pW
-	mov	dptr,#X0007	; 0230   90 00 07   ...
+	jnz	uart_data_processed; 022e   70 57      pW
+	mov	dptr,#uart_data+5; 0230   90 00 07   ...
 	movx	a,@dptr		; 0233   e0         `
 	jb	acc.2,X023f	; 0234   20 e2 08    b.
-	mov	dptr,#X0000	; 0237   90 00 00   ...
-	mov	a,#5bh		; 023a   74 5b      t[
+	mov	dptr,#failsafe_tx_value; 0237   90 00 00   ...
+	mov	a,#5bh		; 023a   74 5b      t[	; failsafe disabled
 	movx	@dptr,a		; 023c   f0         p
-	sjmp	stick_data_processed; 023d   80 48      .H
+	sjmp	uart_data_processed; 023d   80 48      .H
 ;
-X023f:	mov	dptr,#X0005	; 023f   90 00 05   ...
+X023f:	mov	dptr,#uart_data+3; 023f   90 00 05   ...
 	movx	a,@dptr		; 0242   e0         `
+; Calculate timer value from incoming +-120% value which is centered at 78h:
+; (percent * 8) + 0f480h
+; Result is actually slightly off: 1487us instead of 1500us
 	mov	b,#8		; 0243   75 f0 08   up.
 	mul	ab		; 0246   a4         $
 	add	a,#80h		; 0247   24 80      $.
@@ -416,18 +425,18 @@ X023f:	mov	dptr,#X0005	; 023f   90 00 05   ...
 	mov	a,b		; 024a   e5 f0      ep
 	addc	a,#0f4h		; 024c   34 f4      4t
 	mov	r6,a		; 024e   fe         ~
-	mov	dptr,#X0000	; 024f   90 00 00   ...
+	mov	dptr,#failsafe_tx_value; 024f   90 00 00   ...
 	mov	a,#5ah		; 0252   74 5a      tZ
 	movx	@dptr,a		; 0254   f0         p
 	mov	r5,rb0r7	; 0255   ad 07      -.
-	mov	dptr,#X0040	; 0257   90 00 40   ..@
+	mov	dptr,#fs_st_l	; 0257   90 00 40   ..@
 	mov	a,r5		; 025a   ed         m
 	movx	@dptr,a		; 025b   f0         p
 	mov	r7,rb0r6	; 025c   af 06      /.
-	mov	dptr,#X003e	; 025e   90 00 3e   ..>
+	mov	dptr,#fs_st_h	; 025e   90 00 3e   ..>
 	mov	a,r7		; 0261   ef         o
 	movx	@dptr,a		; 0262   f0         p
-	mov	dptr,#X0006	; 0263   90 00 06   ...
+	mov	dptr,#uart_data+4; 0263   90 00 06   ...
 	movx	a,@dptr		; 0266   e0         `
 	mov	b,#8		; 0267   75 f0 08   up.
 	mul	ab		; 026a   a4         $
@@ -436,19 +445,19 @@ X023f:	mov	dptr,#X0005	; 023f   90 00 05   ...
 	mov	a,b		; 026e   e5 f0      ep
 	addc	a,#0f4h		; 0270   34 f4      4t
 	mov	r6,a		; 0272   fe         ~
-	mov	dptr,#X0000	; 0273   90 00 00   ...
+	mov	dptr,#failsafe_tx_value; 0273   90 00 00   ...
 	mov	a,#5ah		; 0276   74 5a      tZ
 	movx	@dptr,a		; 0278   f0         p
 	mov	r5,rb0r7	; 0279   ad 07      -.
-	mov	dptr,#X003d	; 027b   90 00 3d   ..=
+	mov	dptr,#fs_th_l	; 027b   90 00 3d   ..=
 	mov	a,r5		; 027e   ed         m
 	movx	@dptr,a		; 027f   f0         p
 	mov	r7,rb0r6	; 0280   af 06      /.
-	mov	dptr,#X0014	; 0282   90 00 14   ...
+	mov	dptr,#fs_th_h	; 0282   90 00 14   ...
 	mov	a,r7		; 0285   ef         o
 	movx	@dptr,a		; 0286   f0         p
 ; ***************************************************************************
-stick_data_processed:
+uart_data_processed:
 	clr	a		; 0287   e4         d
 	mov	f_servo_data,a	; 0288   f5 5f      u_
 ; ***************************************************************************
@@ -888,7 +897,7 @@ X0571:	setb	p1.5		; 0571   d2 95      R.
 	mov	dptr,#X003f	; 0575   90 00 3f   ..?
 	mov	a,#0ffh		; 0578   74 ff      t.
 	movx	@dptr,a		; 057a   f0         p
-	mov	a,63h		; 057b   e5 63      ec
+	mov	a,f_stick_data	; 057b   e5 63      ec
 	jz	X05ee		; 057d   60 6f      `o
 	mov	a,2ah		; 057f   e5 2a      e*
 	subb	a,#0ah		; 0581   94 0a      ..
@@ -932,30 +941,30 @@ X0571:	setb	p1.5		; 0571   d2 95      R.
 	sjmp	X05ea		; 05ba   80 2e      ..
 ;
 X05bc:	mov	2ah,#0		; 05bc   75 2a 00   u*.
-	mov	dptr,#fs_data+3	; 05bf   90 00 40   ..@
+	mov	dptr,#fs_st_l	; 05bf   90 00 40   ..@
 	movx	a,@dptr		; 05c2   e0         `
 	inc	dptr		; 05c3   a3         #
 	movx	@dptr,a		; 05c4   f0         p	; tx_packet
-	mov	dptr,#fs_data+1	; 05c5   90 00 3e   ..>
+	mov	dptr,#fs_st_h	; 05c5   90 00 3e   ..>
 	movx	a,@dptr		; 05c8   e0         `
 	mov	dptr,#tx_packet+1; 05c9   90 00 42   ..B
 	movx	@dptr,a		; 05cc   f0         p
-	mov	dptr,#fs_data	; 05cd   90 00 3d   ..=
+	mov	dptr,#fs_th_l	; 05cd   90 00 3d   ..=
 	movx	a,@dptr		; 05d0   e0         `
 	mov	dptr,#tx_packet+2; 05d1   90 00 43   ..C
 	movx	@dptr,a		; 05d4   f0         p
-	mov	dptr,#X0014	; 05d5   90 00 14   ...
+	mov	dptr,#fs_th_h	; 05d5   90 00 14   ...
 	movx	a,@dptr		; 05d8   e0         `
 	mov	dptr,#tx_packet+3; 05d9   90 00 44   ..D
 	movx	@dptr,a		; 05dc   f0         p
 	mov	dptr,#tx_packet+7; 05dd   90 00 48   ..H
 	mov	a,#0aah		; 05e0   74 aa      t*
 	movx	@dptr,a		; 05e2   f0         p
-	mov	dptr,#X0000	; 05e3   90 00 00   ...
+	mov	dptr,#failsafe_tx_value; 05e3   90 00 00   ...	; failsafe_tx_value is either 5ah (enabled) or 5bh (disabled)
 	movx	a,@dptr		; 05e6   e0         `
 	mov	dptr,#tx_packet+8; 05e7   90 00 49   ..I
 X05ea:	movx	@dptr,a		; 05ea   f0         p
-	mov	63h,#0		; 05eb   75 63 00   uc.
+	mov	f_stick_data,#0	; 05eb   75 63 00   uc.
 X05ee:	mov	r3,#1		; 05ee   7b 01      {.
 	mov	r2,#0		; 05f0   7a 00      z.
 	mov	r1,#41h		; 05f2   79 41      yA	; tx_packet   ; X0041
@@ -1206,21 +1215,21 @@ X0773:	clr	a		; 0773   e4         d
 ;
 X0777:	mov	a,r7		; 0777   ef         o
 	cjne	a,#3,X079c	; 0778   b4 03 21   4.!
-	mov	dptr,#X0093	; 077b   90 00 93   ...
+	mov	dptr,#uart_payload_count; 077b   90 00 93   ...
 	movx	a,@dptr		; 077e   e0         `
-	add	a,#9ah		; 077f   24 9a      $.
+	add	a,#9ah		; 077f   24 9a      $.	; offset X0093 in uart_buffer
 	mov	dpl,a		; 0781   f5 82      u.
 	clr	a		; 0783   e4         d
 	addc	a,#0		; 0784   34 00      4.
 	mov	dph,a		; 0786   f5 83      u.
 	mov	a,S0BUF		; 0788   e5 99      e.
 	movx	@dptr,a		; 078a   f0         p
-	mov	dptr,#X0093	; 078b   90 00 93   ...
+	mov	dptr,#uart_payload_count; 078b   90 00 93   ...
 	movx	a,@dptr		; 078e   e0         `
 	inc	a		; 078f   04         .
 	movx	@dptr,a		; 0790   f0         p
 	movx	a,@dptr		; 0791   e0         `
-	xrl	a,#0ch		; 0792   64 0c      d.
+	xrl	a,#0ch		; 0792   64 0c      d.	; 12 bytes read
 	jnz	X07df		; 0794   70 49      pI
 	movx	@dptr,a		; 0796   f0         p
 	mov	f_servo_data,#1	; 0797   75 5f 01   u_.
@@ -3546,6 +3555,7 @@ save_r3_r7	equ	1eh
 save_r2	equ	1fh
 f_model_no	equ	5eh
 f_servo_data	equ	5fh
+f_stick_data	equ	63h
 ;
 ;	SFR Equates
 ;
@@ -3704,14 +3714,20 @@ FSR_endebug	equ	0ffh
 ;
 bind_data	equ	15h
 div_5ms	equ	1
-fs_data	equ	3dh
+failsafe_tx_value	equ	0
+fs_st_h	equ	3eh
+fs_st_l	equ	40h
+fs_th_h	equ	14h
+fs_th_l	equ	3dh
 stick_data	equ	0a0h
 tx_packet	equ	41h
+uart_data+1	equ	3
 uart_data+2	equ	3
 uart_data+2	equ	4
 uart_data+3	equ	5
 uart_data+4	equ	6
 uart_data+5	equ	7
+uart_payload_count	equ	93h
 ;
 ;	Miscellaneous equates
 ;

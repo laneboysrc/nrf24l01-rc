@@ -318,6 +318,8 @@ r 1c count
 r 1f save_r2
 r 1e save_r3_r7
 
+r 63 f_stick_data
+
 
 
 ; ******************************************************
@@ -325,70 +327,98 @@ r 1e save_r3_r7
 ; ******************************************************
 
 
-; x X0041 10 bytes of data sent over-the-air! BUT: other areas sent too!
+x 0238 failsafe_tx_value    ; X0000
+x 0250 failsafe_tx_value
+x 0274 failsafe_tx_value
+x 05e4 failsafe_tx_value
+! 05e3 failsafe_tx_value is either 5ah (enabled) or 5bh (disabled)
 
-; uart_data equ 0002h
-; uart_data+1 equ 0003h
-; uart_data+2 equ 0004h
-; uart_data+3 equ 0005h
-; uart_data+4 equ 0006h
-; uart_data+5 equ 0007h
+x 0563 div_5ms    ; X0001
 
-; stick_data equ 00a0h
-; stick_data+1 equ 00a1h
-; stick_data+2 equ 00a2h
-; stick_data+3 equ 00a3h
-; stick_data+4 equ 00a4h
-; stick_data+5 equ 00a5h
+; uart_data: payload: 3rd byte of the received UART data onwards (first 3 bytes are marker 0ffh, 55h, 0aah)
 
-x 00e5 uart_data+2
-x 00f3 stick_data
+; x 0000 uart_data         ; X0002
+! 00d2 uart_data
+
+x 229 uart_data+1       ; X0003
+
+x 00e5 uart_data+2      ; X0004
+x 0155 uart_data+2
+
+x 010f uart_data+3      ; X0005
+x 0240 uart_data+3
+
+x 0183 uart_data+4      ; X0006
+x 0264 uart_data+4
+
+x 01e6 uart_data+5      ; X0007
+x 0231 uart_data+5
+
+
+x 077c uart_payload_count   ; X0093
+x 078c uart_payload_count
+! 0792 12 bytes read
+
+; uart_buffer: filled with 3rd byte of received data onwards
+; 12 bytes long
+;x 0000 uart_buffer     ; X009A
+! 077f offset X0093 in uart_buffer
+! 00c6 uart_buffer
+
+; stick_data: 6 bytes for 3 channels; as receiver timer1 value (1500 = 0f82fh)
+
+x 00f3 stick_data       ;X00A0
 x 00fe stick_data
 x 0108 stick_data
-x 010f uart_data+3
-x 0114 stick_data+1
 x 011a stick_data
 x 012d stick_data
 x 0135 stick_data
 x 0142 stick_data
 x 014e stick_data
-x 0155 uart_data+2
-x 015c stick_data+2
+x 0588 stick_data
+
+x 0114 stick_data+1     ;X00A1
+
+x 015c stick_data+2     ;X00A2
 x 016c stick_data+2
 x 017c stick_data+2
-x 0183 uart_data+4
-x 0188 stick_data+3
 x 018e stick_data+2
 x 01a1 stick_data+2
 x 01a9 stick_data+2
 x 01b6 stick_data+2
 x 01c2 stick_data+2
-x 01c9 stick_data+4
+x 0596 stick_data+2
+
+x 0188 stick_data+3      ;X00A3
+
+x 01c9 stick_data+4      ;X00A4
 x 01D5 stick_data+4
 x 01Df stick_data+4
-x 01e6 uart_data+5
-x 01eb stick_data+5
 x 01f1 stick_data+4
 x 0204 stick_data+4
 x 0211 stick_data+4
 x 021d stick_data+4
-
-
-x 0588 stick_data
-x 0596 stick_data+2
 x 05a4 stick_data+4
 
-x 0563 div_5ms    ; X0001
+x 01eb stick_data+5      ;X00A5
+
 
 x 064d bind_data
 ! 0668 bind_data offset
 ! 0682 bind_data offset
 ! 04ba bind_data offset
 
+x 0283 fs_th_h  ; X0014
+x 05d6 fs_th_h
 
-x 05ce fs_data  ; X003d
-x 05c6 fs_data+1  ; X003e
-x 05c0 fs_data+3  ; X0040
+x 05ce fs_th_l  ; X003d
+x 027c fs_th_l
+
+x 05c6 fs_st_h  ; X003e
+x 025f fs_st_h
+
+x 05c0 fs_st_l  ; X0040
+x 0258 fs_st_l
 
 ! 05f2 tx_packet   ; X0041
 x 058f tx_packet
@@ -436,8 +466,19 @@ l 00ae main
 
 l 00b5 servo_data_received
 # 00b5 ***************************************************************************
+
 l 00c0 copy_from_uart_buffer
 # 00c0 ***************************************************************************
+# 00c0 Copy 6 bytes from uart_buffer to uart_data
+
+# 00e4 If high nibble of the received data byte 3 is 0xa0 we
+# 00e4 are dealing with stick data.
+# 00e4 Note: this is actually weird, because failsafe data is checked byte 2
+# 00e4 being 0bbh. Byte 3 of failsafe is 0cch
+
+
+
+
 l 00f2 process_stick_data
 # 00f2 ***************************************************************************
 # 00f2 Converts the stick data received from the UART into the data
@@ -457,8 +498,16 @@ l 00f2 process_stick_data
 
 l 0228 check_if_failsafe_data
 # 0228 ***************************************************************************
+# 022c Check if 2nd payload byte is 0bbh, which indicates failsafe
 
-l 0287 stick_data_processed
+! 023a failsafe disabled
+
+# 0243 Calculate timer value from incoming +-120% value which is centered at 78h:
+# 0243 (percent * 8) + 0f480h
+# 0243 Result is actually slightly off: 1487us instead of 1500us
+
+
+l 0287 uart_data_processed
 # 0287 ***************************************************************************
 
 l 028a check_model_cmd_received
