@@ -1,6 +1,6 @@
 ;
 ;  D52 V3.4.1 8052 Disassembly of hk310.hex
-;  2014/11/16 10:46
+;  2014/11/16 11:01
 ;
 	org	0
 ;
@@ -721,6 +721,12 @@ X040b:	mov	dptr,#X00a8	; 040b   90 00 a8   ..(
 ;
 ; ************************************************************************
 ; RF Interrupt Handler
+;
+; Timer0 fires off a transmit sequence every 5ms (or 4ms?)
+; Timer0 sends the stick/fs data immediately
+; After the packet is finished, the interrupt sends the same packet again
+; Next is one of the bind packets on channel 51h, in a round-robin fashion
+; Next the next hop frequency is set, and then we wait for the next timer0
 ; ************************************************************************
 rf_interrupt_handler:
 	push	acc		; 043d   c0 e0      @`

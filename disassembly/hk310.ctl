@@ -544,6 +544,12 @@ l 0349 format_eeprom
 l 043d rf_interrupt_handler
 # 043d ************************************************************************
 # 043d RF Interrupt Handler
+# 043d
+# 043d Timer0 fires off a transmit sequence every 5ms (or 4ms?)
+# 043d Timer0 sends the stick/fs data immediately
+# 043d After the packet is finished, the interrupt sends the same packet again
+# 043d Next is one of the bind packets on channel 51h, in a round-robin fashion
+# 043d Next the next hop frequency is set, and then we wait for the next timer0
 # 043d ************************************************************************
 
 ! 0462 Flush if MAX_RT
