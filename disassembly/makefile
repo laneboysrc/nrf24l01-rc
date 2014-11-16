@@ -6,17 +6,28 @@ DASM_OPTS := -d
 ASM := mcu8051ide
 ASM_OPTS := --quiet --nocolor --no-bin --no-sim --assemble
 
+REASSEMBLY_SUFFIX := -reassembly
+
+OBJECTS := $(patsubst %.d52, %$(REASSEMBLY_SUFFIX).bin, $(OBJECTS))
+
+
+
+
 %.d52: %.bin %.ctl
 	$(DASM) $(DASM_OPTS) $<
 
 %.hex: %.d52
 	$(ASM) $(ASM_OPTS) $<
 
+%$(REASSEMBLY_SUFFIX).bin: %.hex
+	objcopy --gap-fill=0 -I ihex -O binary $< $@
+
 all: $(OBJECTS)
 
 clean:
 	$(RM) -f *.lst*
 	$(RM) -f *.hex
+	$(RM) -f *$(REASSEMBLY_SUFFIX).bin
 	$(RM) -f *.d52
 
 .phony: all clean
