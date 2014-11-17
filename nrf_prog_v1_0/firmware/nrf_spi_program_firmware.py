@@ -79,19 +79,29 @@ class NRFProgrammer(object):
         # First erase all the pages we will be programming
         # NOTE: we do not perform ERASE ALL as it clears the info page in the
         # chip, destroying important chip data
+
         start_page = start // self.PAGE_SIZE
         end_page = (start + len(data)) // self.PAGE_SIZE
+
+        print("Erasing page {start:d} to {stop:d}".format(
+            start=start_page, stop=end_page))
+
         while start_page <= end_page:
             self.command(self.ERASE_PAGE, "{:02X}".format(start_page))
             start_page += 1
 
+
         # Write the start address, then the new firmware image in 256 byte
         # chunks
         self.command(self.ADDRESS, "{:04X}".format(start))
+
+        print("Programming ...")
         while len(data):
             firmware = hexlify(data[:self.MAX_PARAMETER_LENGTH])
             self.command(self.PROGRAM, firmware)
+            print(".", end=None)
             data = data[self.MAX_PARAMETER_LENGTH:]
+        print()
 
         self.command(self.ACCESS_MODE, self.ACCESS_MODE_EXIT)
         return data
