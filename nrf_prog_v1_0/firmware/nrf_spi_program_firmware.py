@@ -18,12 +18,14 @@ class NRFProgrammer(object):
     SPI = '02'
     ADDRESS = '03'
     PROGRAM = '04'
+    ERASE_PAGE = '52'
     READ = '05'
     RESET = '06'
 
     ACCESS_MODE_ENTER = '01'
     ACCESS_MODE_EXIT = '00'
 
+    PAGE_SIZE = 512
     MAX_PARAMETER_LENGTH = 256
 
     def __init__(self, args):
@@ -73,8 +75,19 @@ class NRFProgrammer(object):
     def write(self, start, data):
         ''' Write binary *data*, starting at *start* to the NRF flash '''
         self.command(self.ACCESS_MODE, self.ACCESS_MODE_ENTER)
-        self.command(self.ADDRESS, "{:04X}".format(start))
 
+        # First erase all the pages we will be programming
+        # NOTE: we do not perform ERASE ALL as it clears the info page in the
+        # chip, destroying important chip data
+        start_page = start // self.PAGE_SIZE
+        end_page = (start + len(data)) // self.PAGE_SIZE
+        while start_page <= end_page:
+            self.command(self.ERASE_PAGE, "{:02X}".format(start_page))
+            start_page += 1
+
+        # Write the start address, then the new firmware image in 256 byte
+        # chunks
+        self.command(self.ADDRESS, "{:04X}".format(start))
         while len(data):
             firmware = hexlify(data[:self.MAX_PARAMETER_LENGTH])
             self.command(self.PROGRAM, firmware)
