@@ -1,6 +1,6 @@
 SOURCE_HEX := xr3100.hex
 SOURCE_ASM := $(patsubst %.hex, %.asm, $(SOURCE_HEX))
-SOURCE_DIR := ../disassembly/
+SOURCE_DIR := ../../disassembly/
 
 DASM := d52
 DASM_OPTS :=
