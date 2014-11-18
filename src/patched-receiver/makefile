@@ -1,6 +1,6 @@
 SOURCE_HEX := xr3100.hex
 SOURCE_ASM := $(patsubst %.hex, %.asm, $(SOURCE_HEX))
-SOURCE_DIR := ../disassembly/
+SOURCE_DIR := ../../disassembly/
 
 DASM := d52
 DASM_OPTS :=
@@ -11,7 +11,7 @@ ASM_OPTS += --code-size 4K --xram-size 1K --assemble
 
 MV := mv
 
-CPPM_PATCHES := cppm.patch
+CPPM_PATCHES := cppm.patch accurate_servo_pulses.patch
 
 
 ###############################################################################
@@ -55,6 +55,7 @@ clean:
 cppm.asm: $(SOURCE_ASM)
 	$(ECHO) [CP] $< -\> $@
 	$(QUIET) cp $< $@
+	$(ECHO) [PATCH] $(CPPM_PATCHES)
 	$(QUIET) for p in $(CPPM_PATCHES) ; do patch -s -i $$p ; done
 
 cppm.hex: $(CPPM_PATCHES)
