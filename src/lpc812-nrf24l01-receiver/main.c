@@ -10,6 +10,7 @@
 #include <LPC8xx.h>
 
 #include <uart0.h>
+#include <spi.h>
 
 // ****************************************************************************
 // IO pins: (LPC812 in TSSOP16 package)

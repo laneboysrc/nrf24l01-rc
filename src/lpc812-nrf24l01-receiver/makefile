@@ -41,7 +41,7 @@ TERMINAL_PROGRAM := miniterm.py -p /dev/ttyUSB0 -b 115200
 
 
 # FIXME: make sure we can do without that tool!
-MAP_SUMMARY_TOOL := parse_gcc_map_file.py
+MAP_SUMMARY_TOOL := parse_gcc_map_file
 
 
 ###############################################################################
