@@ -169,12 +169,13 @@ int main(void)
     init_uart0(115200);
     init_hardware_final();
 
+    init_receiver();
 
     uart0_send_cstring("Receiver initialized\n");
 
     while (1) {
         service_systick();
-
+        process_receiver();
         stack_check();
     }
 }
