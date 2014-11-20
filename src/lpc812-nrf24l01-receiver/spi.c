@@ -6,8 +6,6 @@
 
 void init_spi(void)
 {
-    LPC_GPIO_PORT->DIR0 |=
-        (1 << 1) | (1 << 2) | (1 << 3) | (1 << 6) | (1 << 7);
 
     // FIXME: check datasheet page 53..55 regarding timings
 
@@ -25,8 +23,6 @@ void init_spi(void)
     LPC_SPI0->TXCTRL = (1 << 21) |      // set EOF
                        ((8 - 1) << 24); // 8 bit frames
 
-    LPC_SWM->PINASSIGN3 = 0x03ffffff;   // PIO0_3 is SCK
-    LPC_SWM->PINASSIGN4 = 0xff02ff07;   // PIO0_2 is SSEL PIO0_3 is SIN (MOSI)
 }
 
 

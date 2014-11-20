@@ -27,6 +27,8 @@
 #define CONFIG          0x00        // Config
     #define PRIM_RX     (1 << 0)
     #define PWR_UP      (1 << 1)
+    #define CRC0        (1 << 2)
+    #define EN_CRC      (1 << 3)
     #define MAX_RT      (1 << 4)    // Maximum re-transmit occured
     #define TX_DS       (1 << 5)    // Transmitter data sent interrupt
     #define RX_RD       (1 << 6)    // Receiver data ready
@@ -75,6 +77,12 @@
 #define DATA_PIPE_4     (1 << 4)
 #define DATA_PIPE_5     (1 << 5)
 
+#define NO_CRC          0
+#define CRC_1_BYTE      1
+#define CRC_2_BYTES     2
+
+#define NO_AUTO_ACKNOWLEDGE 0
+#define AUTO_ACKNOWLEDGE 1
 
 //******************************************************************************
 uint8_t rf_read_register(uint8_t reg);
@@ -95,12 +103,14 @@ void rf_set_channel(uint8_t channel);
 bool rf_is_rx_fifo_emtpy(void);
 void rf_read_fifo(uint8_t *buffer, size_t byte_count);
 void rf_set_irq_source(uint8_t irq_source);
-void rf_enable_data_pipes(uint8_t pipes);
+void rf_clear_irq(uint8_t irq_source);
+void rf_enable_data_pipes(uint8_t pipes, bool auto_acknowledge);
 void rf_set_address_width(uint8_t aw);
 uint8_t rf_get_address_width(void);
 void rf_set_data_rate(uint8_t data_rate);
 void rf_set_payload_size(uint8_t pipe, uint8_t payload_size);
 void rf_enable_transmitter(void);
 void rf_enable_receiver(void);
-void rf_standby(void);
+void rf_power_down(void);
+void rf_set_crc(uint8_t crc_size);
 

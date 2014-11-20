@@ -2,11 +2,15 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include <LPC8xx.h>
 #include <spi.h>
 #include <rf.h>
 
 static uint8_t write_buffer[RF_MAX_BUFFER_LENGTH + 1];
 static uint8_t read_buffer[RF_MAX_BUFFER_LENGTH + 1];
+
+
+#define GPIO_RFCE LPC_GPIO_PORT->W0[13]
 
 
 // ****************************************************************************
@@ -114,12 +118,16 @@ uint8_t rf_read_multi_byte_register(uint8_t reg, uint8_t count, uint8_t *buffer)
 
 
 // ****************************************************************************
+// Only available on the nRF24LE1; N/A on nRF24L01+
+// ****************************************************************************
 void rf_enable_clock(void)
 {
     // rfcken = 1
 }
 
 
+// ****************************************************************************
+// Only available on the nRF24LE1; N/A on nRF24L01+
 // ****************************************************************************
 void rf_disable_clock(void)
 {
@@ -137,16 +145,16 @@ uint8_t rf_get_status(void)
 // ****************************************************************************
 void rf_set_ce(void)
 {
-    // rfce = 1
+    GPIO_RFCE = 1;
 
-    // Data sheet page 24: Delay from CE positive edge to CSN low: 4us
+    // FIXME: Data sheet page 24: Delay from CE positive edge to CSN low: 4us
 }
 
 
 // ****************************************************************************
 void rf_clear_ce(void)
 {
-    // rfce = 0
+    GPIO_RFCE = 0;
 }
 
 
@@ -209,9 +217,34 @@ void rf_set_irq_source(uint8_t irq_source)
 
 
 // ****************************************************************************
-void rf_enable_data_pipes(uint8_t pipes)
+void rf_clear_irq(uint8_t irq_source)
+{
+    rf_write_register(STATUS, irq_source & 0x70);
+}
+
+
+// ****************************************************************************
+void rf_set_crc(uint8_t crc_size)
+{
+    uint8_t config;
+
+    config = rf_read_register(CONFIG);
+    config &= ~(EN_CRC | CRC0);
+    if (crc_size == 1) {
+        config |= EN_CRC;
+    }
+    else if (crc_size == 2) {
+        config |= EN_CRC | CRC0;
+    }
+    rf_write_register(CONFIG, config);
+}
+
+
+// ****************************************************************************
+void rf_enable_data_pipes(uint8_t pipes, bool auto_acknowledge)
 {
     rf_write_register(EN_RXADDR, pipes);
+    rf_write_register(EN_AA, auto_acknowledge ? 0x3f : 0);
 }
 
 
@@ -268,7 +301,7 @@ void rf_set_payload_size(uint8_t pipe, uint8_t payload_size)
 
 
 // ****************************************************************************
-void rf_standby(void)
+void rf_power_down(void)
 {
     uint8_t config;
 
@@ -286,11 +319,14 @@ void rf_enable_transmitter(void)
     // mode it must first pass through stand-by mode. There must be a delay of
     // Tpd2stby (see Table 16.) after the nRF24L01+ leaves power down mode
     // before the CE is set high.
+    // Worst case Tpd2stb is 4.5ms, it depends on the crystal inductance.
 
     config = rf_read_register(CONFIG);
     config |= PWR_UP;                       // Set PWR_UP
     config &= ~PRIM_RX;                     // Clear PRIM_RX
     rf_write_register(CONFIG, config);
+
+    // FIXME: add 4.5 ms delay if power was off
 }
 
 
@@ -302,10 +338,13 @@ void rf_enable_receiver(void)
     // mode it must first pass through stand-by mode. There must be a delay of
     // Tpd2stby (see Table 16.) after the nRF24L01+ leaves power down mode
     // before the CE is set high.
+    // Worst case Tpd2stb is 4.5ms, it depends on the crystal inductance.
 
     config = rf_read_register(CONFIG);
     config |= PWR_UP;                       // Set PWR_UP
     config |= PRIM_RX;                      // Set PRIM_RX
     rf_write_register(CONFIG, config);
+
+    // FIXME: add 4.5 ms delay if power was off
 }
 

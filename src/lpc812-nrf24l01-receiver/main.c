@@ -17,19 +17,19 @@
 // IO pins: (LPC812 in TSSOP16 package)
 //
 // PIO0_0   (16, TDO, ISP-Rx)   Rx
-// PIO0_1   (9,  TDI)
-// PIO0_2   (6,  TMS, SWDIO)
-// PIO0_3   (5,  TCK, SWCLK)
+// PIO0_1   (9,  TDI)           MISO
+// PIO0_2   (6,  TMS, SWDIO)    SSEL
+// PIO0_3   (5,  TCK, SWCLK)    SCK
 // PIO0_4   (4,  TRST, ISP-Tx)  Tx
-// PIO0_5   (3,  RESET)
-// PIO0_6   (15)
-// PIO0_7   (14)
+// PIO0_5   (3,  RESET)         RESET
+// PIO0_6   (15)                RF interrupt
+// PIO0_7   (14)                MOSI
 // PIO0_8   (11, XTALIN)
 // PIO0_9   (10, XTALOUT)
 // PIO0_10  (8,  Open drain)
 // PIO0_11  (7,  Open drain)
 // PIO0_12  (2,  ISP-entry)     ISP
-// PIO0_13  (1)
+// PIO0_13  (1)                 RFCE
 //
 // GND      (13)
 // 3.3V     (12)
@@ -40,9 +40,11 @@
 #define __SYSTICK_IN_MS 10
 
 void SysTick_handler(void);
+void PININT0_irq_handler(void);
 
 
 uint32_t systick_count;
+
 
 // ****************************************************************************
 static void init_hardware(void)
@@ -54,6 +56,7 @@ static void init_hardware(void)
     // Set flash wait-states to 1 system clock
     LPC_FLASHCTRL->FLASHCFG = 0;
 
+    // ------------------------
     // Turn on peripheral clocks for SCTimer, IOCON, SPI0
     // (GPIO, SWM alrady enabled after reset)
     LPC_SYSCON->SYSAHBCLKCTRL |= (1 << 8) | (1 << 18) | (1 << 11);
@@ -65,15 +68,22 @@ static void init_hardware(void)
     // Enable reset, all other special functions disabled
     LPC_SWM->PINENABLE0 = 0xffffffbf;
 
-    // U0_TXT_O=PIO0_4, U0_RXD_I=PIO0_0
+    // U0_TXT_O = PIO0_4, U0_RXD_I = PIO0_0
+    // SCK = PIO0_3, MOSI = PIO0_7, MISO = PIO0_1, SSEL = PIO0_2
     LPC_SWM->PINASSIGN0 = 0xffff0004;
+    LPC_SWM->PINASSIGN3 = 0x03ffffff;
+    LPC_SWM->PINASSIGN4 = 0xff020107;
 
+
+    // Make SCK, MOSI, SSEL and RFCE outputs
+    LPC_GPIO_PORT->DIR0 |= (1 << 2) | (1 << 3) | (1 << 7) | (1 << 13);
+    LPC_GPIO_PORT->W0[13] = 0;
 
     // Make the open drain ports PIO0_10, PIO0_11 outputs and pull to ground
     // to prevent them from floating.
     LPC_GPIO_PORT->W0[10] = 0;
     LPC_GPIO_PORT->W0[11] = 0;
-    LPC_GPIO_PORT->DIR0 |= (1u << 10) | (1u << 11);
+    LPC_GPIO_PORT->DIR0 |= (1 << 10) | (1 << 11);
 
 
     // Enable glitch filtering on the IOs
@@ -92,6 +102,12 @@ static void init_hardware(void)
 
 
     // ------------------------
+    // Configure the exernal interrupt from the NRF chip
+    LPC_SYSCON->PINTSEL[0] = 6;             // PIO0_6 (RF Int) on PININT0
+    LPC_PIN_INT->IENF = (1 << 0);           // Enable falling edge on PININT0
+
+
+    // ------------------------
     // SysTick configuration
     SysTick->LOAD = __SYSTEM_CLOCK * __SYSTICK_IN_MS / 1000;
     SysTick->VAL = __SYSTEM_CLOCK * __SYSTICK_IN_MS / 1000;
@@ -106,6 +122,14 @@ static void init_hardware_final(void)
 {
     // Turn off peripheral clock for IOCON and SWM to preserve power
     LPC_SYSCON->SYSAHBCLKCTRL &= ~((1 << 18) | (1 << 7));
+}
+
+
+// ****************************************************************************
+void PININT0_irq_handler(void)
+{
+    LPC_PIN_INT->IST = (1 << 0);          // Clear the interrupt status flag
+    rf_interrupt_handler();
 }
 
 

@@ -4,6 +4,7 @@
 
 #include <rc_receiver.h>
 #include <rf.h>
+#include <uart0.h>
 
 #define PAYLOAD_SIZE 10
 #define ADDRESS_WIDTH 5
@@ -13,7 +14,7 @@
 #define PULSE_1500MS 0xf82f
 
 bool rf_int_fired = false;
-bool rf_data_available = false;
+bool data_available = false;
 unsigned int bind_state;
 unsigned int receive_state;
 unsigned int bind_timeout;
@@ -98,17 +99,26 @@ static void hop_timer_off(void)
 
 }
 
+
 // ****************************************************************************
 static void read_bind_data(void)
 {
-    model_address[0] = 0x00;
-    model_address[1] = 0x00;
-    model_address[2] = 0x00;
-    model_address[3] = 0x00;
-    model_address[4] = 0x00;
-    hop_data[0] = 0x00;
-}
+    int i;
 
+    // XR311: 9ee187e5d5 2e...
+
+    model_address[0] = 0x9e;
+    model_address[1] = 0xe1;
+    model_address[2] = 0x87;
+    model_address[3] = 0xe5;
+    model_address[4] = 0xd5;
+
+    hop_data[0] = 0x2e;
+
+    for (i = 1; i < NUMBER_OF_HOP_CHANNELS; i++) {
+        hop_data[i] = hop_data[i - 1] + 1;
+    }
+}
 
 
 // ****************************************************************************
@@ -142,8 +152,8 @@ static void process_binding(void)
 
     stop_output_pulse_timer();
     rf_int_fired = false;
-    rf_set_address(0, ADDRESS_WIDTH, BIND_ADDRESS);    // Set special address 12h 23h 23h 45h 78h
     rf_clear_ce();
+    rf_set_address(0, ADDRESS_WIDTH, BIND_ADDRESS);    // Set special address 12h 23h 23h 45h 78h
     rf_set_channel(BIND_CHANNEL);
     bind_timeout = 0;
     while (bind_timeout < 5000) {
@@ -235,17 +245,31 @@ static void process_binding(void)
 static void process_receiving(void)
 {
     if (rf_int_fired) {
-        // status = rf_get_status();
+        rf_clear_irq(RX_RD);
         // rf_clear_ce();
         while (!rf_is_rx_fifo_emtpy()) {
             rf_read_fifo(payload, PAYLOAD_SIZE);
         }
         rf_int_fired = 0;
-        rf_data_available = 1;
+        data_available = 1;
         start_output_pulse_timer();
     }
 
-    // TODO: serial output of received payload here
+
+    // Hex-dump of received payload
+    if (data_available) {
+        int i;
+
+        data_available = 0;
+        for (i = 0; i < PAYLOAD_SIZE; i++) {
+            uart0_send_uint8_hex(payload[i]);
+            uart0_send_char(' ');
+        }
+        uart0_send_linefeed();
+    }
+
+
+
 
     // FIXME: remove and fully implement
     return;
@@ -260,7 +284,7 @@ static void process_receiving(void)
             break;
 
         case 1:
-            if (rf_data_available) {
+            if (data_available) {
                 hop_index = 0;
                 set_timer_to_4ms();
                 receive_state = 2;
@@ -268,7 +292,7 @@ static void process_receiving(void)
             break;
 
         case 2:
-            if (rf_data_available) {
+            if (data_available) {
                 set_timer_to_4ms();
                 inc_every_hop_to_20 = 0;
                 rf_clear_ce();
@@ -285,8 +309,8 @@ static void process_receiving(void)
         hop_timer_off();
     }
 
-    if (rf_data_available) {
-        rf_data_available = false;
+    if (data_available) {
+        data_available = false;
         if (payload[7] == 0x55) {
             channels[0] = (payload[0] << 8) + payload[1];
             channels[1] = (payload[2] << 8) + payload[3];
@@ -324,19 +348,16 @@ static void process_receiving(void)
 void init_receiver(void)
 {
     read_bind_data();
+    rf_enable_clock();
+    rf_set_crc(CRC_2_BYTES);
     rf_set_irq_source(RX_RD);
-    rf_enable_data_pipes(DATA_PIPE_0);
-    rf_set_address_width(ADDRESS_WIDTH);
     rf_set_data_rate(DATA_RATE_250K);
+    rf_enable_data_pipes(DATA_PIPE_0, NO_AUTO_ACKNOWLEDGE);
+    rf_set_address_width(ADDRESS_WIDTH);
     rf_set_address(DATA_PIPE_0, ADDRESS_WIDTH, model_address);
     rf_set_payload_size(DATA_PIPE_0, PAYLOAD_SIZE);
     rf_set_channel(hop_data[0]);
-    // FIXME: missing: CRC?!
-    // FIXME: disable AA
     rf_enable_receiver();
-    // FIXME: power on delay?!
-    // FIXME: missing rfcken (rf_enable_clock()
-    // FIXME: missing SETUP_RETR?
     rf_set_ce();
 }
 
@@ -346,4 +367,11 @@ void process_receiver(void)
 {
     process_binding();
     process_receiving();
+}
+
+
+// ****************************************************************************
+void rf_interrupt_handler(void)
+{
+    rf_int_fired = true;
 }
