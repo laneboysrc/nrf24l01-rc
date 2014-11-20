@@ -9,8 +9,11 @@ void init_spi(void)
     LPC_GPIO_PORT->DIR0 |=
         (1 << 1) | (1 << 2) | (1 << 3) | (1 << 6) | (1 << 7);
 
-    // Use 2 MHz SPI clock. 16 bytes take about 50 us to transmit.
-    LPC_SPI0->DIV = (__SYSTEM_CLOCK / 2000000) - 1;
+    // FIXME: check datasheet page 53..55 regarding timings
+
+    // nRF24L01+ datasheet page 50: maximum data rate of 10Mbps
+    // To have some margin, we use 5 MHz SPI clock.
+    LPC_SPI0->DIV = (__SYSTEM_CLOCK / 5000000) - 1;
 
     LPC_SPI0->CFG = (1 << 0) |          // Enable SPI0
                     (1 << 2) |          // Master mode
@@ -20,9 +23,7 @@ void init_spi(void)
                     (0 << 8);           // SPOL = 0
 
     LPC_SPI0->TXCTRL = (1 << 21) |      // set EOF
-                       (1 << 22) |      // RXIGNORE, otherwise SPI hangs until
-                                        //   we read the data register
-                       ((6 - 1) << 24); // 6 bit frames
+                       ((8 - 1) << 24); // 8 bit frames
 
     LPC_SWM->PINASSIGN3 = 0x03ffffff;   // PIO0_3 is SCK
     LPC_SWM->PINASSIGN4 = 0xff02ff07;   // PIO0_2 is SSEL PIO0_3 is SIN (MOSI)

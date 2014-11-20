@@ -11,6 +11,7 @@
 
 #include <uart0.h>
 #include <spi.h>
+#include <rc_receiver.h>
 
 // ****************************************************************************
 // IO pins: (LPC812 in TSSOP16 package)
