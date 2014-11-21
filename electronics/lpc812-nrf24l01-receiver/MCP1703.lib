@@ -1,0 +1,26 @@
+EESchema-LIBRARY Version 2.3  21/11/2014-13:50:44
+# Converted with eagle2kicad.ulp Version 0.9
+# Device count = 1
+#
+# Dev Name: MCP1703T-3302E/CB
+# Package Name: SOT95P300X145-3N
+# Dev Tech: ''
+# Dev Prefix: U
+# Gate count = 1
+#
+DEF MCP1703T-3302E/CB U 0 40 Y Y 1 L N
+F0 "U" -154 299 50 H V L B
+F1 "MCP1703T-3302E/CB" -206 -588 50 H V L B
+F2 "MCP1703-SOT95P300X145-3N" 0 150 50 H I C C
+DRAW
+P 2 1 0 0 -500 200 -500 -400
+P 2 1 0 0 -500 -400 500 -400
+P 2 1 0 0 500 -400 500 200
+P 2 1 0 0 500 200 -500 200
+X GND 1 -700 -200 200 R 40 40 1 1 P 
+X VIN 3 -700 0 200 R 40 40 1 1 I 
+X VOUT 2 700 0 200 L 40 40 1 1 O 
+ENDDRAW
+ENDDEF
+
+#End Library

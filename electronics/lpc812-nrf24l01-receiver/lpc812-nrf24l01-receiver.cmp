@@ -1,0 +1,73 @@
+Cmp-Mod V01 Created by CvPcb (2013-jul-07)-stable date = Fri 21 Nov 2014 03:17:27 PM SGT
+
+BeginCmp
+TimeStamp = /546ED3B5;
+Reference = C1;
+ValeurCmp = 100n;
+IdModule  = c_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = /546ED3C4;
+Reference = C2;
+ValeurCmp = 1u;
+IdModule  = c_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = /546ED3A6;
+Reference = C3;
+ValeurCmp = 1u;
+IdModule  = c_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = /546ED52C;
+Reference = K1;
+ValeurCmp = CONN_3;
+IdModule  = PIN_ARRAY_3X1;
+EndCmp
+
+BeginCmp
+TimeStamp = /546EDCB1;
+Reference = K2;
+ValeurCmp = CONN_3;
+IdModule  = PIN_ARRAY_3X1;
+EndCmp
+
+BeginCmp
+TimeStamp = /546EDCC0;
+Reference = K3;
+ValeurCmp = CONN_3;
+IdModule  = PIN_ARRAY_3X1;
+EndCmp
+
+BeginCmp
+TimeStamp = /546EDCCF;
+Reference = K4;
+ValeurCmp = CONN_3;
+IdModule  = PIN_ARRAY_3X1;
+EndCmp
+
+BeginCmp
+TimeStamp = /546ED38F;
+Reference = P1;
+ValeurCmp = CONN_4X2;
+IdModule  = pin_array_4x2;
+EndCmp
+
+BeginCmp
+TimeStamp = /546ED329;
+Reference = U1;
+ValeurCmp = MCP1703T-3302E/CB;
+IdModule  = MCP1703-SOT95P300X145-3N;
+EndCmp
+
+BeginCmp
+TimeStamp = /546ED16B;
+Reference = U2;
+ValeurCmp = LPC812M101JDH16_TSSOP16;
+IdModule  = TSSOP16;
+EndCmp
+
+EndListe
