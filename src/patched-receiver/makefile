@@ -49,6 +49,8 @@ clean:
 	$(QUIET) $(RM) -f *.lst
 	$(QUIET) $(RM) -f *.hex
 	$(QUIET) $(RM) -f *.asm
+	$(QUIET) $(RM) -f *.rej
+	$(QUIET) $(RM) -f *.orig
 
 
 ###############################################################################

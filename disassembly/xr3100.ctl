@@ -303,103 +303,29 @@ p 1098     ENDIF
 ! 002b Vector: Timer 2 overflow or External reload
 ! 0043 Vector: RF SPI ready
 ! 004b Vector: RF Interrupt
-;l 0053 Vector: SPI, I2C
+! 0053 Vector: SPI, I2C
 
 
-b 087d-0884 ; Bit masks!
+c 0000-047 ; Code space
+
+b 0048-004a ; Padding
+
+c 004b-087c ; Code space
+
+b 087d-0884 ; Bit masks
 l 087d bit_masks
-b 0b3e-0b90 ; Initialization values!
-
-
-
-c 0000-06b9 ; Code space
-
-c 06ba-070e
-! 06ba 06ba-070e UNUSED CODE
-
-c 070f-087c
-
 
 c 0885-0b3d ; Code space
 
-c 0b91-0c30	; Code space
+b 0b3e-0b90 ; Initialization values
+l 0b3e ram_initialization_data
 
-c 0c31-0c81
-! 0c31 0c31-0c81 UNUSED CODE
-
-c 0c81-0d08	; Code space
-
-c 0d09-0d4b
-! 0d09 0d09-0d4b UNUSED CODE
-
-c 0d4c-0dc5	; Code space
-
-c 0dc6-0dfc
-! 0dc6 0dc6-0dfc UNUSED CODE
-
-c 0dfd-0e33	; Code space
-
-c 0e34-0e7e
-! 0e34 0e34-0e7e UNUSED CODE
-
-c 0e7f-0e98	; Code space
-
-c 0e99-0ec4
-! 0e99 0e99-0ec4 UNUSED CODE
-
-c 0ec5-1056	; Code space
-
-c 1057-1070
-! 1057 1057-1070 UNUSED CODE
-
-c 1071-10cb	; Code space
-
-c 10cc-10e1
-! 10cc 10cc-10e1 UNUSED CODE
-
-c 10e2-111e	; Code space
-
-c 111f-113c
-! 111f 111f-113c UNUSED CODE
-
-c 113d-1155	; Code space
-
-c 1156-117f
-! 1156 1156-117f UNUSED CODE
-
-c 1180-11ac	; Code space
-
-c 11ad-11c0
-! 11ad 11ad-11c0 UNUSED CODE
-
-c 11c1-11ca	; Code space
-
-c 11cb-11d4
-! 11cb 11cb-11d4 UNUSED CODE
-
-c 11d5-11de	; Code space
-
-c 11df-11fc
-! 11df 11df-11fc UNUSED CODE
-
-c 11fd-1206	; Code space
-
-c 1207-120d
-! 1207 1207-120d UNUSED CODE
-
-c 120e-1214	; Code space
-
-c 1215-1222
-! 1215 1215-1222 UNUSED CODE
-
-c 1223-1229	; Code space
-
-c 122a-1235
-! 122a 122a-1235 UNUSED CODE
-
-c 1236-1249	; Code space
+c 0b91-1249	; Code space
 
 i 124a-1ffe	; ignore data
+
+
+
 
 
 ;=========================================================
@@ -615,18 +541,26 @@ r 13 bind_blink_l
 
 ;=========================================================
 
+# 0003 ***************************************************************************
+l 0003 rf_get_irq_flags
 
-! 000e OBSERVE_TX ?!
+# 000e ***************************************************************************
+l 000e rf_get_lost_packet_count
+! 000e OBSERVE_TX
+
+# 001e ***************************************************************************
+l 001e rf_get_tx_fifo_status
 ! 001e FIFO_STATUS
 ! 0024 Masks out TX_FULL and TX_EMPTY
 
+# 002e ***************************************************************************
 l 002e i2c_eeprom_read_one_byte
 
 
-l 004e init
 # 004e ***************************************************************************
 # 004e Initialization
 # 004e ***************************************************************************
+l 004e init
 
 ! 00c3 Enable the receiver
 
@@ -634,10 +568,12 @@ x 00a5 0ah
 
 ! 00d3 Enable Timer0 and Timer2 interrupts
 
-l 00eb main
+# 00eb
+# 00eb
 # 00eb ***************************************************************************
 # 00eb MAIN LOOP
 # 00eb ***************************************************************************
+l 00eb main
 
 ! 00dc Bind switch checked at reset
 ! 00e6 Set channel 70 in factory mode?
@@ -799,7 +735,6 @@ l 0885 init_rodata
 # 0885 ***************************************************************************
 # 0885 Initalize RAM with default values stored in a ROM table
 # 0885 ***************************************************************************
-l 0b3e ram_initialization_data
 l 084a init_ljmp
 l 08af init_rodata_loop
 l 084d init_rodata_page0
@@ -828,6 +763,8 @@ l 084d init_rodata_page0
 
 l 07ac rf_enable_auto_acknowledge
 # 07ac ***************************************************************************
+! 07ae EN_RXADDR
+! 07b5 EN_AA
 
 ! 0865 Offset to bit_masks! (from @a+pc instruction below)
 
@@ -859,18 +796,22 @@ l 09b3 rf_modify_config_bit
 # 09b3
 # 09b3 r7: bit number in the CONFIG reg.  r5: new bit value
 # 09b3 ***************************************************************************
+! 09b8 CONFIG
 l 09e3 rf_cfg_r7_is_5
 l 09fc rf_cfg_r7_is_6
 l 09d3 rf_cfg_r7_is_7
 ! 09c2 Jump if r7 is 5
 ! 09c5 Jump if r7 is 6
 ! 09c9 Jump if r7 is NOT 8 (jump if 7?)
+! 0a1a CONFIG
 l 0a14 rf_modify_execute
 
 ! 0a94 1388 => 5000ms
 
 l 0ae4 rf_init_data_pipes
 # 0ae4 ***************************************************************************
+! 0ae8 EN_RXADDR
+! 0aef EN_AA
 
 l 0a82 is_bind_button_pressed
 # 0a82 ***************************************************************************
@@ -906,7 +847,7 @@ l 0cc6 rf_set_crc
 # 0cc6 In: R7: Number of bytes of CRC to use, 0 to turn it off
 # 0cc6 ***************************************************************************
 
-! 0cc8 CONFIG
+! 0cc9 CONFIG
 ! 0cde clear EN_CRC (CRC off)
 l 0ce4 set_crc_1byte
 # 0ce4 ***************************************************************************
@@ -917,98 +858,147 @@ l 0cf4 set_crc_2bytes
 ! 0cf7 set EN_CRC
 ! 0cfe set CRCO (2 bytes CRC)
 l 0d02 set_crc_write_config
-! 0d04 CONFIG
+! 0d05 CONFIG
+! 0d0b EN_RXADDR
+! 0d12 EN_AA
+! 0d40 EN_RXADDR
+! 0d47 EN_AA
 
-l 0d4c rc_get_or_set_address_for_pipe
 # 0d4c ***************************************************************************
-l 0d76 rf_get_receive_address_for_pipe
+l 0d4c rf_set_receive_address_for_pipe
+! 0d6a W_REGISTER + RX_ADDR_P0 + pipe_no
+
 # 0d76 ***************************************************************************
-l 0d89 rf_set_data_rate
+l 0d76 rf_set_receive_address_for_pipe_1_to_5
+! 0d78 RX_ADDR_P0 + pipe_no
+
 # 0d89 ***************************************************************************
+l 0d89 rf_set_data_rate
+! 0d8b RF_SETUP
+! 0dc1 RF_SETUP
+! 0dda RX_PW_P0
+! 0dde RX_PW_P1
+! 0de2 RX_PW_P2
+! 0de6 RX_PW_P3
+! 0dea RX_PW_P4
+! 0dee RX_PW_P5
 
-l 0dfd rf_write_register_sequence
+l 0dfd rf_command_register_sequence
 # 0dfd ***************************************************************************
-# 0dfd rf_write_register_sequence
-# 0dfd Write a number of bytes in reg23h, values at r2:r1, to the register given in r7
+# 0dfd Write command given in r7 with parameters:
+# 0dfd Count in reg23h; Values at r2:r1,
 # 0dfd ***************************************************************************
 
 
 
-l 070f ic2_write_address
 # 070f ***************************************************************************
-l 0ec5 i2c_start
+l 070f ic2_write_address
 # 0ec5 ***************************************************************************
-l 1039 i2c_stop
+l 0ec5 i2c_start
 # 1039 ***************************************************************************
-l 0a1e i2c_read_byte
+l 1039 i2c_stop
 # 0a1e ***************************************************************************
-l 0717 i2c_write_byte
+l 0a1e i2c_read_byte
 # 0717 ***************************************************************************
-l 10e2 i2c_read_byte_from_eeprom
+l 0717 i2c_write_byte
 # 10e2 ***************************************************************************
-l 0be1 i2c_has_write_finished
+l 10e2 i2c_read_byte_from_eeprom
 # 0be1 ***************************************************************************
-l 10b6 i2c_write_byte_to_eeprom
+l 0be1 i2c_has_write_finished
 # 10b6 ***************************************************************************
+l 10b6 i2c_write_byte_to_eeprom
 
-l 0dc6 rf_get_payload_count_in_pipe
 # 0dc6 ***************************************************************************
+l 0dc6 rf_get_payload_count_in_pipe
 
-l 0e34 rf_get_address
 # 0e34 ***************************************************************************
+l 0e34 rf_get_address
+! 0e56 RX_ADDR_P0 + r7
 
-l 0e69 rf_configure_auto_retransmission
+
 # 0e69 ***************************************************************************
+l 0e69 rf_configure_auto_retransmission
+! 0e94 SETUP_RETR
 
 
-l 0ef0 rf_configure_dynamic_payload
+# 0e99 ***************************************************************************
+! 0e9b RF_SETUP
+! 0ec0 RF_SETUP
+
 # 0ef0 ***************************************************************************
+l 0ef0 rf_configure_dynamic_payload
+! 0ef2 FEATURE
+! 0f15 FEATURE
+! 0f1c RF_SETUP
+! 0f3e RF_SETUP
+! 0f45 FEATURE
+! 0f66 FEATURE
+! 0f6f FEATURE
+! 0f8c FEATURE
 
-l 0fb5 rf_enable_rx
 # 0fb5 ***************************************************************************
-l 0fd8 rf_set_power_up
+l 0fb5 rf_enable_rx
+! 0fb8 CONFIG
+! 0fd4 CONFIG
+
+# 0f91 ***************************************************************************
+l 0f91 copy_block
+
 # 0fd8 ***************************************************************************
+l 0fd8 rf_set_power_up
+! 0fdb CONFIG
+! 0ff7 CONFIG
+
+
 
 l 0ffb write_bind_data_byte
 # 0ffb ***************************************************************************
 
 l 101a rf_set_tx_power
 # 101a ***************************************************************************
+! 101c RF_SETUP
+! 1034 RF_SETUP
 
 l 1057 write_byte_to_flash
 # 1057 ***************************************************************************
 
-l 1071 delay
 # 1071 ***************************************************************************
 # 1071 delay
 # 1071
 # 1071 Delay value in R6/R7
 # 1071 ***************************************************************************
+l 1071 delay
 l 107c delay_loop
 
-l 1088 init_ports
 # 1088 ***************************************************************************
 # 1088 init_ports
 # 1088 ***************************************************************************
+l 1088 init_ports
 
-l 109f rf_write_register
 # 109f ***************************************************************************
 # 109f In: R7: register number, R5: value
 # 109f ***************************************************************************
+l 109f rf_write_register
 
-l 10f7 rf_setup_address_width
 # 10f7 ***************************************************************************
+l 10f7 rf_setup_address_width
+! 1107 SETUP_AW
 
-l 10cc flash_erase_page
+
 # 10cc ***************************************************************************
+l 10cc flash_erase_page
 
-l 1185 init_timer0
+# 111f ***************************************************************************
+l 111f rf_clear_irq
+! 112b STATUS
+
 # 1185 ***************************************************************************
 l 1242 init_timer1
 # 1242 ***************************************************************************
+l 1185 init_timer0
 
-l 118f spi_write
 # 118f ***************************************************************************
+l 118f spi_write
 
 l 1191 _spi_write_loop
 
@@ -1019,108 +1009,120 @@ l 113d rf_read_register
 # 113d In: A: register    Out: R7: read value
 # 113d ***************************************************************************
 
+# 114a ***************************************************************************
+# 114a Reads the RF status register. Clears the IRQ flags. Output in R7
+# 114a ***************************************************************************
 l 114a rf_read_status
-# 114a ***************************************************************************
-# 114a Reads and clears the RF status register. Output in R7
-# 114a ***************************************************************************
+l 114c STATUS
 
 ! 1185 Set Timer0 as 16 bit timer
 ! 118b Enable Timer0 interrupt
 
-l 1199 rf_get_number_of_address_bytes
-x 119a 03h
-! 1199 SETUP_AW
 # 1199 ***************************************************************************
 # 1199 Out: R7: Number of address bytes in the receiver
 # 1199 ***************************************************************************
+l 1199 rf_get_number_of_address_bytes
+x 119a 03h
+! 1199 SETUP_AW
 
-l 110c rf_set_channel
 # 110c ***************************************************************************
 # 110c In: R7: channel number
 # 110c ***************************************************************************
+l 110c rf_set_channel
 ! 111a RF_CH
 
-l 1130 rf_get_tx_reuse
 # 1130 ***************************************************************************
+l 1130 rf_get_tx_reuse
 
-l 1156 rf_is_rx_fifo_full
 # 1156 ***************************************************************************
+l 1156 rf_is_rx_fifo_full
+! 1156 FIFO_STATUS
 
-l 1162 rf_is_tx_fifo_full
 # 1162 ***************************************************************************
+l 1162 rf_is_tx_fifo_full
+! 1162 FIFO_STATUS
 
-l 116e rf_enable_dynamic_payload_length
 # 116e ***************************************************************************
+l 116e rf_enable_dynamic_payload_length
+! 1175 DYNPD
 
-l 117a rf_is_tx_fifo_emtpy
 # 117a ***************************************************************************
+l 117a rf_is_tx_fifo_emtpy
+! 117a FIFO_STATUS
 
-l 11a3 rf_is_rx_fifo_empty
 # 11a3 ***************************************************************************
 # 11a3 R7 is 1 if the RF RX FIFO is empty, 0 if it has data pending
 # 11a3 ***************************************************************************
+l 11a3 rf_is_rx_fifo_empty
+! 11a3 FIFO_STATUS
 
-l 11ad rf_get_rx_fifo_status
 # 11ad ***************************************************************************
+l 11ad rf_get_rx_fifo_status
+! 11ad FIFO_STATUS
 
-l 11b7 rf_retransmit_count
 # 11b7 ***************************************************************************
+l 11b7 rf_get_retransmit_count
+! 11b7 OBSERVE_TX
 
-l 11c1 is_rf_power_detected
 # 11c1 ***************************************************************************
-# 11c1 is_rf_power_detected
-# 11c1
 # 11c1 Returns the Received Power Detector (Carrier Detect) flag
 # 11c1 ***************************************************************************
+l 11c1 is_rf_power_detected
+! 11c1 RPD
 
-l 11cb rf_write_ack_payload
 # 11cb ***************************************************************************
+l 11cb rf_write_ack_payload
 
-l 11d5 rf_read_rx_status
 # 11d5 ***************************************************************************
+l 11d5 rf_read_rx_status
 
-l 11fd rf_get_status
 # 11fd ***************************************************************************
+l 11fd rf_get_status
 
-l 11df rf_set_reuse_tx_payload
 # 11df ***************************************************************************
+l 11df rf_set_reuse_tx_payload
 
-l 11e9 rf_flush_rx
 # 11e9 ***************************************************************************
+l 11e9 rf_flush_rx
 
-l 11f3 rf_flush_tx
 # 11f3 ***************************************************************************
+l 11f3 rf_flush_tx
 
-l 1207 enable_timer2
 # 1207 ***************************************************************************
+l 1207 enable_timer2
 
-l 120e rf_set_payload_bytes
 # 120e ***************************************************************************
 # 120e rf_set_payload_bytes
 # 120e
 # 120e r7: data pipe number  r5: Number of payload bytes
 # 120e ***************************************************************************
+l 120e rf_set_payload_bytes
+! 120f RX_PW_P0 + pipe_no
 
 l 1215 rf_write_tx_payload
 # 1215 ***************************************************************************
+! 1217 W_TX_PAYLOAD
 
 l 121c rf_write_tx_payload_no_ack
 # 121c ***************************************************************************
+! 121e W_TX_PAYLOAD_NOACK
 
 l 1223 get_indirect_r7_r6
 # 1223 ***************************************************************************
 
 l 122a rf_get_observe_tx
 # 122a ***************************************************************************
+! 122a OBSERVE_TX
 
-l 1230 rf_read_fifo_status
+l 1230 rf_get_fifo_status
 # 1230 ***************************************************************************
+! 1230 FIFO_STATUS
 
-! 1236 R_RX_PL_WID
 l 1236 rf_read_rx_fifo_payload_width
 # 1236 ***************************************************************************
 # 1236 Returns the number of bytes of the top payload in the RX FIFO
 # 1236 ***************************************************************************
+! 1236 R_RX_PL_WID
 
 
 l 123c rf_read_fifo
