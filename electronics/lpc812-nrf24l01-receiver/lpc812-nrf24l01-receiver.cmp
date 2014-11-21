@@ -1,4 +1,4 @@
-Cmp-Mod V01 Created by PcbNew date = Fri 21 Nov 2014 08:25:26 PM SGT
+Cmp-Mod V01 Created by PcbNew date = Fri 21 Nov 2014 09:11:10 PM SGT
 
 BeginCmp
 TimeStamp = /546ED3B5;
@@ -45,35 +45,35 @@ EndCmp
 BeginCmp
 TimeStamp = /546ED52C;
 Reference = K1;
-ValeurCmp = CONN_3;
+ValeurCmp = BAT;
 IdModule  = PIN_ARRAY_3X1;
 EndCmp
 
 BeginCmp
 TimeStamp = /546EDCB1;
 Reference = K2;
-ValeurCmp = CONN_3;
+ValeurCmp = CH3;
 IdModule  = PIN_ARRAY_3X1;
 EndCmp
 
 BeginCmp
 TimeStamp = /546EDCC0;
 Reference = K3;
-ValeurCmp = CONN_3;
+ValeurCmp = TH;
 IdModule  = PIN_ARRAY_3X1;
 EndCmp
 
 BeginCmp
 TimeStamp = /546EDCCF;
 Reference = K4;
-ValeurCmp = CONN_3;
+ValeurCmp = ST;
 IdModule  = PIN_ARRAY_3X1;
 EndCmp
 
 BeginCmp
 TimeStamp = /546ED38F;
 Reference = P1;
-ValeurCmp = CONN_4X2;
+ValeurCmp = NRF24L01+;
 IdModule  = pin_array_4x2;
 EndCmp
 
@@ -88,7 +88,7 @@ BeginCmp
 TimeStamp = /546F0446;
 Reference = SW1;
 ValeurCmp = ISP/BIND;
-IdModule  = SW_PUSH-12mm;
+IdModule  = SW_PUSH_SMALL;
 EndCmp
 
 BeginCmp
@@ -109,7 +109,7 @@ BeginCmp
 TimeStamp = /546EFECA;
 Reference = X1;
 ValeurCmp = 12 MHz;
-IdModule  = HC-33UV;
+IdModule  = crystal_FA238-TSX3225;
 EndCmp
 
 EndListe

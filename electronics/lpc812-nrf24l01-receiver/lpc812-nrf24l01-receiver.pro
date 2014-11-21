@@ -1,4 +1,4 @@
-update=Fri 21 Nov 2014 03:16:45 PM SGT
+update=Fri 21 Nov 2014 08:49:55 PM SGT
 version=1
 last_client=cvpcb
 [pcbnew]
@@ -39,6 +39,7 @@ LibName15=pga_sockets
 LibName16=valves
 LibName17=MCP1703
 LibName18=LPC810
+LibName19=crystal
 LibDir=
 [general]
 version=1
