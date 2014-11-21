@@ -82,7 +82,6 @@
 #define CRC_2_BYTES     2
 
 #define NO_AUTO_ACKNOWLEDGE 0
-#define AUTO_ACKNOWLEDGE 1
 
 //******************************************************************************
 uint8_t rf_read_register(uint8_t reg);
@@ -97,20 +96,26 @@ void rf_enable_clock(void);
 void rf_disable_clock(void);
 void rf_set_ce(void);
 void rf_clear_ce(void);
+
 uint8_t rf_get_status(void);
-void rf_set_address(uint8_t pipe, uint8_t address_width, const uint8_t address[]);
-void rf_set_channel(uint8_t channel);
+
 bool rf_is_rx_fifo_emtpy(void);
+bool rf_is_tx_fifo_full(void);
 void rf_read_fifo(uint8_t *buffer, size_t byte_count);
+
 void rf_set_irq_source(uint8_t irq_source);
 void rf_clear_irq(uint8_t irq_source);
-void rf_enable_data_pipes(uint8_t pipes, bool auto_acknowledge);
-void rf_set_address_width(uint8_t aw);
-uint8_t rf_get_address_width(void);
-void rf_set_data_rate(uint8_t data_rate);
-void rf_set_payload_size(uint8_t pipe, uint8_t payload_size);
+
 void rf_enable_transmitter(void);
 void rf_enable_receiver(void);
 void rf_power_down(void);
+
+void rf_set_channel(uint8_t channel);
 void rf_set_crc(uint8_t crc_size);
+void rf_set_data_rate(uint8_t data_rate);
+void rf_set_address_width(uint8_t aw);
+uint8_t rf_get_address_width(void);
+void rf_set_data_pipes(uint8_t pipes, uint8_t auto_acknowledge_pipes);
+void rf_set_payload_size(uint8_t pipes, uint8_t payload_size);
+void rf_set_rx_address(uint8_t pipe, uint8_t address_width, const uint8_t address[]);
 

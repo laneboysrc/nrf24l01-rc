@@ -153,7 +153,7 @@ static void process_binding(void)
     stop_output_pulse_timer();
     rf_int_fired = false;
     rf_clear_ce();
-    rf_set_address(0, ADDRESS_WIDTH, BIND_ADDRESS);    // Set special address 12h 23h 23h 45h 78h
+    rf_set_rx_address(0, ADDRESS_WIDTH, BIND_ADDRESS);    // Set special address 12h 23h 23h 45h 78h
     rf_set_channel(BIND_CHANNEL);
     bind_timeout = 0;
     while (bind_timeout < 5000) {
@@ -352,9 +352,9 @@ void init_receiver(void)
     rf_set_crc(CRC_2_BYTES);
     rf_set_irq_source(RX_RD);
     rf_set_data_rate(DATA_RATE_250K);
-    rf_enable_data_pipes(DATA_PIPE_0, NO_AUTO_ACKNOWLEDGE);
+    rf_set_data_pipes(DATA_PIPE_0, NO_AUTO_ACKNOWLEDGE);
     rf_set_address_width(ADDRESS_WIDTH);
-    rf_set_address(DATA_PIPE_0, ADDRESS_WIDTH, model_address);
+    rf_set_rx_address(DATA_PIPE_0, ADDRESS_WIDTH, model_address);
     rf_set_payload_size(DATA_PIPE_0, PAYLOAD_SIZE);
     rf_set_channel(hop_data[0]);
     rf_enable_receiver();
