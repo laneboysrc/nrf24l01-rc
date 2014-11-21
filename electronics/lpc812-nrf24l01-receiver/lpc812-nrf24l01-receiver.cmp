@@ -1,4 +1,4 @@
-Cmp-Mod V01 Created by PcbNew date = Fri 21 Nov 2014 09:11:10 PM SGT
+Cmp-Mod V01 Created by CvPcb (2013-jul-07)-stable date = Fri 21 Nov 2014 10:07:01 PM SGT
 
 BeginCmp
 TimeStamp = /546ED3B5;
@@ -88,7 +88,7 @@ BeginCmp
 TimeStamp = /546F0446;
 Reference = SW1;
 ValeurCmp = ISP/BIND;
-IdModule  = SW_PUSH_SMALL;
+IdModule  = switches-B3S-10XX;
 EndCmp
 
 BeginCmp

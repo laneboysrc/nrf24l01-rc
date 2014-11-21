@@ -1,4 +1,4 @@
-update=Fri 21 Nov 2014 08:49:55 PM SGT
+update=Fri 21 Nov 2014 10:06:47 PM SGT
 version=1
 last_client=cvpcb
 [pcbnew]
@@ -40,6 +40,7 @@ LibName16=valves
 LibName17=MCP1703
 LibName18=LPC810
 LibName19=crystal
+LibName20=switches
 LibDir=
 [general]
 version=1
