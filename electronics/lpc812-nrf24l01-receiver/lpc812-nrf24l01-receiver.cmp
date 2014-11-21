@@ -1,4 +1,4 @@
-Cmp-Mod V01 Created by CvPcb (2013-jul-07)-stable date = Fri 21 Nov 2014 03:17:27 PM SGT
+Cmp-Mod V01 Created by PcbNew date = Fri 21 Nov 2014 05:31:31 PM SGT
 
 BeginCmp
 TimeStamp = /546ED3B5;
@@ -19,6 +19,27 @@ TimeStamp = /546ED3A6;
 Reference = C3;
 ValeurCmp = 1u;
 IdModule  = c_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = /546EFF7D;
+Reference = C4;
+ValeurCmp = 18p;
+IdModule  = SM0603_Capa;
+EndCmp
+
+BeginCmp
+TimeStamp = /546EFF8A;
+Reference = C5;
+ValeurCmp = 18p;
+IdModule  = SM0603_Capa;
+EndCmp
+
+BeginCmp
+TimeStamp = /546F0587;
+Reference = D1;
+ValeurCmp = LED;
+IdModule  = LED-0603;
 EndCmp
 
 BeginCmp
@@ -57,6 +78,20 @@ IdModule  = pin_array_4x2;
 EndCmp
 
 BeginCmp
+TimeStamp = /546F059C;
+Reference = R1;
+ValeurCmp = 680;
+IdModule  = SM0603_Resistor;
+EndCmp
+
+BeginCmp
+TimeStamp = /546F0446;
+Reference = SW1;
+ValeurCmp = ISP/BIND;
+IdModule  = SW_PUSH_SMALL;
+EndCmp
+
+BeginCmp
 TimeStamp = /546ED329;
 Reference = U1;
 ValeurCmp = MCP1703T-3302E/CB;
@@ -68,6 +103,13 @@ TimeStamp = /546ED16B;
 Reference = U2;
 ValeurCmp = LPC812M101JDH16_TSSOP16;
 IdModule  = TSSOP16;
+EndCmp
+
+BeginCmp
+TimeStamp = /546EFECA;
+Reference = X1;
+ValeurCmp = 12 MHz;
+IdModule  = HC-33UV;
 EndCmp
 
 EndListe
