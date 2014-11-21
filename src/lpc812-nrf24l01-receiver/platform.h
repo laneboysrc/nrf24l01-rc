@@ -9,22 +9,24 @@
 // ****************************************************************************
 // IO pins: (LPC812 in TSSOP16 package)
 //
-// PIO0_0   (16, TDO, ISP-Rx)   Rx
-// PIO0_1   (9,  TDI)           MISO
-// PIO0_2   (6,  TMS, SWDIO)    SSEL
-// PIO0_3   (5,  TCK, SWCLK)    SCK
-// PIO0_4   (4,  TRST, ISP-Tx)  Tx
-// PIO0_5   (3,  RESET)         RESET
-// PIO0_6   (15)                RF interrupt
-// PIO0_7   (14)                MOSI
-// PIO0_8   (11, XTALIN)
-// PIO0_9   (10, XTALOUT)
-// PIO0_10  (8,  Open drain)
-// PIO0_11  (7,  Open drain)
-// PIO0_12  (2,  ISP-entry)     ISP
-// PIO0_13  (1)                 RFCE
+// PIO0_0   (16, TDO, ISP-Rx)   CH3/Rx
+// PIO0_1   (9,  TDI)           CH1
+// PIO0_2   (6,  TMS, SWDIO)    NRF_CSN
+// PIO0_3   (5,  TCK, SWCLK)    NRF_SCK
+// PIO0_4   (4,  TRST, ISP-Tx)  CH4/CPPM/Tx
+// PIO0_5   (3,  RESET)         LED
+// PIO0_6   (15)                CH2
+// PIO0_7   (14)                NRF_MOSI
+// PIO0_8   (11, XTALIN)        XTALIN
+// PIO0_9   (10, XTALOUT)       XTALOUT
+// PIO0_10  (8,  Open drain)    NRF_MISO
+// PIO0_11  (7,  Open drain)    NRF_IRQ
+// PIO0_12  (2,  ISP-entry)     ISP/BIND
+// PIO0_13  (1)                 NRF_CE
 //
 // GND      (13)
 // 3.3V     (12)
 // ****************************************************************************
+
+
 #define GPIO_RFCE LPC_GPIO_PORT->W0[13]
