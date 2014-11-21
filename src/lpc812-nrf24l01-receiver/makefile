@@ -10,7 +10,8 @@ BUILD_DIR := build
 SYSTEM_CLOCK := 12000000
 
 SOURCES := $(foreach sdir, $(SOURCE_DIRS), $(wildcard $(sdir)/*.c))
-DEPENDENCIES := makefile uart0.h receiver.ld rc_receiver.h rf.h spi.h
+DEPENDENCIES := makefile receiver.ld platform.h
+DEPENDENCIES += uart0.h rc_receiver.h rf.h spi.h
 LIBS := gcc
 LINKER_SCRIPT := receiver.ld
 

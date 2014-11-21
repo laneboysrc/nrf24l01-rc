@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdint.h>
-#include <LPC8xx.h>
 
+#include <platform.h>
 #include <spi.h>
 
 void init_spi(void)

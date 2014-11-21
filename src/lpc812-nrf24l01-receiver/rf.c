@@ -2,15 +2,12 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include <LPC8xx.h>
+#include <platform.h>
 #include <spi.h>
 #include <rf.h>
 
 static uint8_t write_buffer[RF_MAX_BUFFER_LENGTH + 1];
 static uint8_t read_buffer[RF_MAX_BUFFER_LENGTH + 1];
-
-
-#define GPIO_RFCE LPC_GPIO_PORT->W0[13]
 
 
 // ****************************************************************************
@@ -27,7 +24,6 @@ static uint8_t get_pipe_no(uint8_t pipe)
     }
     return 0;
 }
-
 
 
 // ****************************************************************************
