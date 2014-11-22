@@ -40,8 +40,8 @@
 #define RF_CH           0x05        // RF channel
 
 #define RF_SETUP        0x06        // RF setup
-    #define RF_DR_LOW   (1 << 3)
-    #define RF_DR_HIGH  (1 << 5)
+    #define RF_DR_LOW   (1 << 5)
+    #define RF_DR_HIGH  (1 << 3)
 
 #define STATUS          0x07        // Status
 #define OBSERVE_TX      0x08        // Observe TX
@@ -102,6 +102,8 @@ uint8_t rf_get_status(void);
 bool rf_is_rx_fifo_emtpy(void);
 bool rf_is_tx_fifo_full(void);
 void rf_read_fifo(uint8_t *buffer, size_t byte_count);
+void rf_flush_rx_fifo(void);
+void rf_flush_tx_fifo(void);
 
 void rf_set_irq_source(uint8_t irq_source);
 void rf_clear_irq(uint8_t irq_source);

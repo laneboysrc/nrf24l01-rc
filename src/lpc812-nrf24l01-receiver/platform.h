@@ -10,7 +10,7 @@
 // IO pins: (LPC812 in TSSOP16 package)
 //
 // PIO0_0   (16, TDO, ISP-Rx)   CH3/Rx
-// PIO0_1   (9,  TDI)           SCK
+// PIO0_1   (9,  TDI)           NRF_SCK
 // PIO0_2   (6,  TMS, SWDIO)    NRF_MOSI
 // PIO0_3   (5,  TCK, SWCLK)    NRF_CSN
 // PIO0_4   (4,  TRST, ISP-Tx)  CH4/CPPM/Tx
@@ -24,8 +24,8 @@
 // PIO0_12  (2,  ISP-entry)     ISP/BIND
 // PIO0_13  (1)                 NRF_CE
 //
-// GND      (13)
 // 3.3V     (12)
+// GND      (13)
 // ****************************************************************************
 
 

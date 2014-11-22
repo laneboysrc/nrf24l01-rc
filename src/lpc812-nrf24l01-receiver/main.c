@@ -19,7 +19,7 @@ void PININT0_irq_handler(void);
 
 
 uint32_t systick_count;
-
+uint32_t soft_timer;
 
 // ****************************************************************************
 static void init_hardware(void)
@@ -44,21 +44,16 @@ static void init_hardware(void)
     LPC_SWM->PINENABLE0 = 0xffffffbf;
 
     // U0_TXT_O = PIO0_4, U0_RXD_I = PIO0_0
-    // SCK = PIO0_3, MOSI = PIO0_7, MISO = PIO0_1, SSEL = PIO0_2
     LPC_SWM->PINASSIGN0 = 0xffff0004;
-    LPC_SWM->PINASSIGN3 = 0x03ffffff;
-    LPC_SWM->PINASSIGN4 = 0xff020107;
+    // SCK = PIO0_1
+    LPC_SWM->PINASSIGN3 = 0x01ffffff;
+    // MOSI = PIO0_2, MISO = PIO0_10, SSEL (CSN) = PIO0_3
+    LPC_SWM->PINASSIGN4 = 0xff030a02;
 
 
-    // Make SCK, MOSI, SSEL and RFCE outputs
-    LPC_GPIO_PORT->DIR0 |= (1 << 2) | (1 << 3) | (1 << 7) | (1 << 13);
-    LPC_GPIO_PORT->W0[13] = 0;
-
-    // Make the open drain ports PIO0_10, PIO0_11 outputs and pull to ground
-    // to prevent them from floating.
-    LPC_GPIO_PORT->W0[10] = 0;
-    LPC_GPIO_PORT->W0[11] = 0;
-    LPC_GPIO_PORT->DIR0 |= (1 << 10) | (1 << 11);
+    // Make NRF_SCK, NRF_MOSI, NRF_CSN and NRF_CE outputs
+    LPC_GPIO_PORT->DIR0 |= (1 << 1) | (1 << 2) | (1 << 3) | (1 << 13);
+    GPIO_RFCE = 0;
 
 
     // Enable glitch filtering on the IOs
@@ -78,8 +73,9 @@ static void init_hardware(void)
 
     // ------------------------
     // Configure the exernal interrupt from the NRF chip
-    LPC_SYSCON->PINTSEL[0] = 6;             // PIO0_6 (RF Int) on PININT0
+    LPC_SYSCON->PINTSEL[0] = 11;            // PIO0_11 (NRF_IRQ) on PININT0
     LPC_PIN_INT->IENF = (1 << 0);           // Enable falling edge on PININT0
+    NVIC_EnableIRQ(PININT0_IRQn);
 
 
     // ------------------------
@@ -89,6 +85,7 @@ static void init_hardware(void)
     SysTick->CTRL = (1 << 0) |              // Enable System Tick counter
                     (1 << 1) |              // System Tick interrupt enable
                     (1 << 2);               // Use system clock
+
 }
 
 
@@ -133,6 +130,8 @@ static void service_systick(void)
     __ISB();
     --systick_count;
     SysTick->CTRL |= (1 << 1);      // Re-enable the system tick interrupt
+
+    ++soft_timer;
 }
 
 
@@ -167,6 +166,7 @@ int main(void)
 {
     init_hardware();
     init_uart0(115200);
+    init_spi();
     init_hardware_final();
 
     init_receiver();

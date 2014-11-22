@@ -104,15 +104,25 @@ static void read_bind_data(void)
 {
     int i;
 
-    // XR311: 9ee187e5d5 2e...
+    // Dingo:  9ee187e5d52 e
 
-    model_address[0] = 0x9e;
-    model_address[1] = 0xe1;
-    model_address[2] = 0x87;
-    model_address[3] = 0xe5;
-    model_address[4] = 0xd5;
+    // XR311:  04bc285afd 02
+    model_address[0] = 0x04;
+    model_address[1] = 0xbc;
+    model_address[2] = 0x28;
+    model_address[3] = 0x5a;
+    model_address[4] = 0xfd;
 
-    hop_data[0] = 0x2e;
+    hop_data[0] = 0x02;
+
+    // Bind packets
+    // model_address[0] = 0x12;
+    // model_address[1] = 0x23;
+    // model_address[2] = 0x23;
+    // model_address[3] = 0x45;
+    // model_address[4] = 0x78;
+
+    // hop_data[0] = 0x51;
 
     for (i = 1; i < NUMBER_OF_HOP_CHANNELS; i++) {
         hop_data[i] = hop_data[i - 1] + 1;
@@ -244,28 +254,59 @@ static void process_binding(void)
 static void process_receiving(void)
 {
     if (rf_int_fired) {
+        rf_int_fired = 0;
         rf_clear_irq(RX_RD);
-        // rf_clear_ce();
+        rf_clear_ce();
         while (!rf_is_rx_fifo_emtpy()) {
             rf_read_fifo(payload, PAYLOAD_SIZE);
         }
-        rf_int_fired = 0;
+
+        hop_index = (hop_index + 1) % NUMBER_OF_HOP_CHANNELS;
+        rf_set_channel(hop_data[hop_index]);
+
         data_available = 1;
         start_output_pulse_timer();
+
+        rf_set_ce();
     }
 
 
     // Hex-dump of received payload
     if (data_available) {
-        int i;
 
         data_available = 0;
-        for (i = 0; i < PAYLOAD_SIZE; i++) {
-            uart0_send_uint8_hex(payload[i]);
-            uart0_send_char(' ');
+        // if (payload[7] == 0xaa) { // F/S; payload[8] = 0x5a if enabled, 0x5b if disabled
+        if (payload[7] == 0x55) {   // Stick data
+            int i;
+            for (i = 0; i < PAYLOAD_SIZE; i++) {
+                uart0_send_uint8_hex(payload[i]);
+                uart0_send_char(' ');
+            }
+            uart0_send_linefeed();
         }
-        uart0_send_linefeed();
     }
+
+
+    // while (!rf_is_rx_fifo_emtpy()) {
+    //     rf_clear_irq(RX_RD);
+    //     data_available = 1;
+    //     rf_read_fifo(payload, PAYLOAD_SIZE);
+    // }
+
+
+    // if (data_available) {
+    //     int i;
+    // uart0_send_cstring("Status: ");
+    // uart0_send_uint8_hex(rf_get_status());
+    //         uart0_send_char(' ');
+
+    //     data_available = 0;
+    //     for (i = 0; i < PAYLOAD_SIZE; i++) {
+    //         uart0_send_uint8_hex(payload[i]);
+    //         uart0_send_char(' ');
+    //     }
+    //     uart0_send_linefeed();
+    // }
 
 
 
@@ -346,7 +387,10 @@ static void process_receiving(void)
 // ****************************************************************************
 void init_receiver(void)
 {
+    // FIXME: need a delay after power on!
+
     read_bind_data();
+
     rf_enable_clock();
     rf_set_crc(CRC_2_BYTES);
     rf_set_irq_source(RX_RD);
@@ -357,6 +401,9 @@ void init_receiver(void)
     rf_set_payload_size(DATA_PIPE_0, PAYLOAD_SIZE);
     rf_set_channel(hop_data[0]);
     rf_enable_receiver();
+    rf_flush_rx_fifo();
+    rf_clear_irq(RX_RD);
+
     rf_set_ce();
 }
 

@@ -243,6 +243,22 @@ void rf_read_fifo(uint8_t *buffer, size_t byte_count)
 
 
 // ****************************************************************************
+void rf_flush_rx_fifo(void)
+{
+    write_buffer[0] = FLUSH_RX;
+    spi_transaction(1, write_buffer, NULL);
+}
+
+
+// ****************************************************************************
+void rf_flush_tx_fifo(void)
+{
+    write_buffer[0] = FLUSH_TX;
+    spi_transaction(1, write_buffer, NULL);
+}
+
+
+// ****************************************************************************
 // Enable or disable which events trigger the IRQ pin on the nRF24.
 //
 // irq_source:

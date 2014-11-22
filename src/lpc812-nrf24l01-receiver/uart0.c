@@ -240,7 +240,7 @@ void uart0_send_uint16_hex(uint16_t number)
 void uart0_send_uint8_hex(uint8_t number)
 {
     char buf[3];
-    uint32_to_cstring(number, buf, 16, 4);
+    uint32_to_cstring(number, buf, 16, 2);
     uart0_send_cstring(buf);
 }
 
