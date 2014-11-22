@@ -38,7 +38,7 @@ $Descr A4 11693 8268
 encoding utf-8
 Sheet 1 1
 Title ""
-Date "21 nov 2014"
+Date "22 nov 2014"
 Rev ""
 Comp ""
 Comment1 ""
@@ -200,7 +200,7 @@ F 3 "" H 7400 5250 60  0000 C CNN
 	1    7400 5250
 	1    0    0    -1  
 $EndComp
-Text GLabel 6100 2100 2    39   Input ~ 0
+Text GLabel 6100 2200 2    39   Input ~ 0
 MISO
 Text GLabel 9400 2150 0    39   Input ~ 0
 CH3/Rx
@@ -212,19 +212,19 @@ Text GLabel 6100 2300 2    39   Input ~ 0
 ISP/BIND
 Text GLabel 6100 2400 2    39   Input ~ 0
 CE
-Text GLabel 6100 2200 2    39   Input ~ 0
+Text GLabel 6100 2100 2    39   Input ~ 0
 IRQ
 Text GLabel 3150 2100 0    39   Input ~ 0
 CH3/Rx
-Text GLabel 3150 2300 0    39   Input ~ 0
-CSN
 Text GLabel 3150 2400 0    39   Input ~ 0
+CSN
+Text GLabel 3150 2200 0    39   Input ~ 0
 SCK
 Text GLabel 3150 2500 0    39   Input ~ 0
 CH4/CPPM/Tx
 Text GLabel 3150 2600 0    39   Input ~ 0
 LED
-Text GLabel 3150 2800 0    39   Input ~ 0
+Text GLabel 3150 2300 0    39   Input ~ 0
 MOSI
 Text GLabel 3150 2700 0    39   Input ~ 0
 CH2
@@ -372,7 +372,7 @@ F 3 "" H 6450 4200 60  0000 C CNN
 	1    6450 4200
 	1    0    0    -1  
 $EndComp
-Text GLabel 3150 2200 0    39   Input ~ 0
+Text GLabel 3150 2800 0    39   Input ~ 0
 CH1
 Text GLabel 9400 1650 0    39   Input ~ 0
 CH4/CPPM/Tx
