@@ -45,17 +45,6 @@ const uint8_t BIND_ADDRESS[ADDRESS_WIDTH] = {0x12, 0x23, 0x23, 0x45, 0x78};
 
 // }
 
-// ****************************************************************************
-static void start_output_pulse_timer(void)
-{
-
-}
-
-// ****************************************************************************
-static void set_timer_to_4ms(void)
-{
-
-}
 
 // ****************************************************************************
 static void save_bind_data(void)
@@ -69,9 +58,12 @@ static void save_bind_data(void)
     for (i = 0; i < NUMBER_OF_HOP_CHANNELS; i++) {
         hop_data[i] = bind_storage_area[ADDRESS_WIDTH + i];
     }
+
+    // FIXME: save persistently
 }
 
 
+// ****************************************************************************
 static void print_payload(void)
 {
     int i;
@@ -82,59 +74,32 @@ static void print_payload(void)
     uart0_send_linefeed();
 }
 
-// ****************************************************************************
-// static void toggle_red_led(void)
-// {
 
-// }
-
-// ****************************************************************************
-static void green_led_on(void)
+static uint16_t stickdata2ms(uint16_t stickdata)
 {
+    uint32_t ms;
 
+    ms = (0xffff - stickdata) * 3 / 4;
+    return ms & 0xffff;
 }
-
-// ****************************************************************************
-static void green_led_off(void)
-{
-
-}
-
-// ****************************************************************************
-static void red_led_on(void)
-{
-
-}
-
-// ****************************************************************************
-static void red_led_off(void)
-{
-
-}
-
-
-// ****************************************************************************
-static void hop_timer_off(void)
-{
-
-}
-
 
 // ****************************************************************************
 static void read_bind_data(void)
 {
     int i;
 
+    // FIXME: read from persistent storage
+
     // Dingo:  9ee187e5d52 e
 
     // XR311:  04bc285afd 02
-    // model_address[0] = 0x04;
-    // model_address[1] = 0xbc;
-    // model_address[2] = 0x28;
-    // model_address[3] = 0x5a;
-    // model_address[4] = 0xfd;
+    model_address[0] = 0x04;
+    model_address[1] = 0xbc;
+    model_address[2] = 0x28;
+    model_address[3] = 0x5a;
+    model_address[4] = 0xfd;
 
-    // hop_data[0] = 0x02;
+    hop_data[0] = 0x02;
 
     // Bind packets
     // model_address[0] = 0x12;
@@ -158,19 +123,19 @@ static void read_bind_data(void)
 // 12:23:23:45:78.
 // This data is sent at a lower power. All transmitters do that all the time.
 //
+// A bind data packet is sent every 5ms.
+//
 // The transmitter cycles through 4 packets:
-// ff aa 55 a1 a2 a3 a4 a5
+// ff aa 55 a1 a2 a3 a4 a5 .. ..
 // cc cc 00 ha hb hc hd he hf hg
 // cc cc 01 hh hi hj hk hl hm hn
-// cc cc 02 ho hp hq hr hs ht
+// cc cc 02 ho hp hq hr hs ht ..
 //
-// ff aa 55 is the special marker for the first byte
+// ff aa 55 is the special marker for the first packet
 // a1..a5 are the 5 address bytes
 // cc cc is a 16 byte checksum of bytes a1..a5
-// ha..ht are the 20 hop data bytes
-//
-// a1..a5 are stored in 14h..18h
-// ha..ht are stored in x002a..x003d
+// ha..ht are the 20 hop data channels
+// .. data not used
 //
 // ****************************************************************************
 static void process_binding(void)
@@ -186,11 +151,16 @@ static void process_binding(void)
         bind_state = 0;
         uart0_send_cstring("Starting bind procedure\n");
         rf_clear_ce();
-        rf_set_rx_address(0, ADDRESS_WIDTH, BIND_ADDRESS);    // Set special address 12h 23h 23h 45h 78h
+        // Set special address 12h 23h 23h 45h 78h
+        rf_set_rx_address(0, ADDRESS_WIDTH, BIND_ADDRESS);
+        // Set special channel 0x51
         rf_set_channel(BIND_CHANNEL);
         rf_set_ce();
         return;
     }
+
+    // FIXME: add LED
+    // FIXME: add timeout
 
 
     if (!rf_int_fired) {
@@ -286,107 +256,35 @@ static void process_receiving(void)
         return;
     }
 
-    if (rf_int_fired) {
-        rf_int_fired = 0;
-        rf_clear_ce();
-        while (!rf_is_rx_fifo_emtpy()) {
-            rf_read_fifo(payload, PAYLOAD_SIZE);
-        }
-
-        hop_index = (hop_index + 1) % NUMBER_OF_HOP_CHANNELS;
-        rf_set_channel(hop_data[hop_index]);
-
-        rf_clear_irq(RX_RD);
-        data_available = 1;
-        start_output_pulse_timer();
-
-        rf_set_ce();
+    if (!rf_int_fired) {
+        return;
     }
 
-
-    // Hex-dump of received payload
-    if (data_available) {
-
-        data_available = 0;
-        // if (payload[7] == 0xaa) { // F/S; payload[8] = 0x5a if enabled, 0x5b if disabled
-        if (payload[7] == 0x55) {   // Stick data
-            print_payload();
-        }
+    rf_int_fired = 0;
+    rf_clear_ce();
+    while (!rf_is_rx_fifo_emtpy()) {
+        rf_read_fifo(payload, PAYLOAD_SIZE);
     }
 
+    hop_index = (hop_index + 1) % NUMBER_OF_HOP_CHANNELS;
+    rf_set_channel(hop_data[hop_index]);
 
+    rf_clear_irq(RX_RD);
+    rf_set_ce();
 
-
-
-    // FIXME: remove and fully implement
-    return;
-
-
-
-    switch (receive_state) {
-        case 0:
-            rf_set_channel(hop_data[0]);
-            receive_state = 1;
-            rf_set_ce();
-            break;
-
-        case 1:
-            if (data_available) {
-                hop_index = 0;
-                set_timer_to_4ms();
-                receive_state = 2;
-            }
-            break;
-
-        case 2:
-            if (data_available) {
-                set_timer_to_4ms();
-                inc_every_hop_to_20 = 0;
-                rf_clear_ce();
-                failsafe_timer = 0;
-            }
-            break;
-
-        default:
-            break;
-    }
-
-    if (inc_every_hop_to_20 > 16) {
-        receive_state = 0;
-        hop_timer_off();
-    }
-
-    if (data_available) {
-        data_available = false;
-        if (payload[7] == 0x55) {
-            channels[0] = (payload[0] << 8) + payload[1];
-            channels[1] = (payload[2] << 8) + payload[3];
-            channels[2] = (payload[4] << 8) + payload[5];
-            channels[3] = (payload[6] << 8) + payload[7];
-        }
-        else if (payload[7] == 0xaa) {
-            failsafe_enabled = payload[8];
-            failsafe[0] = (payload[0] << 8) + payload[1];
-            failsafe[1] = (payload[2] << 8) + payload[3];
-
-        }
-    }
-
-    if (failsafe_timer < 640) {
-        green_led_on();
-        red_led_off();
-    }
-    else {
-        green_led_off();
-        red_led_on();
-        if (failsafe_enabled == 0x5a) {
-            channels[0] = failsafe[0];
-            channels[1] = failsafe[1];
-        }
-        else {
-            channels[0] = PULSE_1500MS;
-            channels[1] = PULSE_1500MS;
-        }
+    // if (payload[7] == 0xaa) { // F/S; payload[8] = 0x5a if enabled, 0x5b if disabled
+    if (payload[7] == 0x55) {   // Stick data
+        channels[0] = stickdata2ms((payload[1] << 8) + payload[0]);
+        channels[1] = stickdata2ms((payload[3] << 8) + payload[2]);
+        channels[2] = stickdata2ms((payload[5] << 8) + payload[4]);
+        // print_payload();
+        uart0_send_cstring("ST=");
+        uart0_send_uint32(channels[0]);
+        uart0_send_cstring("  TH=");
+        uart0_send_uint32(channels[1]);
+        uart0_send_cstring("  CH3=");
+        uart0_send_uint32(channels[2]);
+        uart0_send_linefeed();
     }
 }
 
