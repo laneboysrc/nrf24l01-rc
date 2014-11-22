@@ -30,3 +30,4 @@
 
 
 #define GPIO_RFCE LPC_GPIO_PORT->W0[13]
+#define GPIO_BIND LPC_GPIO_PORT->W0[12]
