@@ -10,40 +10,69 @@
 #define ADDRESS_WIDTH 5
 #define NUMBER_OF_HOP_CHANNELS 20
 #define NUMBER_OF_CHANNELS 4
+#define SERVO_PULSE_CENTER 1500
 
-#define PULSE_1500MS 0xf82f
+#define FAILSAFE_TIMEOUT (640 / __SYSTICK_IN_MS)
+#define BIND_TIMEOUT (5000 / __SYSTICK_IN_MS)
 
-bool rf_int_fired = false;
-bool data_available = false;
-bool binding = false;
-unsigned int bind_state;
-unsigned int receive_state;
-unsigned int bind_timeout;
-unsigned int blink_timer;
-unsigned int hop_index;
-unsigned int inc_every_hop_to_20;
-unsigned int failsafe_timer;
-uint16_t checksum;
-uint8_t status;
-uint8_t payload[PAYLOAD_SIZE];
-uint8_t bind_storage_area[ADDRESS_WIDTH + NUMBER_OF_HOP_CHANNELS];
-uint16_t channels[NUMBER_OF_CHANNELS];
-uint16_t failsafe[NUMBER_OF_CHANNELS];
-uint8_t failsafe_enabled;
-uint8_t model_address[ADDRESS_WIDTH];
-uint8_t hop_data[NUMBER_OF_HOP_CHANNELS];
+#define LED_STATE_IDLE 0
+#define LED_STATE_RECEIVING 1
+#define LED_STATE_FAILSAFE 2
+#define LED_STATE_BINDING 3
 
+#define BUTTON_PRESSED 0
+#define BUTTON_RELEASED 1
 
-const uint8_t BIND_CHANNEL = 0x51;
-const uint8_t BIND_ADDRESS[ADDRESS_WIDTH] = {0x12, 0x23, 0x23, 0x45, 0x78};
+extern bool systick;
+
+static bool rf_int_fired = false;
+static bool binding_requested = false;
+static bool successful_stick_data = false;
+
+static uint8_t payload[PAYLOAD_SIZE];
+static uint16_t channels[NUMBER_OF_CHANNELS];
+
+static uint8_t failsafe_enabled;
+static uint16_t failsafe[NUMBER_OF_CHANNELS];
+static unsigned int failsafe_timer;
+
+static uint8_t model_address[ADDRESS_WIDTH];
+static unsigned int hop_index;
+static uint8_t hop_data[NUMBER_OF_HOP_CHANNELS];
+
+static bool binding = false;
+static unsigned int bind_timer;
+static const uint8_t BIND_CHANNEL = 0x51;
+static const uint8_t BIND_ADDRESS[ADDRESS_WIDTH] = {0x12, 0x23, 0x23, 0x45, 0x78};
+static uint8_t bind_storage_area[ADDRESS_WIDTH + NUMBER_OF_HOP_CHANNELS];
+
+static unsigned int led_state;
+
 
 
 
 // ****************************************************************************
-// static void stop_output_pulse_timer(void)
+// static void print_payload(void)
 // {
-
+//     int i;
+//     for (i = 0; i < PAYLOAD_SIZE; i++) {
+//         uart0_send_uint8_hex(payload[i]);
+//         uart0_send_char(' ');
+//     }
+//     uart0_send_linefeed();
 // }
+
+
+// ****************************************************************************
+static void initialize_failsafe(void) {
+    int i;
+
+    failsafe_enabled = false;
+    failsafe_timer = FAILSAFE_TIMEOUT;
+    for (i = 0; i < NUMBER_OF_CHANNELS; i++) {
+        failsafe[i] = SERVO_PULSE_CENTER;
+    }
+}
 
 
 // ****************************************************************************
@@ -64,17 +93,6 @@ static void save_bind_data(void)
 
 
 // ****************************************************************************
-static void print_payload(void)
-{
-    int i;
-    for (i = 0; i < PAYLOAD_SIZE; i++) {
-        uart0_send_uint8_hex(payload[i]);
-        uart0_send_char(' ');
-    }
-    uart0_send_linefeed();
-}
-
-
 static uint16_t stickdata2ms(uint16_t stickdata)
 {
     uint32_t ms;
@@ -82,6 +100,7 @@ static uint16_t stickdata2ms(uint16_t stickdata)
     ms = (0xffff - stickdata) * 3 / 4;
     return ms & 0xffff;
 }
+
 
 // ****************************************************************************
 static void read_bind_data(void)
@@ -116,6 +135,24 @@ static void read_bind_data(void)
 }
 
 
+
+// ****************************************************************************
+static void binding_done(void)
+{
+    rf_clear_ce();
+
+    hop_index = 0;
+    rf_set_rx_address(DATA_PIPE_0, ADDRESS_WIDTH, model_address);
+    rf_set_channel(hop_data[0]);
+
+    led_state = LED_STATE_IDLE;
+    failsafe_timer = FAILSAFE_TIMEOUT;
+    binding = false;
+
+    rf_set_ce();
+}
+
+
 // ****************************************************************************
 // The bind process works as follows:
 //
@@ -140,15 +177,20 @@ static void read_bind_data(void)
 // ****************************************************************************
 static void process_binding(void)
 {
+    static unsigned int bind_state;
+    static uint16_t checksum;
     int i;
 
     if (!binding) {
-        if (GPIO_BIND) {
+        if (!binding_requested) {
             return;
         }
 
+        binding_requested = false;
+        led_state = LED_STATE_BINDING;
         binding = true;
         bind_state = 0;
+        bind_timer = BIND_TIMEOUT;
         uart0_send_cstring("Starting bind procedure\n");
         rf_clear_ce();
         // Set special address 12h 23h 23h 45h 78h
@@ -159,8 +201,12 @@ static void process_binding(void)
         return;
     }
 
-    // FIXME: add LED
-    // FIXME: add timeout
+    if (bind_timer == 0) {
+        binding_done();
+        uart0_send_cstring("Bind timeout\n");
+        return;
+    }
+
 
 
     if (!rf_int_fired) {
@@ -227,15 +273,8 @@ static void process_binding(void)
                         }
 
                         save_bind_data();
-
-                        rf_clear_ce();
-
-                        hop_index = 0;
-                        rf_set_rx_address(DATA_PIPE_0, ADDRESS_WIDTH, model_address);
-                        rf_set_channel(hop_data[0]);
-
-                        rf_set_ce();
-                        binding = false;
+                        binding_done();
+                        uart0_send_cstring("Bind successful\n");
                         return;
                     }
                 }
@@ -256,6 +295,23 @@ static void process_receiving(void)
         return;
     }
 
+    // Process failsafe only if we ever got a successsful stick data payload
+    // after reset.
+    //
+    // This way the servo outputs stay off until we got successful stick
+    // data, so the servos do not got to the failsafe point after power up
+    // in case the transmitter is not on yet.
+    if (successful_stick_data) {
+        if (failsafe_timer == 0) {
+            LPC_SCT->MATCHREL[1].H = failsafe[0];
+            LPC_SCT->MATCHREL[2].H = failsafe[1];
+            LPC_SCT->MATCHREL[3].H = failsafe[2];
+            LPC_SCT->MATCHREL[4].H = failsafe[3];
+
+            led_state = LED_STATE_FAILSAFE;
+        }
+    }
+
     if (!rf_int_fired) {
         return;
     }
@@ -272,7 +328,7 @@ static void process_receiving(void)
     rf_clear_irq(RX_RD);
     rf_set_ce();
 
-    // if (payload[7] == 0xaa) { // F/S; payload[8] = 0x5a if enabled, 0x5b if disabled
+    // payload[7] is 0x55 for stick data
     if (payload[7] == 0x55) {   // Stick data
         channels[0] = stickdata2ms((payload[1] << 8) + payload[0]);
         channels[1] = stickdata2ms((payload[3] << 8) + payload[2]);
@@ -283,14 +339,104 @@ static void process_receiving(void)
         LPC_SCT->MATCHREL[3].H = channels[2];
         // LPC_SCT->MATCHREL[4].H = channels[3];
 
-        // print_payload();
-        uart0_send_cstring("ST=");
-        uart0_send_uint32(channels[0]);
-        uart0_send_cstring("  TH=");
-        uart0_send_uint32(channels[1]);
-        uart0_send_cstring("  CH3=");
-        uart0_send_uint32(channels[2]);
-        uart0_send_linefeed();
+        failsafe_timer = FAILSAFE_TIMEOUT;
+        led_state = LED_STATE_RECEIVING;
+        successful_stick_data = true;
+
+        // uart0_send_cstring("ST=");
+        // uart0_send_uint32(channels[0]);
+        // uart0_send_cstring("  TH=");
+        // uart0_send_uint32(channels[1]);
+        // uart0_send_cstring("  CH3=");
+        // uart0_send_uint32(channels[2]);
+        // uart0_send_linefeed();
+    }
+    // payload[7] is 0xaa for failsafe data
+    else if (payload[7] == 0xaa) {
+        // payload[8]: 0x5a if enabled, 0x5b if disabled
+        if (payload[8] == 0x5a) {
+            failsafe_enabled = true;
+            failsafe[0] = stickdata2ms((payload[1] << 8) + payload[0]);
+            failsafe[1] = stickdata2ms((payload[3] << 8) + payload[2]);
+            failsafe[2] = stickdata2ms((payload[5] << 8) + payload[4]);
+        }
+        else {
+            initialize_failsafe();
+        }
+    }
+}
+
+
+// ****************************************************************************
+static void process_systick(void)
+{
+    if (!systick) {
+        return;
+    }
+
+    if (failsafe_timer) {
+        --failsafe_timer;
+    }
+
+    if (bind_timer) {
+        --bind_timer;
+    }
+}
+
+
+// ****************************************************************************
+static void process_bind_button(void)
+{
+    static bool old_button_state;
+    bool new_button_state;
+
+    if (!systick) {
+        return;
+    }
+
+    new_button_state = GPIO_BIND;
+    if (new_button_state == old_button_state) {
+        return;
+    }
+    old_button_state = new_button_state;
+
+    if (new_button_state == BUTTON_PRESSED) {
+        binding_requested = true;
+    }
+}
+
+
+// ****************************************************************************
+static void process_led(void)
+{
+    static unsigned int old_led_state = 0xffffffff;
+
+    if (led_state == old_led_state) {
+        return;
+    }
+    old_led_state = led_state;
+    switch (led_state) {
+        case LED_STATE_IDLE:
+            uart0_send_cstring("LED: IDLE\n");
+            break;
+
+        case LED_STATE_RECEIVING:
+            uart0_send_cstring("LED: RECEIVING\n");
+            break;
+
+        case LED_STATE_FAILSAFE:
+            uart0_send_cstring("LED: FAILSAFE\n");
+            break;
+
+        case LED_STATE_BINDING:
+            uart0_send_cstring("LED: BINDING\n");
+            break;
+
+        default:
+            uart0_send_cstring("LED: UNKOWN LED STATE ");
+            uart0_send_uint32(led_state);
+            uart0_send_linefeed();
+            break;
     }
 }
 
@@ -301,6 +447,7 @@ void init_receiver(void)
     // FIXME: need a delay after power on!
 
     read_bind_data();
+    initialize_failsafe();
 
     rf_enable_clock();
     rf_set_crc(CRC_2_BYTES);
@@ -316,14 +463,19 @@ void init_receiver(void)
     rf_clear_irq(RX_RD);
 
     rf_set_ce();
+
+    led_state = LED_STATE_IDLE;
 }
 
 
 // ****************************************************************************
 void process_receiver(void)
 {
+    process_systick();
+    process_bind_button();
     process_binding();
     process_receiving();
+    process_led();
 }
 
 

@@ -17,9 +17,10 @@
 void SysTick_handler(void);
 void PININT0_irq_handler(void);
 
+// Global flag that is true for one mainloop every __SYSTICK_IN_MS
+bool systick;
 
-uint32_t systick_count;
-uint32_t soft_timer;
+static uint32_t systick_count;
 
 // ****************************************************************************
 static void init_hardware(void)
@@ -164,8 +165,11 @@ void SysTick_handler(void)
 static void service_systick(void)
 {
     if (!systick_count) {
+        systick = false;
         return;
     }
+
+    systick = true;
 
     // Disable the SysTick interrupt. Use memory barriers to ensure that no
     // interrupt is pending in the pipeline.
@@ -176,8 +180,6 @@ static void service_systick(void)
     __ISB();
     --systick_count;
     SysTick->CTRL |= (1 << 1);      // Re-enable the system tick interrupt
-
-    ++soft_timer;
 }
 
 
