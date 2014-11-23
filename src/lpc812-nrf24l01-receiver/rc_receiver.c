@@ -6,6 +6,8 @@
 #include <rf.h>
 #include <uart0.h>
 
+
+
 #define PAYLOAD_SIZE 10
 #define ADDRESS_WIDTH 5
 #define NUMBER_OF_HOP_CHANNELS 20
@@ -14,6 +16,9 @@
 
 #define FAILSAFE_TIMEOUT (640 / __SYSTICK_IN_MS)
 #define BIND_TIMEOUT (5000 / __SYSTICK_IN_MS)
+#define ISP_TIMEOUT (3000 / __SYSTICK_IN_MS)
+#define BLINK_TIME_FAILSAFE (320 / __SYSTICK_IN_MS)
+#define BLINK_TIME_BINDING (50 / __SYSTICK_IN_MS)
 
 #define LED_STATE_IDLE 0
 #define LED_STATE_RECEIVING 1
@@ -23,11 +28,18 @@
 #define BUTTON_PRESSED 0
 #define BUTTON_RELEASED 1
 
+#define LED_ON 0
+
+
 extern bool systick;
 
+
+
 static bool rf_int_fired = false;
-static bool binding_requested = false;
 static bool successful_stick_data = false;
+static unsigned int led_state;
+static unsigned int blink_timer;
+static unsigned int bind_button_timer;
 
 static uint8_t payload[PAYLOAD_SIZE];
 static uint16_t channels[NUMBER_OF_CHANNELS];
@@ -40,14 +52,12 @@ static uint8_t model_address[ADDRESS_WIDTH];
 static unsigned int hop_index;
 static uint8_t hop_data[NUMBER_OF_HOP_CHANNELS];
 
+static bool binding_requested = false;
 static bool binding = false;
 static unsigned int bind_timer;
 static const uint8_t BIND_CHANNEL = 0x51;
 static const uint8_t BIND_ADDRESS[ADDRESS_WIDTH] = {0x12, 0x23, 0x23, 0x45, 0x78};
 static uint8_t bind_storage_area[ADDRESS_WIDTH + NUMBER_OF_HOP_CHANNELS];
-
-static unsigned int led_state;
-
 
 
 
@@ -148,6 +158,7 @@ static void binding_done(void)
     led_state = LED_STATE_IDLE;
     failsafe_timer = FAILSAFE_TIMEOUT;
     binding = false;
+    binding_requested = false;
 
     rf_set_ce();
 }
@@ -385,26 +396,49 @@ static void process_systick(void)
     if (bind_timer) {
         --bind_timer;
     }
+
+    if (bind_button_timer) {
+        --bind_button_timer;
+    }
+
+    if (blink_timer) {
+        --blink_timer;
+    }
 }
 
 
 // ****************************************************************************
 static void process_bind_button(void)
 {
-    static bool old_button_state;
+    static bool isp_timeout_active;
+    static bool old_button_state = BUTTON_RELEASED;
     bool new_button_state;
+
 
     if (!systick) {
         return;
     }
 
     new_button_state = GPIO_BIND;
+
+    if (isp_timeout_active && (bind_button_timer == 0)) {
+        uart0_send_cstring("Launching ISP!\n");
+        invoke_ISP();
+        // We should never return here...
+    }
+
     if (new_button_state == old_button_state) {
         return;
     }
     old_button_state = new_button_state;
 
     if (new_button_state == BUTTON_PRESSED) {
+        bind_button_timer = ISP_TIMEOUT;
+        isp_timeout_active = true;
+    }
+
+    if (new_button_state == BUTTON_RELEASED) {
+        isp_timeout_active = false;
         binding_requested = true;
     }
 }
@@ -414,26 +448,47 @@ static void process_bind_button(void)
 static void process_led(void)
 {
     static unsigned int old_led_state = 0xffffffff;
+    static bool blinking;
+    static unsigned int blink_timer_reload_value;
+
+
+    if (blinking) {
+        if (blink_timer == 0) {
+            blink_timer = blink_timer_reload_value;
+            GPIO_LED = ~GPIO_LED;
+        }
+    }
 
     if (led_state == old_led_state) {
         return;
     }
     old_led_state = led_state;
+
+    GPIO_LED = 0;
+
     switch (led_state) {
         case LED_STATE_IDLE:
             uart0_send_cstring("LED: IDLE\n");
+            blink_timer_reload_value = BLINK_TIME_FAILSAFE;
+            blinking = true;
             break;
 
         case LED_STATE_RECEIVING:
             uart0_send_cstring("LED: RECEIVING\n");
+            GPIO_LED = LED_ON;
+            blinking = false;
             break;
 
         case LED_STATE_FAILSAFE:
             uart0_send_cstring("LED: FAILSAFE\n");
+            blink_timer_reload_value = BLINK_TIME_FAILSAFE;
+            blinking = true;
             break;
 
         case LED_STATE_BINDING:
             uart0_send_cstring("LED: BINDING\n");
+            blink_timer_reload_value = BLINK_TIME_BINDING;
+            blinking = true;
             break;
 
         default:

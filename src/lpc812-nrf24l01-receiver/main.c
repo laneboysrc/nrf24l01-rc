@@ -13,14 +13,20 @@
 #include <spi.h>
 #include <rc_receiver.h>
 
+#include <LPC8xx_ROM_API.h>
+
 
 void SysTick_handler(void);
 void PININT0_irq_handler(void);
+
+
 
 // Global flag that is true for one mainloop every __SYSTICK_IN_MS
 bool systick;
 
 static uint32_t systick_count;
+
+
 
 // ****************************************************************************
 static void init_hardware(void)
@@ -57,8 +63,9 @@ static void init_hardware(void)
     LPC_SWM->PINASSIGN7 = 0xffffff06;
 
 
-    // Make NRF_SCK, NRF_MOSI, NRF_CSN and NRF_CE outputs
-    LPC_GPIO_PORT->DIR0 |= (1 << 1) | (1 << 2) | (1 << 3) | (1 << 13);
+    // Make NRF_SCK, NRF_MOSI, NRF_CSN, NRF_CE and LED outputs
+    LPC_GPIO_PORT->DIR0 |= (1 << 1) | (1 << 2) | (1 << 3) | (1 << 13) |
+        (1 << GPIO_BIT_LED);
     GPIO_RFCE = 0;
 
 
@@ -208,6 +215,22 @@ static void stack_check(void)
         uart0_send_uint32_hex((uint32_t)now);
         uart0_send_linefeed();
     }
+}
+
+
+// ****************************************************************************
+void invoke_ISP(void)
+{
+    unsigned int param[5];
+
+    param[0] = 57;  // Reinvoke ISP
+    __disable_irq();
+    iap_entry(param, param);
+
+    // This should never execute ...
+    __enable_irq();
+    uart0_send_cstring("ERROR: Reinvoke ISP failed\n");
+    while(1);
 }
 
 

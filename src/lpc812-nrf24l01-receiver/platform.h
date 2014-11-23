@@ -34,6 +34,10 @@
 #define GPIO_BIT_CH4 4
 #define GPIO_BIT_RFCE 13
 #define GPIO_BIT_BIND 12
+#define GPIO_BIT_LED 9      // FIXME: 5 in actual finished firmware!
 
 #define GPIO_RFCE LPC_GPIO_PORT->W0[GPIO_BIT_RFCE]
 #define GPIO_BIND LPC_GPIO_PORT->W0[GPIO_BIT_BIND]
+#define GPIO_LED LPC_GPIO_PORT->W0[GPIO_BIT_LED]
+
+void invoke_ISP(void);
