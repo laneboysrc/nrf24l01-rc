@@ -1,4 +1,4 @@
-Cmp-Mod V01 Created by CvPcb (2013-jul-07)-stable date = Sun 23 Nov 2014 08:18:50 PM SGT
+Cmp-Mod V01 Created by PcbNew date = Sun 23 Nov 2014 10:26:24 PM SGT
 
 BeginCmp
 TimeStamp = /546ED3B5;
@@ -137,7 +137,7 @@ BeginCmp
 TimeStamp = /546ED16B;
 Reference = U2;
 ValeurCmp = LPC812M101JDH16_TSSOP16;
-IdModule  = TSSOP16;
+IdModule  = NXP-TSSOP16;
 EndCmp
 
 BeginCmp
