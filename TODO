@@ -4,7 +4,7 @@
 
 - Hop every 5ms even if no data received
 
-- Pre-processor output, and output of raw data
+- Pre-processor output of raw data
 
 - Persistent storage for bind data
 
