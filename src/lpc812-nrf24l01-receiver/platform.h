@@ -31,12 +31,19 @@
 #define GPIO_BIT_CH1 7
 #define GPIO_BIT_CH2 6
 #define GPIO_BIT_CH3 0
+#define GPIO_BIT_UART_RX 0
 #define GPIO_BIT_CH4 4
-#define GPIO_BIT_RFCE 13
+#define GPIO_BIT_UART_TX 4
 #define GPIO_BIT_BIND 12
 #define GPIO_BIT_LED 9      // FIXME: 5 in actual finished firmware!
+#define GPIO_BIT_NRF_SCK 1
+#define GPIO_BIT_NRF_MOSI 2
+#define GPIO_BIT_NRF_CSN 3
+#define GPIO_BIT_NRF_MISO 10
+#define GPIO_BIT_NRF_IRQ 11
+#define GPIO_BIT_NRF_CE 13
 
-#define GPIO_RFCE LPC_GPIO_PORT->W0[GPIO_BIT_RFCE]
+#define GPIO_NRF_CE LPC_GPIO_PORT->W0[GPIO_BIT_NRF_CE]
 #define GPIO_BIND LPC_GPIO_PORT->W0[GPIO_BIT_BIND]
 #define GPIO_LED LPC_GPIO_PORT->W0[GPIO_BIT_LED]
 

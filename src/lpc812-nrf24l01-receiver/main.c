@@ -51,22 +51,34 @@ static void init_hardware(void)
     // Enable reset, all other special functions disabled
     LPC_SWM->PINENABLE0 = 0xffffffbf;
 
-    // U0_TXT_O = PIO0_4, U0_RXD_I = PIO0_0
-    LPC_SWM->PINASSIGN0 = 0xffff0004;
-    // SCK = PIO0_1
-    LPC_SWM->PINASSIGN3 = 0x01ffffff;
-    // MOSI = PIO0_2, MISO = PIO0_10, SSEL (CSN) = PIO0_3
-    LPC_SWM->PINASSIGN4 = 0xff030a02;
+    // Enable hardware inputs and outputs
+    LPC_SWM->PINASSIGN0 = (0xff << 24) |
+                          (0xff << 16) |
+                          (GPIO_BIT_UART_RX << 8) |
+                          (GPIO_BIT_UART_TX << 0);
+
+    LPC_SWM->PINASSIGN3 = (GPIO_BIT_NRF_SCK << 24) |
+                          (0xff << 16) |
+                          (0xff << 8) |
+                          (0xff << 0);
+
+    LPC_SWM->PINASSIGN4 = (0xff << 24) |
+                          (GPIO_BIT_NRF_CSN << 16) |
+                          (GPIO_BIT_NRF_MISO << 8) |
+                          (GPIO_BIT_NRF_MOSI << 0);
 
     // CTOUT_0 = PIO0_7 (CH1) CTOUT_1 = PIO0_6 (CH2)
     LPC_SWM->PINASSIGN6 = 0x07ffffff;
     LPC_SWM->PINASSIGN7 = 0xffffff06;
 
 
-    // Make NRF_SCK, NRF_MOSI, NRF_CSN, NRF_CE and LED outputs
-    LPC_GPIO_PORT->DIR0 |= (1 << 1) | (1 << 2) | (1 << 3) | (1 << 13) |
-        (1 << GPIO_BIT_LED);
-    GPIO_RFCE = 0;
+    // Configure outputs
+    LPC_GPIO_PORT->DIR0 |= (1 << GPIO_BIT_NRF_SCK) |
+                           (1 << GPIO_BIT_NRF_MOSI) |
+                           (1 << GPIO_BIT_NRF_CSN) |
+                           (1 << GPIO_BIT_NRF_CE) |
+                           (1 << GPIO_BIT_LED);
+    GPIO_NRF_CE = 0;
 
 
     // Enable glitch filtering on the IOs

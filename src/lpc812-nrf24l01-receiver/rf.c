@@ -163,7 +163,7 @@ uint8_t rf_get_status(void)
 // ****************************************************************************
 void rf_set_ce(void)
 {
-    GPIO_RFCE = 1;
+    GPIO_NRF_CE = 1;
 
     // FIXME: Data sheet page 24: Delay from CE positive edge to CSN low: 4us
 }
@@ -172,7 +172,7 @@ void rf_set_ce(void)
 // ****************************************************************************
 void rf_clear_ce(void)
 {
-    GPIO_RFCE = 0;
+    GPIO_NRF_CE = 0;
 }
 
 

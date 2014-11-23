@@ -422,6 +422,7 @@ static void process_bind_button(void)
     new_button_state = GPIO_BIND;
 
     if (isp_timeout_active && (bind_button_timer == 0)) {
+        GPIO_LED = ~LED_ON;
         uart0_send_cstring("Launching ISP!\n");
         invoke_ISP();
         // We should never return here...
