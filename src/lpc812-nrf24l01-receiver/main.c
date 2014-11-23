@@ -12,8 +12,14 @@
 #include <uart0.h>
 #include <spi.h>
 #include <rc_receiver.h>
+#include <preprocessor_output.h>
 
 #include <LPC8xx_ROM_API.h>
+
+
+#ifndef BAUDRATE
+    #define BAUDRATE 115200
+#endif
 
 
 void SysTick_handler(void);
@@ -54,23 +60,28 @@ static void init_hardware(void)
     // Enable hardware inputs and outputs
     LPC_SWM->PINASSIGN0 = (0xff << 24) |
                           (0xff << 16) |
-                          (GPIO_BIT_UART_RX << 8) |
-                          (GPIO_BIT_UART_TX << 0);
+                          (0xff << 8) |                 // UART0_RX
+                          (GPIO_BIT_UART_TX << 0);      // UART0_TX
 
-    LPC_SWM->PINASSIGN3 = (GPIO_BIT_NRF_SCK << 24) |
+    LPC_SWM->PINASSIGN3 = (GPIO_BIT_NRF_SCK << 24) |    // SPI0_SCK
                           (0xff << 16) |
                           (0xff << 8) |
                           (0xff << 0);
 
     LPC_SWM->PINASSIGN4 = (0xff << 24) |
-                          (GPIO_BIT_NRF_CSN << 16) |
-                          (GPIO_BIT_NRF_MISO << 8) |
-                          (GPIO_BIT_NRF_MOSI << 0);
+                          (GPIO_BIT_NRF_CSN << 16) |    // SPI0_SSEL
+                          (GPIO_BIT_NRF_MISO << 8) |    // SPI0_MISO
+                          (GPIO_BIT_NRF_MOSI << 0);     // SPI0_MOSI
 
-    // CTOUT_0 = PIO0_7 (CH1) CTOUT_1 = PIO0_6 (CH2)
-    LPC_SWM->PINASSIGN6 = 0x07ffffff;
-    LPC_SWM->PINASSIGN7 = 0xffffff06;
+    LPC_SWM->PINASSIGN6 = (GPIO_BIT_CH1 << 24) |        // CTOUT_0
+                          (0xff << 16) |
+                          (0xff << 8) |
+                          (0xff << 0);
 
+    LPC_SWM->PINASSIGN7 = (0xff << 24) |
+                          (0xff << 16) |
+                          (GPIO_BIT_CH3 << 8) |         // CTOUT_2
+                          (GPIO_BIT_CH2 << 0);          // CTOUT_1
 
     // Configure outputs
     LPC_GPIO_PORT->DIR0 |= (1 << GPIO_BIT_NRF_SCK) |
@@ -99,24 +110,23 @@ static void init_hardware(void)
     // The timer is running at 1 MHz clock (1us resolution).
     // The repeat frequency is 15ms (a multiple of the on-air packet repeat
     // rate).
-    // The 4 servo pulses are generated with MATCH registers 1..4. and
-    // corresponding timer outputs 0..3.
+    // The 3 servo pulses are generated with MATCH registers 1..3. and
+    // corresponding timer outputs 0..2.
     // MATCH register 0 is used for auto-reload of the timer period.
     LPC_SCT->CONFIG = 0;
 
     LPC_SCT->CONFIG |= (1 << 18);           // Auto-limit on counter H
     LPC_SCT->CTRL_H |= (1 << 3) |           // Clear the counter H
         (((__SYSTEM_CLOCK / 1000000) - 1) << 5); // PRE_H[12:5] = divide for 1 MHz
-    LPC_SCT->MATCHREL[0].H = 15000 - 1;     // 15 ms per overflow
-    LPC_SCT->MATCHREL[1].H = 1500;          // Servo pulse 1.5 ms intially
-    LPC_SCT->MATCHREL[2].H = 1500;
-    LPC_SCT->MATCHREL[3].H = 1500;
-    LPC_SCT->MATCHREL[4].H = 1500;
+    LPC_SCT->MATCHREL[0].H = 16000 - 1;     // 16 ms servo pulse repeat time
+    LPC_SCT->MATCHREL[1].H = SERVO_PULSE_CENTER; // Servo pulse 1.5 ms intially
+    LPC_SCT->MATCHREL[2].H = SERVO_PULSE_CENTER;
+    LPC_SCT->MATCHREL[3].H = SERVO_PULSE_CENTER;
 
-    // All 5 events are setup in the same way:
+    // All 4 events are setup in the same way:
     // Event happens in all states; Match register of the same number;
     // Match counter H, Match condition only.
-    for (i = 0; i < 5; i++) {
+    for (i = 0; i < 4; i++) {
         LPC_SCT->EVENT[i].STATE = 0xFFFF;       // Event happens in all states
         LPC_SCT->EVENT[i].CTRL = (i << 0) |     // Match register
                                  (1 << 4) |     // Select H counter
@@ -127,12 +137,10 @@ static void init_hardware(void)
     LPC_SCT->OUT[0].SET = (1u << 0);
     LPC_SCT->OUT[1].SET = (1u << 0);
     LPC_SCT->OUT[2].SET = (1u << 0);
-    LPC_SCT->OUT[3].SET = (1u << 0);
 
     LPC_SCT->OUT[0].CLR = (1u << 1);        // Event 1 will clear CTOUT_0
     LPC_SCT->OUT[1].CLR = (1u << 2);        // Event 2 will clear CTOUT_1
     LPC_SCT->OUT[2].CLR = (1u << 3);        // Event 3 will clear CTOUT_2
-    LPC_SCT->OUT[3].CLR = (1u << 4);        // Event 4 will clear CTOUT_3
 
     // We don't start the timer here but only after receiving the first
     // valid stick data package.
@@ -207,6 +215,7 @@ static void service_systick(void)
 // ****************************************************************************
 static void stack_check(void)
 {
+#ifndef NO_DEBUG
     #define CANARY 0xcafebabe
 
     static uint32_t *last_found = (uint32_t *)(0x10001000 - 48);
@@ -227,6 +236,7 @@ static void stack_check(void)
         uart0_send_uint32_hex((uint32_t)now);
         uart0_send_linefeed();
     }
+#endif
 }
 
 
@@ -239,10 +249,12 @@ void invoke_ISP(void)
     __disable_irq();
     iap_entry(param, param);
 
+#ifndef NO_DEBUG
     // This should never execute ...
     __enable_irq();
     uart0_send_cstring("ERROR: Reinvoke ISP failed\n");
     while(1);
+#endif
 }
 
 
@@ -250,17 +262,20 @@ void invoke_ISP(void)
 int main(void)
 {
     init_hardware();
-    init_uart0(115200);
+    init_uart0(BAUDRATE);
     init_spi();
     init_hardware_final();
 
     init_receiver();
 
+#ifndef NO_DEBUG
     uart0_send_cstring("Receiver initialized\n");
+#endif
 
     while (1) {
         service_systick();
         process_receiver();
+        output_preprocessor();
         stack_check();
     }
 }

@@ -11,8 +11,6 @@
 #define PAYLOAD_SIZE 10
 #define ADDRESS_WIDTH 5
 #define NUMBER_OF_HOP_CHANNELS 20
-#define NUMBER_OF_CHANNELS 4
-#define SERVO_PULSE_CENTER 1500
 
 #define FAILSAFE_TIMEOUT (640 / __SYSTICK_IN_MS)
 #define BIND_TIMEOUT (5000 / __SYSTICK_IN_MS)
@@ -34,15 +32,16 @@
 extern bool systick;
 
 
+uint16_t channels[NUMBER_OF_CHANNELS];
+bool successful_stick_data = false;
+
 
 static bool rf_int_fired = false;
-static bool successful_stick_data = false;
 static unsigned int led_state;
 static unsigned int blink_timer;
 static unsigned int bind_button_timer;
 
 static uint8_t payload[PAYLOAD_SIZE];
-static uint16_t channels[NUMBER_OF_CHANNELS];
 
 static uint8_t failsafe_enabled;
 static uint16_t failsafe[NUMBER_OF_CHANNELS];
@@ -81,6 +80,17 @@ static void initialize_failsafe(void) {
     failsafe_timer = FAILSAFE_TIMEOUT;
     for (i = 0; i < NUMBER_OF_CHANNELS; i++) {
         failsafe[i] = SERVO_PULSE_CENTER;
+    }
+}
+
+
+// ****************************************************************************
+static void output_pulses(void)
+{
+    int i;
+
+    for (i = 0; i < NUMBER_OF_CHANNELS; i++) {
+        LPC_SCT->MATCHREL[i + 1].H = channels[i];
     }
 }
 
@@ -202,7 +212,11 @@ static void process_binding(void)
         binding = true;
         bind_state = 0;
         bind_timer = BIND_TIMEOUT;
+
+#ifndef NO_DEBUG
         uart0_send_cstring("Starting bind procedure\n");
+#endif
+
         rf_clear_ce();
         // Set special address 12h 23h 23h 45h 78h
         rf_set_rx_address(0, ADDRESS_WIDTH, BIND_ADDRESS);
@@ -214,7 +228,9 @@ static void process_binding(void)
 
     if (bind_timer == 0) {
         binding_done();
+#ifndef NO_DEBUG
         uart0_send_cstring("Bind timeout\n");
+#endif
         return;
     }
 
@@ -285,7 +301,9 @@ static void process_binding(void)
 
                         save_bind_data();
                         binding_done();
+#ifndef NO_DEBUG
                         uart0_send_cstring("Bind successful\n");
+#endif
                         return;
                     }
                 }
@@ -314,10 +332,12 @@ static void process_receiving(void)
     // in case the transmitter is not on yet.
     if (successful_stick_data) {
         if (failsafe_timer == 0) {
-            LPC_SCT->MATCHREL[1].H = failsafe[0];
-            LPC_SCT->MATCHREL[2].H = failsafe[1];
-            LPC_SCT->MATCHREL[3].H = failsafe[2];
-            LPC_SCT->MATCHREL[4].H = failsafe[3];
+            int i;
+
+            for (i = 0; i < NUMBER_OF_CHANNELS; i++) {
+                channels[i] = failsafe[i];
+            }
+            output_pulses();
 
             led_state = LED_STATE_FAILSAFE;
         }
@@ -344,11 +364,7 @@ static void process_receiving(void)
         channels[0] = stickdata2ms((payload[1] << 8) + payload[0]);
         channels[1] = stickdata2ms((payload[3] << 8) + payload[2]);
         channels[2] = stickdata2ms((payload[5] << 8) + payload[4]);
-
-        LPC_SCT->MATCHREL[1].H = channels[0];
-        LPC_SCT->MATCHREL[2].H = channels[1];
-        LPC_SCT->MATCHREL[3].H = channels[2];
-        // LPC_SCT->MATCHREL[4].H = channels[3];
+        output_pulses();
 
         if (!successful_stick_data) {
             LPC_SCT->CTRL_H &= ~(1u << 2);      // Start the SCTimer H
@@ -358,6 +374,8 @@ static void process_receiving(void)
         failsafe_timer = FAILSAFE_TIMEOUT;
         led_state = LED_STATE_RECEIVING;
 
+#ifndef NO_DEBUG
+
         // uart0_send_cstring("ST=");
         // uart0_send_uint32(channels[0]);
         // uart0_send_cstring("  TH=");
@@ -365,6 +383,7 @@ static void process_receiving(void)
         // uart0_send_cstring("  CH3=");
         // uart0_send_uint32(channels[2]);
         // uart0_send_linefeed();
+#endif
     }
     // payload[7] is 0xaa for failsafe data
     else if (payload[7] == 0xaa) {
@@ -423,7 +442,9 @@ static void process_bind_button(void)
 
     if (isp_timeout_active && (bind_button_timer == 0)) {
         GPIO_LED = ~LED_ON;
+#ifndef NO_DEBUG
         uart0_send_cstring("Launching ISP!\n");
+#endif
         invoke_ISP();
         // We should never return here...
     }
@@ -468,34 +489,21 @@ static void process_led(void)
     GPIO_LED = 0;
 
     switch (led_state) {
-        case LED_STATE_IDLE:
-            uart0_send_cstring("LED: IDLE\n");
-            blink_timer_reload_value = BLINK_TIME_FAILSAFE;
-            blinking = true;
-            break;
-
         case LED_STATE_RECEIVING:
-            uart0_send_cstring("LED: RECEIVING\n");
             GPIO_LED = LED_ON;
             blinking = false;
             break;
 
-        case LED_STATE_FAILSAFE:
-            uart0_send_cstring("LED: FAILSAFE\n");
-            blink_timer_reload_value = BLINK_TIME_FAILSAFE;
-            blinking = true;
-            break;
-
         case LED_STATE_BINDING:
-            uart0_send_cstring("LED: BINDING\n");
             blink_timer_reload_value = BLINK_TIME_BINDING;
             blinking = true;
             break;
 
+        case LED_STATE_IDLE:
+        case LED_STATE_FAILSAFE:
         default:
-            uart0_send_cstring("LED: UNKOWN LED STATE ");
-            uart0_send_uint32(led_state);
-            uart0_send_linefeed();
+            blink_timer_reload_value = BLINK_TIME_FAILSAFE;
+            blinking = true;
             break;
     }
 }
@@ -504,7 +512,14 @@ static void process_led(void)
 // ****************************************************************************
 void init_receiver(void)
 {
+    int i;
+
     // FIXME: need a delay after power on!
+
+    for (i = 0; i < NUMBER_OF_CHANNELS; i++) {
+        channels[i] = SERVO_PULSE_CENTER;
+    }
+    output_pulses();
 
     read_bind_data();
     initialize_failsafe();

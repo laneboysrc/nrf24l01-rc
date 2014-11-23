@@ -5,6 +5,10 @@
 
 #define __SYSTICK_IN_MS 10
 
+#define NUMBER_OF_CHANNELS 3
+#define SERVO_PULSE_CENTER 1500
+#define INITIAL_ENDPOINT_DELTA 250
+
 
 // ****************************************************************************
 // IO pins: (LPC812 in TSSOP16 package)
@@ -30,9 +34,7 @@
 
 #define GPIO_BIT_CH1 7
 #define GPIO_BIT_CH2 6
-#define GPIO_BIT_CH3 0
-#define GPIO_BIT_UART_RX 0
-#define GPIO_BIT_CH4 4
+#define GPIO_BIT_CH3 8      // FIXME 0 in actual finished firmware
 #define GPIO_BIT_UART_TX 4
 #define GPIO_BIT_BIND 12
 #define GPIO_BIT_LED 9      // FIXME: 5 in actual finished firmware!
