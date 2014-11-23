@@ -38,7 +38,7 @@ OBJCOPY := $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)objcopy
 
 MKDIR_P = mkdir -p
 FLASH_TOOL := lpc81x_isp.py --run --flash
-TERMINAL_PROGRAM := miniterm.py -p /dev/ttyUSB0 -b 115200
+TERMINAL_PROGRAM := miniterm.py -p /dev/ttyUSB0 -b 115200 --echo
 
 
 # FIXME: make sure we can do without that tool!
