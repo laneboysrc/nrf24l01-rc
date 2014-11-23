@@ -1,24 +1,24 @@
-Cmp-Mod V01 Created by CvPcb (2013-jul-07)-stable date = Fri 21 Nov 2014 10:07:01 PM SGT
+Cmp-Mod V01 Created by CvPcb (2013-jul-07)-stable date = Sun 23 Nov 2014 08:18:50 PM SGT
 
 BeginCmp
 TimeStamp = /546ED3B5;
 Reference = C1;
 ValeurCmp = 100n;
-IdModule  = c_0805;
+IdModule  = SM0805;
 EndCmp
 
 BeginCmp
 TimeStamp = /546ED3C4;
 Reference = C2;
 ValeurCmp = 1u;
-IdModule  = c_0805;
+IdModule  = SM0805;
 EndCmp
 
 BeginCmp
 TimeStamp = /546ED3A6;
 Reference = C3;
 ValeurCmp = 1u;
-IdModule  = c_0805;
+IdModule  = SM0805;
 EndCmp
 
 BeginCmp
@@ -36,9 +36,16 @@ IdModule  = SM0603_Capa;
 EndCmp
 
 BeginCmp
+TimeStamp = /5471B4BB;
+Reference = C6;
+ValeurCmp = 22uF;
+IdModule  = SM0805;
+EndCmp
+
+BeginCmp
 TimeStamp = /546F0587;
 Reference = D1;
-ValeurCmp = LED;
+ValeurCmp = LED blue;
 IdModule  = LED-0603;
 EndCmp
 
@@ -80,15 +87,43 @@ EndCmp
 BeginCmp
 TimeStamp = /546F059C;
 Reference = R1;
+ValeurCmp = 270;
+IdModule  = SM0603;
+EndCmp
+
+BeginCmp
+TimeStamp = /5471D01E;
+Reference = R2;
 ValeurCmp = 680;
-IdModule  = SM0603_Resistor;
+IdModule  = SM0603;
+EndCmp
+
+BeginCmp
+TimeStamp = /5471D02B;
+Reference = R3;
+ValeurCmp = 680;
+IdModule  = SM0603;
+EndCmp
+
+BeginCmp
+TimeStamp = /5471D031;
+Reference = R4;
+ValeurCmp = 680;
+IdModule  = SM0603;
+EndCmp
+
+BeginCmp
+TimeStamp = /5471D037;
+Reference = R5;
+ValeurCmp = 680;
+IdModule  = SM0603;
 EndCmp
 
 BeginCmp
 TimeStamp = /546F0446;
 Reference = SW1;
 ValeurCmp = ISP/BIND;
-IdModule  = switches-B3S-10XX;
+IdModule  = SW_PUSH_SMALL;
 EndCmp
 
 BeginCmp
@@ -109,7 +144,7 @@ BeginCmp
 TimeStamp = /546EFECA;
 Reference = X1;
 ValeurCmp = 12 MHz;
-IdModule  = crystal_FA238-TSX3225;
+IdModule  = crystal-SM49;
 EndCmp
 
 EndListe
