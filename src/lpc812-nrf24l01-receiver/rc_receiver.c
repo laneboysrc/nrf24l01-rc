@@ -339,9 +339,13 @@ static void process_receiving(void)
         LPC_SCT->MATCHREL[3].H = channels[2];
         // LPC_SCT->MATCHREL[4].H = channels[3];
 
+        if (!successful_stick_data) {
+            LPC_SCT->CTRL_H &= ~(1u << 2);      // Start the SCTimer H
+        }
+        successful_stick_data = true;
+
         failsafe_timer = FAILSAFE_TIMEOUT;
         led_state = LED_STATE_RECEIVING;
-        successful_stick_data = true;
 
         // uart0_send_cstring("ST=");
         // uart0_send_uint32(channels[0]);

@@ -115,7 +115,9 @@ static void init_hardware(void)
     LPC_SCT->OUT[2].CLR = (1u << 3);        // Event 3 will clear CTOUT_2
     LPC_SCT->OUT[3].CLR = (1u << 4);        // Event 4 will clear CTOUT_3
 
-    LPC_SCT->CTRL_H &= ~(1u << 2);          // Start the SCTimer H
+    // We don't start the timer here but only after receiving the first
+    // valid stick data package.
+    // LPC_SCT->CTRL_H &= ~(1u << 2);          // Start the SCTimer H
 
 
     // ------------------------
