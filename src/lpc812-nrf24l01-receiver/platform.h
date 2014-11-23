@@ -28,6 +28,12 @@
 // GND      (13)
 // ****************************************************************************
 
+#define GPIO_BIT_CH1 7
+#define GPIO_BIT_CH2 6
+#define GPIO_BIT_CH3 0
+#define GPIO_BIT_CH4 4
+#define GPIO_BIT_RFCE 13
+#define GPIO_BIT_BIND 12
 
-#define GPIO_RFCE LPC_GPIO_PORT->W0[13]
-#define GPIO_BIND LPC_GPIO_PORT->W0[12]
+#define GPIO_RFCE LPC_GPIO_PORT->W0[GPIO_BIT_RFCE]
+#define GPIO_BIND LPC_GPIO_PORT->W0[GPIO_BIT_BIND]

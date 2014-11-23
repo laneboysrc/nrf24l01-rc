@@ -24,6 +24,7 @@ uint32_t soft_timer;
 // ****************************************************************************
 static void init_hardware(void)
 {
+    int i;
 
 #if __SYSTEM_CLOCK != 12000000
 #error Clock initialization code expexts __SYSTEM_CLOCK to be set to 1200000
@@ -50,6 +51,10 @@ static void init_hardware(void)
     // MOSI = PIO0_2, MISO = PIO0_10, SSEL (CSN) = PIO0_3
     LPC_SWM->PINASSIGN4 = 0xff030a02;
 
+    // CTOUT_0 = PIO0_7 (CH1) CTOUT_1 = PIO0_6 (CH2)
+    LPC_SWM->PINASSIGN6 = 0x07ffffff;
+    LPC_SWM->PINASSIGN7 = 0xffffff06;
+
 
     // Make NRF_SCK, NRF_MOSI, NRF_CSN and NRF_CE outputs
     LPC_GPIO_PORT->DIR0 |= (1 << 1) | (1 << 2) | (1 << 3) | (1 << 13);
@@ -68,7 +73,48 @@ static void init_hardware(void)
 
     // ------------------------
     // Configure SCTimer globally for two 16-bit counters
+    //
+    // Timer H is used for the servo outputs, setting the servo pins
+    // on timer reload and clearing them when a match condition occurs.
+    // The timer is running at 1 MHz clock (1us resolution).
+    // The repeat frequency is 15ms (a multiple of the on-air packet repeat
+    // rate).
+    // The 4 servo pulses are generated with MATCH registers 1..4. and
+    // corresponding timer outputs 0..3.
+    // MATCH register 0 is used for auto-reload of the timer period.
     LPC_SCT->CONFIG = 0;
+
+    LPC_SCT->CONFIG |= (1 << 18);           // Auto-limit on counter H
+    LPC_SCT->CTRL_H |= (1 << 3) |           // Clear the counter H
+        (((__SYSTEM_CLOCK / 1000000) - 1) << 5); // PRE_H[12:5] = divide for 1 MHz
+    LPC_SCT->MATCHREL[0].H = 15000 - 1;     // 15 ms per overflow
+    LPC_SCT->MATCHREL[1].H = 1500;          // Servo pulse 1.5 ms intially
+    LPC_SCT->MATCHREL[2].H = 1500;
+    LPC_SCT->MATCHREL[3].H = 1500;
+    LPC_SCT->MATCHREL[4].H = 1500;
+
+    // All 5 events are setup in the same way:
+    // Event happens in all states; Match register of the same number;
+    // Match counter H, Match condition only.
+    for (i = 0; i < 5; i++) {
+        LPC_SCT->EVENT[i].STATE = 0xFFFF;       // Event happens in all states
+        LPC_SCT->EVENT[i].CTRL = (i << 0) |     // Match register
+                                 (1 << 4) |     // Select H counter
+                                 (0x1 << 12);   // Match condition only
+    }
+
+    // All servo outputs will be set with timer reload event 0
+    LPC_SCT->OUT[0].SET = (1u << 0);
+    LPC_SCT->OUT[1].SET = (1u << 0);
+    LPC_SCT->OUT[2].SET = (1u << 0);
+    LPC_SCT->OUT[3].SET = (1u << 0);
+
+    LPC_SCT->OUT[0].CLR = (1u << 1);        // Event 1 will clear CTOUT_0
+    LPC_SCT->OUT[1].CLR = (1u << 2);        // Event 2 will clear CTOUT_1
+    LPC_SCT->OUT[2].CLR = (1u << 3);        // Event 3 will clear CTOUT_2
+    LPC_SCT->OUT[3].CLR = (1u << 4);        // Event 4 will clear CTOUT_3
+
+    LPC_SCT->CTRL_H &= ~(1u << 2);          // Start the SCTimer H
 
 
     // ------------------------

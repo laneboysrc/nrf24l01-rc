@@ -277,6 +277,12 @@ static void process_receiving(void)
         channels[0] = stickdata2ms((payload[1] << 8) + payload[0]);
         channels[1] = stickdata2ms((payload[3] << 8) + payload[2]);
         channels[2] = stickdata2ms((payload[5] << 8) + payload[4]);
+
+        LPC_SCT->MATCHREL[1].H = channels[0];
+        LPC_SCT->MATCHREL[2].H = channels[1];
+        LPC_SCT->MATCHREL[3].H = channels[2];
+        // LPC_SCT->MATCHREL[4].H = channels[3];
+
         // print_payload();
         uart0_send_cstring("ST=");
         uart0_send_uint32(channels[0]);
