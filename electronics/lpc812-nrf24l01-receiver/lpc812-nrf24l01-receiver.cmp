@@ -1,4 +1,4 @@
-Cmp-Mod V01 Created by CvPcb (2013-jul-07)-stable date = Mon 24 Nov 2014 08:32:03 AM SGT
+Cmp-Mod V01 Created by CvPcb (2013-jul-07)-stable date = Mon 24 Nov 2014 11:31:10 AM SGT
 
 BeginCmp
 TimeStamp = /546ED3B5;
@@ -117,6 +117,13 @@ TimeStamp = /5471D037;
 Reference = R5;
 ValeurCmp = 680;
 IdModule  = SM0603;
+EndCmp
+
+BeginCmp
+TimeStamp = /5472ACD9;
+Reference = R6;
+ValeurCmp = R;
+IdModule  = SM1206;
 EndCmp
 
 BeginCmp
