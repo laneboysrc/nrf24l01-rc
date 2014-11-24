@@ -38,7 +38,7 @@ $Descr A4 11693 8268
 encoding utf-8
 Sheet 1 1
 Title ""
-Date "23 nov 2014"
+Date "24 nov 2014"
 Rev ""
 Comp ""
 Comment1 ""
@@ -200,46 +200,6 @@ F 3 "" H 7400 5250 60  0000 C CNN
 	1    7400 5250
 	1    0    0    -1  
 $EndComp
-Text GLabel 6100 2200 2    39   Input ~ 0
-MISO
-Text GLabel 8750 2150 0    39   Input ~ 0
-CH3/Rx
-Text GLabel 8750 2700 0    39   Input ~ 0
-CH2
-Text GLabel 8750 3250 0    39   Input ~ 0
-CH1
-Text GLabel 6100 2300 2    39   Input ~ 0
-ISP/BIND
-Text GLabel 6100 2400 2    39   Input ~ 0
-CE
-Text GLabel 6100 2100 2    39   Input ~ 0
-IRQ
-Text GLabel 3150 2100 0    39   Input ~ 0
-CH3/Rx
-Text GLabel 3150 2400 0    39   Input ~ 0
-CSN
-Text GLabel 3150 2200 0    39   Input ~ 0
-SCK
-Text GLabel 3150 2500 0    39   Input ~ 0
-CH4/CPPM/Tx
-Text GLabel 3150 2600 0    39   Input ~ 0
-LED
-Text GLabel 3150 2300 0    39   Input ~ 0
-MOSI
-Text GLabel 3150 2700 0    39   Input ~ 0
-CH2
-Text GLabel 7150 5550 0    39   Input ~ 0
-MOSI
-Text GLabel 8750 5450 2    39   Input ~ 0
-MISO
-Text GLabel 8750 5550 2    39   Input ~ 0
-SCK
-Text GLabel 8750 5650 2    39   Input ~ 0
-CE
-Text GLabel 7150 5450 0    39   Input ~ 0
-IRQ
-Text GLabel 7150 5650 0    39   Input ~ 0
-CSN
 $Comp
 L VSS #PWR06
 U 1 1 546EE3D4
@@ -372,10 +332,6 @@ F 3 "" H 6450 4200 60  0000 C CNN
 	1    6450 4200
 	1    0    0    -1  
 $EndComp
-Text GLabel 3150 2800 0    39   Input ~ 0
-CH1
-Text GLabel 8750 1650 0    39   Input ~ 0
-CH4/CPPM/Tx
 $Comp
 L SW_PUSH SW1
 U 1 1 546F0446
@@ -398,8 +354,6 @@ F 3 "" H 4500 4750 60  0000 C CNN
 	1    4500 4750
 	1    0    0    -1  
 $EndComp
-Text GLabel 3600 4600 0    39   Input ~ 0
-ISP/BIND
 $Comp
 L LED D1
 U 1 1 546F0587
@@ -433,8 +387,6 @@ F 3 "~" H 1700 4350 30  0000 C CNN
 	1    1700 4350
 	1    0    0    -1  
 $EndComp
-Text GLabel 1700 4800 3    39   Input ~ 0
-LED
 $Comp
 L LPC812M101JDH16_TSSOP16 U2
 U 1 1 546ED16B
@@ -503,21 +455,21 @@ Wire Wire Line
 Wire Wire Line
 	9400 1650 9850 1650
 Wire Wire Line
-	3400 2100 3150 2100
+	3400 2100 2700 2100
 Wire Wire Line
-	3400 2300 3150 2300
+	3400 2300 2700 2300
 Wire Wire Line
-	3400 2400 3150 2400
+	3400 2400 2700 2400
 Wire Wire Line
-	3150 2500 3400 2500
+	2700 2500 3400 2500
 Wire Wire Line
-	3400 2600 3150 2600
+	3400 2600 2700 2600
 Wire Wire Line
-	3400 2700 3150 2700
+	3400 2700 2700 2700
 Wire Wire Line
-	3400 2800 3150 2800
+	3400 2800 2700 2800
 Wire Wire Line
-	5800 2400 6100 2400
+	5800 2400 6500 2400
 Wire Wire Line
 	8350 5750 8550 5750
 Wire Wire Line
@@ -531,15 +483,15 @@ Wire Wire Line
 Wire Wire Line
 	8350 5450 8750 5450
 Wire Wire Line
-	7550 5450 7150 5450
+	7550 5450 6900 5450
 Wire Wire Line
-	7550 5550 7150 5550
+	7550 5550 6900 5550
 Wire Wire Line
-	7550 5650 7150 5650
+	7550 5650 6900 5650
 Wire Wire Line
-	5800 2100 6100 2100
+	5800 2100 6500 2100
 Wire Wire Line
-	5800 2200 6100 2200
+	5800 2200 6500 2200
 Wire Wire Line
 	3900 6600 3900 6450
 Wire Wire Line
@@ -553,23 +505,23 @@ Wire Wire Line
 Wire Wire Line
 	6450 4050 6450 4200
 Wire Wire Line
-	3400 2200 3150 2200
+	3400 2200 2700 2200
 Wire Wire Line
 	4350 4600 4500 4600
 Wire Wire Line
 	4500 4600 4500 4750
 Wire Wire Line
-	3750 4600 3600 4600
+	3750 4600 3300 4600
 Wire Wire Line
 	1700 3450 1700 3600
 Wire Wire Line
 	1700 4000 1700 4100
 Wire Wire Line
-	1700 4600 1700 4800
+	1700 4600 1700 4950
 Wire Wire Line
 	5850 3100 5800 3100
 Wire Wire Line
-	5800 2300 6100 2300
+	5800 2300 6500 2300
 Wire Wire Line
 	6450 3000 5800 3000
 Wire Wire Line
@@ -688,11 +640,59 @@ F 3 "~" H 9150 3250 30  0000 C CNN
 	0    -1   -1   0   
 $EndComp
 Wire Wire Line
-	8750 3250 8900 3250
+	8300 3250 8900 3250
 Wire Wire Line
-	8750 2700 8900 2700
+	8300 2700 8900 2700
 Wire Wire Line
-	8750 2150 8900 2150
+	8300 2150 8900 2150
 Wire Wire Line
-	8750 1650 8900 1650
+	8300 1650 8900 1650
+Text Label 6500 2300 2    60   ~ 0
+ISP/BIND
+Text Label 3300 4600 0    60   ~ 0
+ISP/BIND
+Text Label 8300 1650 0    60   ~ 0
+CPPM/Tx
+Text Label 8300 2150 0    60   ~ 0
+CH3/Rx
+Text Label 8300 2700 0    60   ~ 0
+CH2
+Text Label 8300 3250 0    60   ~ 0
+CH1
+Text Label 2700 2100 0    60   ~ 0
+CH3/Rx
+Text Label 2700 2500 0    60   ~ 0
+CPPM/Tx
+Text Label 2700 2800 0    60   ~ 0
+CH1
+Text Label 2700 2700 0    60   ~ 0
+CH2
+Text Label 6500 2100 2    60   ~ 0
+IRQ
+Text Label 6500 2200 2    60   ~ 0
+MISO
+Text Label 6500 2400 2    60   ~ 0
+CE
+Text Label 6900 5450 0    60   ~ 0
+IRQ
+Text Label 6900 5550 0    60   ~ 0
+MOSI
+Text Label 6900 5650 0    60   ~ 0
+CSN
+Text Label 8750 5450 2    60   ~ 0
+MISO
+Text Label 8750 5550 2    60   ~ 0
+SCK
+Text Label 8750 5650 2    60   ~ 0
+CE
+Text Label 1700 4950 1    60   ~ 0
+LED
+Text Label 2700 2600 0    60   ~ 0
+LED
+Text Label 2700 2400 0    60   ~ 0
+CSN
+Text Label 2700 2300 0    60   ~ 0
+MOSI
+Text Label 2700 2200 0    60   ~ 0
+SCK
 $EndSCHEMATC
