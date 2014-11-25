@@ -30,7 +30,7 @@ void PININT0_irq_handler(void);
 // Global flag that is true for one mainloop every __SYSTICK_IN_MS
 bool systick;
 
-static uint32_t systick_count;
+static uint32_t volatile systick_count;
 
 
 
