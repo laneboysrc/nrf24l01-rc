@@ -97,23 +97,6 @@ static void output_pulses(void)
 
 
 // ****************************************************************************
-static void save_bind_data(void)
-{
-    int i;
-
-    for (i = 0; i < ADDRESS_WIDTH; i++) {
-        model_address[i] = bind_storage_area[i];
-    }
-
-    for (i = 0; i < NUMBER_OF_HOP_CHANNELS; i++) {
-        hop_data[i] = bind_storage_area[ADDRESS_WIDTH + i];
-    }
-
-    // FIXME: save persistently
-}
-
-
-// ****************************************************************************
 static uint16_t stickdata2ms(uint16_t stickdata)
 {
     uint32_t ms;
@@ -126,7 +109,6 @@ static uint16_t stickdata2ms(uint16_t stickdata)
 // ****************************************************************************
 static void read_bind_data(void)
 {
-    uint8_t buffer[ADDRESS_WIDTH + NUMBER_OF_HOP_CHANNELS];
     int i;
 
     // FIXME: read from persistent storage
@@ -155,16 +137,32 @@ static void read_bind_data(void)
         hop_data[i] = hop_data[i - 1] + 1;
     }
 
-    load_persistent_storage(buffer);
+    load_persistent_storage(bind_storage_area);
     for (i = 0; i < ADDRESS_WIDTH; i++) {
-        model_address[i] = buffer[i];
+        model_address[i] = bind_storage_area[i];
     }
 
     for (i = 0; i < NUMBER_OF_HOP_CHANNELS; i++) {
-        hop_data[i] = buffer[ADDRESS_WIDTH + i];
+        hop_data[i] = bind_storage_area[ADDRESS_WIDTH + i];
     }
 }
 
+
+// ****************************************************************************
+static void save_bind_data(void)
+{
+    int i;
+
+    for (i = 0; i < ADDRESS_WIDTH; i++) {
+        model_address[i] = bind_storage_area[i];
+    }
+
+    for (i = 0; i < NUMBER_OF_HOP_CHANNELS; i++) {
+        hop_data[i] = bind_storage_area[ADDRESS_WIDTH + i];
+    }
+
+    save_persistent_storage(bind_storage_area);
+}
 
 
 // ****************************************************************************

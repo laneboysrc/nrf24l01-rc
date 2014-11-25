@@ -38,7 +38,7 @@ void load_persistent_storage(uint8_t *data)
 
 
 // ****************************************************************************
-void write_persistent_storage(uint8_t *new_data)
+void save_persistent_storage(uint8_t *new_data)
 {
     unsigned int param[5];
     int i;
