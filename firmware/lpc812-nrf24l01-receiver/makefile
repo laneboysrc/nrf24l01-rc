@@ -144,4 +144,4 @@ clean:
 	$(QUIET) $(RM) -rf $(BUILD_DIR)/*
 
 
-.PHONY : all clean program terminal list summary hkr3000 xr3100
+.PHONY : all clean program terminal list summary
