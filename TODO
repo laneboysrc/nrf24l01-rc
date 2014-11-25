@@ -4,3 +4,5 @@
 
 - Pre-processor output of raw data
 
+- Implement watchdog and brown-out reset
+
