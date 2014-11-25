@@ -31,7 +31,6 @@ typedef struct {
     uint16_t centre;
     uint16_t left;
     uint16_t right;
-    bool reversed;
 } CHANNEL_T;
 
 CHANNEL_T servo[2];
@@ -66,9 +65,7 @@ static void normalize_channel(CHANNEL_T *c)
         if (c->normalized > 100) {
             c->normalized = 100;
         }
-        if (!c->reversed) {
-            c->normalized = -c->normalized;
-        }
+        c->normalized = -c->normalized;
     }
     else {
         if (c->raw_data > c->right) {
@@ -78,9 +75,6 @@ static void normalize_channel(CHANNEL_T *c)
             (c->right - c->centre);
         if (c->normalized > 100) {
             c->normalized = 100;
-        }
-        if (c->reversed) {
-            c->normalized = -c->normalized;
         }
     }
 }
