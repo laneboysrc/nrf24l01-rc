@@ -1,11 +1,11 @@
 (export (version D)
   (design
-    (source /home/werner/projects/nrf24le01-rc/electronics/lpc812-nrf24l01-receiver/lpc812-nrf24l01-receiver.sch)
-    (date "Mon 24 Nov 2014 07:34:19 PM SGT")
+    (source /home/laneboysrc/projects/nrf24le01-rc/electronics/lpc812-nrf24l01-receiver/lpc812-nrf24l01-receiver.sch)
+    (date "Tue 25 Nov 2014 02:39:15 PM SGT")
     (tool "eeschema (2013-jul-07)-stable"))
   (components
     (comp (ref U1)
-      (value MCP1703T-3302E/CB)
+      (value MCP1703)
       (footprint MCP1703-SOT95P300X145-3N)
       (libsource (lib MCP1703) (part MCP1703T-3302E/CB))
       (sheetpath (names /) (tstamps /))
@@ -96,7 +96,7 @@
       (sheetpath (names /) (tstamps /))
       (tstamp 546F059C))
     (comp (ref U2)
-      (value LPC812M101JDH16)
+      (value LPC812)
       (footprint NXP-TSSOP16)
       (libsource (lib LPC810) (part LPC812M101JDH16_TSSOP16))
       (sheetpath (names /) (tstamps /))
@@ -221,6 +221,16 @@
         (pin (num 6) (name 6) (type passive))
         (pin (num 7) (name 7) (type passive))
         (pin (num 8) (name 8) (type passive))))
+    (libpart (lib MCP1703) (part MCP1703T-3302E/CB)
+      (fields
+        (field (name Reference) U)
+        (field (name Value) MCP1703T-3302E/CB)
+        (field (name Footprint) MCP1703-SOT95P300X145-3N)
+        (field (name Datasheet) ~))
+      (pins
+        (pin (num 1) (name GND) (type passive))
+        (pin (num 2) (name VOUT) (type output))
+        (pin (num 3) (name VIN) (type input))))
     (libpart (lib LPC810) (part LPC812M101JDH16_TSSOP16)
       (footprints
         (fp NXP-TSSOP16))
@@ -245,16 +255,7 @@
         (pin (num 13) (name VSS) (type power_in))
         (pin (num 14) (name PIO0_7) (type BiDi))
         (pin (num 15) (name PIO0_6/VDDCMP) (type BiDi))
-        (pin (num 16) (name PIO0_0/ACMP_I1/TDO) (type BiDi))))
-    (libpart (lib MCP1703) (part MCP1703T-3302E/CB)
-      (fields
-        (field (name Reference) U)
-        (field (name Value) MCP1703T-3302E/CB)
-        (field (name Footprint) MCP1703-SOT95P300X145-3N))
-      (pins
-        (pin (num 1) (name GND) (type passive))
-        (pin (num 2) (name VOUT) (type output))
-        (pin (num 3) (name VIN) (type input)))))
+        (pin (num 16) (name PIO0_0/ACMP_I1/TDO) (type BiDi)))))
   (libraries
     (library (logical device)
       (uri /usr/share/kicad/library/device.lib))
