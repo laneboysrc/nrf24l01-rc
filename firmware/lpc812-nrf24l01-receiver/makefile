@@ -91,7 +91,7 @@ LDLIBS = $(addprefix -l,$(LIBS))
 # Plumbing for rules
 vpath %.c $(SOURCE_DIRS)
 
-$(shell $(MKDIR_P) $(BUILD_DIR))   # Always create the build directory
+dummy := $(shell $(MKDIR_P) $(BUILD_DIR))   # Always create the build directory
 
 define compile-objects
 $1/%.o: %.c
