@@ -57,7 +57,7 @@ static bool binding = false;
 static unsigned int bind_timer;
 static const uint8_t BIND_CHANNEL = 0x51;
 static const uint8_t BIND_ADDRESS[ADDRESS_WIDTH] = {0x12, 0x23, 0x23, 0x45, 0x78};
-static uint8_t bind_storage_area[ADDRESS_WIDTH + NUMBER_OF_HOP_CHANNELS];
+static uint8_t bind_storage_area[ADDRESS_WIDTH + NUMBER_OF_HOP_CHANNELS] __attribute__ ((aligned (4)));
 
 
 
@@ -111,18 +111,16 @@ static void read_bind_data(void)
 {
     int i;
 
-    // FIXME: read from persistent storage
-
     // Dingo:  9ee187e5d52 e
 
     // XR311:  04bc285afd 02
-    model_address[0] = 0x04;
-    model_address[1] = 0xbc;
-    model_address[2] = 0x28;
-    model_address[3] = 0x5a;
-    model_address[4] = 0xfd;
+    // model_address[0] = 0x04;
+    // model_address[1] = 0xbc;
+    // model_address[2] = 0x28;
+    // model_address[3] = 0x5a;
+    // model_address[4] = 0xfd;
 
-    hop_data[0] = 0x02;
+    // hop_data[0] = 0x02;
 
     // Bind packets
     // model_address[0] = 0x12;
@@ -133,11 +131,12 @@ static void read_bind_data(void)
 
     // hop_data[0] = 0x51;
 
-    for (i = 1; i < NUMBER_OF_HOP_CHANNELS; i++) {
-        hop_data[i] = hop_data[i - 1] + 1;
-    }
+    // for (i = 1; i < NUMBER_OF_HOP_CHANNELS; i++) {
+    //     hop_data[i] = hop_data[i - 1] + 1;
+    // }
 
     load_persistent_storage(bind_storage_area);
+
     for (i = 0; i < ADDRESS_WIDTH; i++) {
         model_address[i] = bind_storage_area[i];
     }
