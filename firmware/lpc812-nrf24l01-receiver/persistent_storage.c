@@ -23,7 +23,7 @@ extern IAP iap_entry;
 
 
 __attribute__ ((section(".persistent_data")))
-volatile const uint32_t persistent_data[NUMBER_OF_PERSISTENT_ELEMENTS];
+const volatile uint32_t persistent_data[NUMBER_OF_PERSISTENT_ELEMENTS];
 
 
 // ****************************************************************************
@@ -32,13 +32,13 @@ void load_persistent_storage(uint8_t *data)
     int i;
 
     for (i = 0; i < NUMBER_OF_PERSISTENT_ELEMENTS; i++) {
-        *data = persistent_data[i];
+        data[i] = ((uint8_t *) persistent_data)[i];
     }
 }
 
 
 // ****************************************************************************
-void save_persistent_storage(uint8_t *new_data)
+void save_persistent_storage(uint8_t new_data[])
 {
     unsigned int param[5];
     int i;
@@ -53,8 +53,10 @@ void save_persistent_storage(uint8_t *new_data)
             iap_entry(param, param);
             __enable_irq();
             if (param[0] != 0) {
+#ifndef NO_DEBUG
                 uart0_send_cstring("ERROR: prepare sector failed\n");
-                break;
+#endif
+                return;
             }
 
             param[0] = 59;  // Erase page command
@@ -65,8 +67,10 @@ void save_persistent_storage(uint8_t *new_data)
             iap_entry(param, param);
             __enable_irq();
             if (param[0] != 0) {
+#ifndef NO_DEBUG
                 uart0_send_cstring("ERROR: erase page failed\n");
-                break;
+#endif
+                return;
             }
 
             param[0] = 50;
@@ -76,8 +80,10 @@ void save_persistent_storage(uint8_t *new_data)
             iap_entry(param, param);
             __enable_irq();
             if (param[0] != 0) {
+#ifndef NO_DEBUG
                 uart0_send_cstring("ERROR: prepare sector failed\n");
-                break;
+#endif
+                return;
             }
 
             param[0] = 51;  // Copy RAM to Flash command
@@ -89,11 +95,13 @@ void save_persistent_storage(uint8_t *new_data)
             iap_entry(param, param);
             __enable_irq();
             if (param[0] != 0) {
+#ifndef NO_DEBUG
                 uart0_send_cstring("ERROR: copy RAM to flash failed\n");
-                break;
+#endif
+                return;
             }
 
-            break;
+            return;
         }
     }
 }
