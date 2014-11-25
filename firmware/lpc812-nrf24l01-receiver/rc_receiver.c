@@ -523,8 +523,6 @@ void init_receiver(void)
 {
     int i;
 
-    // FIXME: need a delay after power on!
-
     for (i = 0; i < NUMBER_OF_CHANNELS; i++) {
         channels[i] = SERVO_PULSE_CENTER;
     }

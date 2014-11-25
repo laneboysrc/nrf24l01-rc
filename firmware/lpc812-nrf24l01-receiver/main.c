@@ -266,6 +266,12 @@ int main(void)
     init_spi();
     init_hardware_final();
 
+    // Wait a for a short time after power up before talking to the nRF24
+    while (systick_count < (50 / __SYSTICK_IN_MS)) {
+        ;
+    }
+    systick_count = 0;
+
     init_receiver();
 
 #ifndef NO_DEBUG
