@@ -11,9 +11,10 @@ SYSTEM_CLOCK := 12000000
 
 SOURCES := $(foreach sdir, $(SOURCE_DIRS), $(wildcard $(sdir)/*.c))
 DEPENDENCIES := makefile receiver.ld platform.h
-DEPENDENCIES += uart0.h rc_receiver.h rf.h spi.h
+DEPENDENCIES += uart0.h rc_receiver.h rf.h spi.h persistent_storage.h
 LIBS := gcc
 LINKER_SCRIPT := receiver.ld
+
 
 ###############################################################################
 # Pretty-print setup

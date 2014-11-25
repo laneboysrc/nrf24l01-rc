@@ -3,6 +3,7 @@
 
 #include <platform.h>
 #include <rc_receiver.h>
+#include <persistent_storage.h>
 #include <rf.h>
 #include <uart0.h>
 
@@ -125,6 +126,7 @@ static uint16_t stickdata2ms(uint16_t stickdata)
 // ****************************************************************************
 static void read_bind_data(void)
 {
+    uint8_t buffer[ADDRESS_WIDTH + NUMBER_OF_HOP_CHANNELS];
     int i;
 
     // FIXME: read from persistent storage
@@ -151,6 +153,15 @@ static void read_bind_data(void)
 
     for (i = 1; i < NUMBER_OF_HOP_CHANNELS; i++) {
         hop_data[i] = hop_data[i - 1] + 1;
+    }
+
+    load_persistent_storage(buffer);
+    for (i = 0; i < ADDRESS_WIDTH; i++) {
+        model_address[i] = buffer[i];
+    }
+
+    for (i = 0; i < NUMBER_OF_HOP_CHANNELS; i++) {
+        hop_data[i] = buffer[ADDRESS_WIDTH + i];
     }
 }
 
