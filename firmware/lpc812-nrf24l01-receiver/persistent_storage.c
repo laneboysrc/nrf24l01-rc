@@ -96,7 +96,9 @@ void save_persistent_storage(uint8_t new_data[])
             __enable_irq();
             if (param[0] != 0) {
 #ifndef NO_DEBUG
-                uart0_send_cstring("ERROR: copy RAM to flash failed\n");
+                uart0_send_cstring("ERROR: copy RAM to flash failed: ");
+                uart0_send_uint32_hex(param[0]);
+                uart0_send_linefeed();
 #endif
                 return;
             }
