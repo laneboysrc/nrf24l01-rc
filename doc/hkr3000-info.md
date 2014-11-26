@@ -35,16 +35,28 @@ h[a-t]       20 channels for frequency hopping
 
 Packet format:
 
+f1 f7 4a f8 8e f5 b8 55 67 0f     actual stick packet
+40 f8 40 f8 8e f5 b8 aa 5a 0f     actual fs packet
+
+
 Stick data:
     0     1     2     3     4     5     6    7    8    9
     ST-l  ST-h  TH-l  TH-h  CH3-l CH3-h ???  0x55 0x67 ???
-                                             ^
+                                             ^^^^
+                                             Packet id
+
+Bytes 6, 8 and 9 not touched by the receiver
+
 
 Failsafe data:
     0     1     2     3     4     5     6    7    8    9
     ST-l  ST-h  TH-l  TH-h  CH3-l CH3-h ???  0xaa 0x5a ???   (failsafe on)
                                                   0x5b       (failsafe off)
-                                             ^
+                                             ^^^^
+                                             Packet id
+
+Bytes 6 and 9 not touched by the receiver
+
 
 Stick values are sent as direct timer values for a MCS51 timer with a 750ns
 clock. To calculate milliseconds of servo pulse duration, use the following
