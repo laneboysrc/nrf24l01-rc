@@ -24,6 +24,7 @@ static bool initialized = false;
 static uint8_t tx_data[4];
 static uint8_t next_tx_index = 0xff;
 bool ch3_2pos = false;
+uint16_t ch3_raw;
 
 typedef struct {
     uint16_t raw_data;
@@ -34,7 +35,6 @@ typedef struct {
 } CHANNEL_T;
 
 CHANNEL_T servo[2];
-
 
 static void normalize_channel(CHANNEL_T *c)
 {
@@ -96,8 +96,10 @@ void output_preprocessor(void)
                 servo[1].right = channels[1] + INITIAL_ENDPOINT_DELTA;
             }
 
-            servo[0].raw_data = channels[0];
-            servo[1].raw_data = channels[1];
+            // Multiply by 0.75 to get microseconds from 750ns based clock
+            servo[0].raw_data = channels[0] * 3 / 4;
+            servo[1].raw_data = channels[1] * 3 / 4;
+            ch3_raw = channels[2] * 3 / 4;
 
             normalize_channel(&servo[0]);
             normalize_channel(&servo[1]);
@@ -106,12 +108,12 @@ void output_preprocessor(void)
             tx_data[2] = servo[1].normalized;
 
             if (ch3_2pos) {
-                if (channels[2] < SERVO_PULSE_CENTER - CH3_HYSTERESIS) {
+                if (ch3_raw < SERVO_PULSE_CENTER - CH3_HYSTERESIS) {
                     ch3_2pos = false;
                 }
             }
             else {
-                if (channels[2] > SERVO_PULSE_CENTER + CH3_HYSTERESIS) {
+                if (ch3_raw > SERVO_PULSE_CENTER + CH3_HYSTERESIS) {
                     ch3_2pos = true;
                 }
             }
