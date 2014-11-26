@@ -38,7 +38,7 @@ $Descr A4 11693 8268
 encoding utf-8
 Sheet 1 1
 Title ""
-Date "25 nov 2014"
+Date "26 nov 2014"
 Rev ""
 Comp ""
 Comment1 ""
@@ -282,7 +282,7 @@ L CRYSTAL X1
 U 1 1 546EFECA
 P 6450 3450
 F 0 "X1" H 6450 3600 60  0000 C CNN
-F 1 "16 MHz" H 6450 3300 60  0000 C CNN
+F 1 "16MHz" H 6450 3300 60  0000 C CNN
 F 2 "crystal-SM49" H 6450 3450 60  0001 C CNN
 F 3 "~" H 6450 3450 60  0000 C CNN
 	1    6450 3450

@@ -1,7 +1,7 @@
 (export (version D)
   (design
     (source /home/laneboysrc/projects/nrf24le01-rc/electronics/lpc812-nrf24l01-receiver/lpc812-nrf24l01-receiver.sch)
-    (date "Tue 25 Nov 2014 02:39:15 PM SGT")
+    (date "Wed 26 Nov 2014 09:41:06 AM SGT")
     (tool "eeschema (2013-jul-07)-stable"))
   (components
     (comp (ref U1)
@@ -59,7 +59,7 @@
       (sheetpath (names /) (tstamps /))
       (tstamp 546EDCCF))
     (comp (ref X1)
-      (value "16 MHz")
+      (value 16MHz)
       (footprint crystal-SM49)
       (libsource (lib device) (part CRYSTAL))
       (sheetpath (names /) (tstamps /))
