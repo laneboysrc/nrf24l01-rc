@@ -106,7 +106,8 @@ static uint16_t stickdata2ms(uint16_t stickdata)
 {
     uint32_t ms;
 
-    ms = (0xffff - stickdata) * 3 / 4;
+    // ms = (0xffff - stickdata) * 3 / 4;
+    ms = (0xffff - stickdata);
     return ms & 0xffff;
 }
 

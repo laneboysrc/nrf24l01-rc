@@ -119,7 +119,7 @@ static void init_hardware(void)
     LPC_SCT->CONFIG |= (1 << 18) |                  // Auto-limit on counter H
                        (1 << 17);                   // Auto-limit on counter L
     LPC_SCT->CTRL_H |= (1 << 3) |                   // Clear the counter H
-        (((__SYSTEM_CLOCK / 1000000) - 1) << 5);    // PRE_H[12:5] = divide for 1 MHz
+        (((__SYSTEM_CLOCK / 1333333) - 1) << 5);    // PRE_H[12:5] = divide for 750ns clock
     LPC_SCT->MATCHREL[0].H = 16000 - 1;             // 16 ms servo pulse repeat time
     LPC_SCT->MATCHREL[1].H = SERVO_PULSE_CENTER;    // Servo pulse 1.5 ms intially
     LPC_SCT->MATCHREL[2].H = SERVO_PULSE_CENTER;
