@@ -12,6 +12,9 @@
 #define PAYLOAD_SIZE 10
 #define ADDRESS_WIDTH 5
 #define NUMBER_OF_HOP_CHANNELS 20
+#define MAX_HOP_WITHOUT_PACKET 15
+#define FIRST_HOP_TIME_IN_US 4000
+#define HOP_TIME_IN_US 5000
 
 #define FAILSAFE_TIMEOUT (640 / __SYSTICK_IN_MS)
 #define BIND_TIMEOUT (5000 / __SYSTICK_IN_MS)
@@ -49,6 +52,8 @@ static uint16_t failsafe[NUMBER_OF_CHANNELS];
 static unsigned int failsafe_timer;
 
 static uint8_t model_address[ADDRESS_WIDTH];
+static bool perform_hop_requested = false;
+static unsigned int hops_without_packet;
 static unsigned int hop_index;
 static uint8_t hop_data[NUMBER_OF_HOP_CHANNELS];
 
@@ -107,33 +112,49 @@ static uint16_t stickdata2ms(uint16_t stickdata)
 
 
 // ****************************************************************************
+static void stop_hop_timer(void)
+{
+    perform_hop_requested = false;
+
+    // Stop the SCTimer L
+    LPC_SCT->CTRL_L |= (1u << 2);
+}
+
+
+// ****************************************************************************
+static void restart_hop_timer(void)
+{
+    hops_without_packet = 0;
+    perform_hop_requested = false;
+
+    // Stop the SCTimer L; Load the difference between the first and subsequent
+    // hop time. We set the first hop time to 4ms, then subsequent hops
+    // to 5ms. This way we are hopping 1ms before expecting the
+    // packet on the new channel.
+    LPC_SCT->CTRL_L |= (1u << 2);
+    LPC_SCT->COUNT_L = HOP_TIME_IN_US - FIRST_HOP_TIME_IN_US;
+    LPC_SCT->MATCHREL[0].L = HOP_TIME_IN_US - 1;
+    LPC_SCT->CTRL_L &= ~(1u << 2);
+}
+
+
+// ****************************************************************************
+static void restart_packet_receiving(void)
+{
+    rf_clear_ce();
+    stop_hop_timer();
+    hop_index = 0;
+    rf_set_rx_address(DATA_PIPE_0, ADDRESS_WIDTH, model_address);
+    rf_set_channel(hop_data[0]);
+    hops_without_packet = 0;
+    rf_set_ce();
+}
+
+
+// ****************************************************************************
 static void read_bind_data(void)
 {
     int i;
-
-    // Dingo:  9ee187e5d52 e
-
-    // XR311:  04bc285afd 02
-    // model_address[0] = 0x04;
-    // model_address[1] = 0xbc;
-    // model_address[2] = 0x28;
-    // model_address[3] = 0x5a;
-    // model_address[4] = 0xfd;
-
-    // hop_data[0] = 0x02;
-
-    // Bind packets
-    // model_address[0] = 0x12;
-    // model_address[1] = 0x23;
-    // model_address[2] = 0x23;
-    // model_address[3] = 0x45;
-    // model_address[4] = 0x78;
-
-    // hop_data[0] = 0x51;
-
-    // for (i = 1; i < NUMBER_OF_HOP_CHANNELS; i++) {
-    //     hop_data[i] = hop_data[i - 1] + 1;
-    // }
 
     load_persistent_storage(bind_storage_area);
 
@@ -167,18 +188,12 @@ static void save_bind_data(void)
 // ****************************************************************************
 static void binding_done(void)
 {
-    rf_clear_ce();
-
-    hop_index = 0;
-    rf_set_rx_address(DATA_PIPE_0, ADDRESS_WIDTH, model_address);
-    rf_set_channel(hop_data[0]);
-
     led_state = LED_STATE_IDLE;
     failsafe_timer = FAILSAFE_TIMEOUT;
     binding = false;
     binding_requested = false;
 
-    rf_set_ce();
+    restart_packet_receiving();
 }
 
 
@@ -197,11 +212,11 @@ static void binding_done(void)
 // cc cc 01 hh hi hj hk hl hm hn
 // cc cc 02 ho hp hq hr hs ht ..
 //
-// ff aa 55 is the special marker for the first packet
-// a1..a5 are the 5 address bytes
-// cc cc is a 16 byte checksum of bytes a1..a5
-// ha..ht are the 20 hop data channels
-// .. data not used
+// ff aa 55     Special marker for the first packet
+// a[1-5]       The 5 address bytes
+// cc cc        A 16 byte checksum of bytes a1..a5
+// h[a-t]       20 channels for frequency hopping
+// ..           Not used
 //
 // ****************************************************************************
 static void process_binding(void)
@@ -210,6 +225,7 @@ static void process_binding(void)
     static uint16_t checksum;
     int i;
 
+    // ================================
     if (!binding) {
         if (!binding_requested) {
             return;
@@ -234,6 +250,8 @@ static void process_binding(void)
         return;
     }
 
+
+    // ================================
     if (bind_timer == 0) {
         binding_done();
 #ifndef NO_DEBUG
@@ -243,7 +261,7 @@ static void process_binding(void)
     }
 
 
-
+    // ================================
     if (!rf_int_fired) {
         return;
     }
@@ -328,10 +346,12 @@ static void process_binding(void)
 // ****************************************************************************
 static void process_receiving(void)
 {
+    // ================================
     if (binding) {
         return;
     }
 
+    // ================================
     // Process failsafe only if we ever got a successsful stick data payload
     // after reset.
     //
@@ -351,22 +371,39 @@ static void process_receiving(void)
         }
     }
 
+
+    // ================================
+    if (perform_hop_requested) {
+        perform_hop_requested = false;
+        ++hops_without_packet;
+
+        if (hops_without_packet > MAX_HOP_WITHOUT_PACKET) {
+            restart_packet_receiving();
+        }
+        else {
+            rf_clear_ce();
+            hop_index = (hop_index + 1) % NUMBER_OF_HOP_CHANNELS;
+            rf_set_channel(hop_data[hop_index]);
+            rf_set_ce();
+        }
+    }
+
+
+    // ================================
     if (!rf_int_fired) {
         return;
     }
 
     rf_int_fired = 0;
-    rf_clear_ce();
     while (!rf_is_rx_fifo_emtpy()) {
         rf_read_fifo(payload, PAYLOAD_SIZE);
     }
-
-    hop_index = (hop_index + 1) % NUMBER_OF_HOP_CHANNELS;
-    rf_set_channel(hop_data[hop_index]);
-
     rf_clear_irq(RX_RD);
-    rf_set_ce();
 
+    restart_hop_timer();
+
+
+    // ================================
     // payload[7] is 0x55 for stick data
     if (payload[7] == 0x55) {   // Stick data
         channels[0] = stickdata2ms((payload[1] << 8) + payload[0]);
@@ -381,18 +418,8 @@ static void process_receiving(void)
 
         failsafe_timer = FAILSAFE_TIMEOUT;
         led_state = LED_STATE_RECEIVING;
-
-#ifndef NO_DEBUG
-
-        // uart0_send_cstring("ST=");
-        // uart0_send_uint32(channels[0]);
-        // uart0_send_cstring("  TH=");
-        // uart0_send_uint32(channels[1]);
-        // uart0_send_cstring("  CH3=");
-        // uart0_send_uint32(channels[2]);
-        // uart0_send_linefeed();
-#endif
     }
+    // ================================
     // payload[7] is 0xaa for failsafe data
     else if (payload[7] == 0xaa) {
         // payload[8]: 0x5a if enabled, 0x5b if disabled
@@ -403,6 +430,8 @@ static void process_receiving(void)
             failsafe[2] = stickdata2ms((payload[5] << 8) + payload[4]);
         }
         else {
+            // If failsafe is disabled use default values of 1500ms, just
+            // like the HKR3000 and XR3100 do.
             initialize_failsafe();
         }
     }
@@ -564,4 +593,11 @@ void process_receiver(void)
 void rf_interrupt_handler(void)
 {
     rf_int_fired = true;
+}
+
+
+// ****************************************************************************
+void hop_timer_handler(void)
+{
+    perform_hop_requested = true;
 }

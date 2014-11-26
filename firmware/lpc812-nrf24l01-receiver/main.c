@@ -24,6 +24,7 @@
 
 void SysTick_handler(void);
 void PININT0_irq_handler(void);
+void SCT_irq_handler(void);
 
 
 
@@ -101,7 +102,6 @@ static void init_hardware(void)
     // ------------------------
     // Configure SCTimer globally for two 16-bit counters
     //
-    //
     // Timer H is used for the servo outputs, setting the servo pins
     // on timer reload and clearing them when a match condition occurs.
     // The timer is running at 1 MHz clock (1us resolution).
@@ -110,13 +110,18 @@ static void init_hardware(void)
     // The 3 servo pulses are generated with MATCH registers 1..3. and
     // corresponding timer outputs 0..2.
     // MATCH register 0 is used for auto-reload of the timer period.
+    //
+    // Timer L is used for frequency hopping. It is configured as a simple
+    // auto-reload that fires an interrupt in regular intervals, using event[4].
+    // The rc_receiver.c takes care of setting the counter and limit values.
     LPC_SCT->CONFIG = 0;
 
-    LPC_SCT->CONFIG |= (1 << 18);           // Auto-limit on counter H
-    LPC_SCT->CTRL_H |= (1 << 3) |           // Clear the counter H
-        (((__SYSTEM_CLOCK / 1000000) - 1) << 5); // PRE_H[12:5] = divide for 1 MHz
-    LPC_SCT->MATCHREL[0].H = 16000 - 1;     // 16 ms servo pulse repeat time
-    LPC_SCT->MATCHREL[1].H = SERVO_PULSE_CENTER; // Servo pulse 1.5 ms intially
+    LPC_SCT->CONFIG |= (1 << 18) |                  // Auto-limit on counter H
+                       (1 << 17);                   // Auto-limit on counter L
+    LPC_SCT->CTRL_H |= (1 << 3) |                   // Clear the counter H
+        (((__SYSTEM_CLOCK / 1000000) - 1) << 5);    // PRE_H[12:5] = divide for 1 MHz
+    LPC_SCT->MATCHREL[0].H = 16000 - 1;             // 16 ms servo pulse repeat time
+    LPC_SCT->MATCHREL[1].H = SERVO_PULSE_CENTER;    // Servo pulse 1.5 ms intially
     LPC_SCT->MATCHREL[2].H = SERVO_PULSE_CENTER;
     LPC_SCT->MATCHREL[3].H = SERVO_PULSE_CENTER;
 
@@ -124,10 +129,10 @@ static void init_hardware(void)
     // Event happens in all states; Match register of the same number;
     // Match counter H, Match condition only.
     for (i = 0; i < 4; i++) {
-        LPC_SCT->EVENT[i].STATE = 0xFFFF;       // Event happens in all states
-        LPC_SCT->EVENT[i].CTRL = (i << 0) |     // Match register
-                                 (1 << 4) |     // Select H counter
-                                 (0x1 << 12);   // Match condition only
+        LPC_SCT->EVENT[i].STATE = 0xFFFF;           // Event happens in all states
+        LPC_SCT->EVENT[i].CTRL = (i << 0) |         // Match register
+                                 (1 << 4) |         // Select H counter
+                                 (0x1 << 12);       // Match condition only
     }
 
     // All servo outputs will be set with timer reload event 0
@@ -135,13 +140,21 @@ static void init_hardware(void)
     LPC_SCT->OUT[1].SET = (1u << 0);
     LPC_SCT->OUT[2].SET = (1u << 0);
 
-    LPC_SCT->OUT[0].CLR = (1u << 1);        // Event 1 will clear CTOUT_0
-    LPC_SCT->OUT[1].CLR = (1u << 2);        // Event 2 will clear CTOUT_1
-    LPC_SCT->OUT[2].CLR = (1u << 3);        // Event 3 will clear CTOUT_2
+    LPC_SCT->OUT[0].CLR = (1u << 1);                // Event 1 will clear CTOUT_0
+    LPC_SCT->OUT[1].CLR = (1u << 2);                // Event 2 will clear CTOUT_1
+    LPC_SCT->OUT[2].CLR = (1u << 3);                // Event 3 will clear CTOUT_2
 
     // We don't start the timer here but only after receiving the first
     // valid stick data package.
-    // LPC_SCT->CTRL_H &= ~(1u << 2);          // Start the SCTimer H
+
+    LPC_SCT->CTRL_L |= (1 << 3) |                   // Clear the counter L
+        (((__SYSTEM_CLOCK / 1000000) - 1) << 5);    // PRE_L[12:5] = divide for 1 MHz
+    LPC_SCT->EVENT[4].STATE = 0xFFFF;               // Event happens in all states
+    LPC_SCT->EVENT[4].CTRL = (0 << 0) |             // Match register
+                             (0 << 4) |             // Select counter L
+                             (0x1 << 12);           // Match condition only
+    LPC_SCT->EVEN |= (1 << 4);                      // Event 4 generates an interrupt
+    NVIC_EnableIRQ(SCT_IRQn);
 
 
     // ------------------------
@@ -175,6 +188,17 @@ void PININT0_irq_handler(void)
 {
     LPC_PIN_INT->IST = (1 << 0);          // Clear the interrupt status flag
     rf_interrupt_handler();
+}
+
+
+// ****************************************************************************
+void SCT_irq_handler(void)
+{
+    // Clear the Event 4 flag. It is the only one we've set up to trigger
+    // an interrupt so no need to check other flags.
+    LPC_SCT->EVFLAG = (1 << 4);
+
+    hop_timer_handler();
 }
 
 
