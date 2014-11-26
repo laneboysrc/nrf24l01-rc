@@ -2,6 +2,4 @@
 
 - Pre-processor output of raw data
 
-- Implement watchdog and brown-out reset
-
 - Use 16 MHz crystal
