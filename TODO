@@ -6,3 +6,4 @@
 
 - Implement watchdog and brown-out reset
 
+- Check we we can use 750ns Timer instead of 1us to remove conversion losses from 8051
