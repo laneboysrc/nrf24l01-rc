@@ -13,7 +13,7 @@
 #define ADDRESS_WIDTH 5
 #define NUMBER_OF_HOP_CHANNELS 20
 #define MAX_HOP_WITHOUT_PACKET 15
-#define FIRST_HOP_TIME_IN_US 4000
+#define FIRST_HOP_TIME_IN_US 2500
 #define HOP_TIME_IN_US 5000
 
 #define FAILSAFE_TIMEOUT (640 / __SYSTICK_IN_MS)
@@ -136,19 +136,16 @@ static uint16_t stickdata2txdata(uint16_t stickdata)
 // ****************************************************************************
 static void stop_hop_timer(void)
 {
-    perform_hop_requested = false;
-
     // Stop the SCTimer L
     LPC_SCT->CTRL_L |= (1u << 2);
+
+    perform_hop_requested = false;
 }
 
 
 // ****************************************************************************
 static void restart_hop_timer(void)
 {
-    hops_without_packet = 0;
-    perform_hop_requested = false;
-
     // Stop the SCTimer L; Load the difference between the first and subsequent
     // hop time. We set the first hop time to 4ms, then subsequent hops
     // to 5ms. This way we are hopping 1ms before expecting the
@@ -157,18 +154,26 @@ static void restart_hop_timer(void)
     LPC_SCT->COUNT_L = HOP_TIME_IN_US - FIRST_HOP_TIME_IN_US;
     LPC_SCT->MATCHREL[0].L = HOP_TIME_IN_US - 1;
     LPC_SCT->CTRL_L &= ~(1u << 2);
+
+    hops_without_packet = 0;
+    perform_hop_requested = false;
 }
 
 
 // ****************************************************************************
 static void restart_packet_receiving(void)
 {
-    rf_clear_ce();
     stop_hop_timer();
+
+    rf_clear_ce();
     hop_index = 0;
+    hops_without_packet = 0;
+    perform_hop_requested = false;
     rf_set_rx_address(DATA_PIPE_0, ADDRESS_WIDTH, model_address);
     rf_set_channel(hop_data[0]);
-    hops_without_packet = 0;
+    rf_flush_rx_fifo();
+    rf_clear_irq(RX_RD);
+    rf_int_fired = false;
     rf_set_ce();
 }
 
@@ -275,10 +280,10 @@ static void process_binding(void)
 
     // ================================
     if (bind_timer == 0) {
-        binding_done();
 #ifndef NO_DEBUG
         uart0_send_cstring("Bind timeout\n");
 #endif
+        binding_done();
         return;
     }
 
@@ -348,10 +353,10 @@ static void process_binding(void)
                         }
 
                         save_bind_data();
-                        binding_done();
 #ifndef NO_DEBUG
                         uart0_send_cstring("Bind successful\n");
 #endif
+                        binding_done();
                         return;
                     }
                 }
@@ -399,7 +404,9 @@ static void process_receiving(void)
         perform_hop_requested = false;
         ++hops_without_packet;
 
+
         if (hops_without_packet > MAX_HOP_WITHOUT_PACKET) {
+            uart0_send_cstring("Resyn\n");
             restart_packet_receiving();
         }
         else {
@@ -407,6 +414,7 @@ static void process_receiving(void)
             hop_index = (hop_index + 1) % NUMBER_OF_HOP_CHANNELS;
             rf_set_channel(hop_data[hop_index]);
             rf_set_ce();
+            uart0_send_uint32(hop_index);
         }
     }
 
@@ -415,12 +423,19 @@ static void process_receiving(void)
     if (!rf_int_fired) {
         return;
     }
+    uart0_send_char('*');
+
 
     rf_int_fired = 0;
     while (!rf_is_rx_fifo_emtpy()) {
         rf_read_fifo(payload, PAYLOAD_SIZE);
     }
     rf_clear_irq(RX_RD);
+
+    if (hops_without_packet > 1) {
+        uart0_send_uint32(hops_without_packet);
+        uart0_send_linefeed();
+    }
 
     restart_hop_timer();
 

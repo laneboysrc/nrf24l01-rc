@@ -85,7 +85,7 @@ static void normalize_channel(CHANNEL_T *c)
     }
 }
 
-
+#undef NO_DEBUG
 // ****************************************************************************
 void output_preprocessor(void)
 {
