@@ -1,4 +1,4 @@
-Cmp-Mod V01 Created by CvPcb (2013-jul-07)-stable date = Mon 24 Nov 2014 09:09:08 PM SGT
+Cmp-Mod V01 Created by CvPcb (2013-jul-07)-stable date = Thu 27 Nov 2014 05:06:50 PM SGT
 
 BeginCmp
 TimeStamp = /546ED3B5;
@@ -120,30 +120,30 @@ IdModule  = SM0603;
 EndCmp
 
 BeginCmp
-TimeStamp = /546F0446;
+TimeStamp = /5476E67E;
 Reference = SW1;
-ValeurCmp = ISP/BIND;
-IdModule  = SW_PUSH_SMALL;
+ValeurCmp = BIND/ISP;
+IdModule  = MCDTS6;
 EndCmp
 
 BeginCmp
 TimeStamp = /546ED329;
 Reference = U1;
-ValeurCmp = MCP1703T-3302E/CB;
+ValeurCmp = MCP1703;
 IdModule  = MCP1703-SOT95P300X145-3N;
 EndCmp
 
 BeginCmp
 TimeStamp = /546ED16B;
 Reference = U2;
-ValeurCmp = LPC812M101JDH16;
+ValeurCmp = LPC812;
 IdModule  = NXP-TSSOP16;
 EndCmp
 
 BeginCmp
 TimeStamp = /546EFECA;
 Reference = X1;
-ValeurCmp = 16 MHz;
+ValeurCmp = 16MHz;
 IdModule  = Q_49U3HMS;
 EndCmp
 

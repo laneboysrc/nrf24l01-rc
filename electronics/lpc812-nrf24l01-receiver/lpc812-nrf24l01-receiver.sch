@@ -31,6 +31,7 @@ LIBS:contrib
 LIBS:valves
 LIBS:LPC810
 LIBS:MCP1703
+LIBS:switches-multicomp
 LIBS:lpc812-nrf24l01-receiver-cache
 EELAYER 27 0
 EELAYER END
@@ -38,7 +39,7 @@ $Descr A4 11693 8268
 encoding utf-8
 Sheet 1 1
 Title ""
-Date "26 nov 2014"
+Date "27 nov 2014"
 Rev ""
 Comp ""
 Comment1 ""
@@ -333,25 +334,14 @@ F 3 "" H 6750 4200 60  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L SW_PUSH SW1
-U 1 1 546F0446
-P 4050 4600
-F 0 "SW1" H 4200 4710 50  0000 C CNN
-F 1 "ISP/BIND" H 4050 4520 50  0000 C CNN
-F 2 "SW_PUSH_SMALL" H 4050 4600 60  0001 C CNN
-F 3 "~" H 4050 4600 60  0000 C CNN
-	1    4050 4600
-	1    0    0    -1  
-$EndComp
-$Comp
 L VSS #PWR015
 U 1 1 546F045D
-P 4500 4750
-F 0 "#PWR015" H 4500 4750 30  0001 C CNN
-F 1 "VSS" H 4500 4680 30  0000 C CNN
-F 2 "" H 4500 4750 60  0000 C CNN
-F 3 "" H 4500 4750 60  0000 C CNN
-	1    4500 4750
+P 4600 5000
+F 0 "#PWR015" H 4600 5000 30  0001 C CNN
+F 1 "VSS" H 4600 4930 30  0000 C CNN
+F 2 "" H 4600 5000 60  0000 C CNN
+F 3 "" H 4600 5000 60  0000 C CNN
+	1    4600 5000
 	1    0    0    -1  
 $EndComp
 $Comp
@@ -507,11 +497,9 @@ Wire Wire Line
 Wire Wire Line
 	3400 2200 2700 2200
 Wire Wire Line
-	4350 4600 4500 4600
+	4450 4850 4600 4850
 Wire Wire Line
-	4500 4600 4500 4750
-Wire Wire Line
-	3750 4600 3300 4600
+	4600 4850 4600 5000
 Wire Wire Line
 	1700 3450 1700 3600
 Wire Wire Line
@@ -534,7 +522,7 @@ Text Notes 7450 4950 0    79   ~ 16
 nRF24L01+ module
 Text Notes 1450 3200 0    79   ~ 16
 Status LED
-Text Notes 3600 4300 0    79   ~ 16
+Text Notes 3600 4050 0    79   ~ 16
 Bind button
 Text Notes 2650 5550 0    79   ~ 16
 Power supply
@@ -649,7 +637,7 @@ Wire Wire Line
 	8300 1650 8900 1650
 Text Label 6500 2300 2    60   ~ 0
 ISP-BIND
-Text Label 3300 4600 0    60   ~ 0
+Text Label 5000 4350 2    60   ~ 0
 ISP-BIND
 Text Label 8300 1650 0    60   ~ 0
 Tx
@@ -701,4 +689,32 @@ Text Label 5850 3100 0    60   ~ 0
 XTALOUT
 Text Notes 2850 6550 0    30   ~ 0
 3.3V SOT23
+$Comp
+L MCDTS6 SW1
+U 1 1 5476E67E
+P 4000 4600
+F 0 "SW1" H 4000 4250 60  0000 C CNN
+F 1 "BIND/ISP" H 4000 4950 60  0000 C CNN
+F 2 "MCDTS6" H 4150 4600 30  0000 C CNN
+F 3 "" H 4000 4600 60  0000 C CNN
+	1    4000 4600
+	1    0    0    -1  
+$EndComp
+$Comp
+L VSS #PWR?
+U 1 1 5476E9E3
+P 3400 5000
+F 0 "#PWR?" H 3400 5000 30  0001 C CNN
+F 1 "VSS" H 3400 4930 30  0000 C CNN
+F 2 "" H 3400 5000 60  0000 C CNN
+F 3 "" H 3400 5000 60  0000 C CNN
+	1    3400 5000
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3550 4850 3400 4850
+Wire Wire Line
+	3400 4850 3400 5000
+Wire Wire Line
+	4450 4350 5000 4350
 $EndSCHEMATC

@@ -1,13 +1,8 @@
-update=Tue 25 Nov 2014 09:04:33 AM SGT
+update=Thu 27 Nov 2014 05:07:20 PM SGT
 version=1
 last_client=pcbnew
 [general]
 version=1
-[cvpcb]
-version=1
-NetIExt=net
-[cvpcb/libraries]
-EquName1=devcms
 [eeschema]
 version=1
 LibDir=
@@ -49,6 +44,12 @@ LibName29=contrib
 LibName30=valves
 LibName31=LPC810
 LibName32=MCP1703
+LibName33=switches-multicomp
+[cvpcb]
+version=1
+NetIExt=net
+[cvpcb/libraries]
+EquName1=devcms
 [pcbnew]
 version=1
 LastNetListRead=lpc812-nrf24l01-receiver.net
@@ -60,9 +61,9 @@ PadSizeV="    1.500000"
 PcbTextSizeV="    1.500000"
 PcbTextSizeH="    1.500000"
 PcbTextThickness="    0.300000"
-ModuleTextSizeV="    1.000000"
-ModuleTextSizeH="    1.000000"
-ModuleTextSizeThickness="    0.150000"
+ModuleTextSizeV="    0.812800"
+ModuleTextSizeH="    0.812800"
+ModuleTextSizeThickness="    0.177800"
 SolderMaskClearance="    0.000000"
 SolderMaskMinWidth="    0.000000"
 DrawSegmentWidth="    0.200000"
@@ -85,3 +86,4 @@ LibName12=dip_sockets
 LibName13=MCP1703
 LibName14=LPC810
 LibName15=crystal
+LibName16=switches-multicomp
