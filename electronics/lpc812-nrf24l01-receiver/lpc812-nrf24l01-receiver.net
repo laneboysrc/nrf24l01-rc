@@ -1,7 +1,7 @@
 (export (version D)
   (design
     (source /home/laneboysrc/projects/nrf24le01-rc/electronics/lpc812-nrf24l01-receiver/lpc812-nrf24l01-receiver.sch)
-    (date "Thu 27 Nov 2014 05:17:58 PM SGT")
+    (date "Thu 27 Nov 2014 09:18:06 PM SGT")
     (tool "eeschema (2013-jul-07)-stable"))
   (components
     (comp (ref U1)
