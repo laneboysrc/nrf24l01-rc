@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdint.h>
 #include <LPC8xx.h>
 
 
@@ -50,3 +51,4 @@
 #define GPIO_LED LPC_GPIO_PORT->W0[GPIO_BIT_LED]
 
 void invoke_ISP(void);
+void delay_us(uint32_t microseconds);

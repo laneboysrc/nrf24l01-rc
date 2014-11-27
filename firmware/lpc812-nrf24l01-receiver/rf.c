@@ -163,7 +163,9 @@ void rf_set_ce(void)
 {
     GPIO_NRF_CE = 1;
 
-    // FIXME: Data sheet page 24: Delay from CE positive edge to CSN low: 4us
+    // Data sheet page 24: Delay from CE positive edge to CSN low: 4us
+    // To ensure that we always delay for 4us.
+    delay_us(4);
 }
 
 
@@ -441,18 +443,23 @@ void rf_power_down(void)
 void rf_enable_transmitter(void)
 {
     uint8_t config;
+    bool powered;
+
+    config = rf_read_register(CONFIG);
+    powered = (config & PWR_UP);
+
+    config |= PWR_UP;                       // Set PWR_UP
+    config &= ~PRIM_RX;                     // Clear PRIM_RX
+    rf_write_register(CONFIG, config);
+
     // Data sheet page 24: For nRF24L01+ to go from power down mode to TX or RX
     // mode it must first pass through stand-by mode. There must be a delay of
     // Tpd2stby (see Table 16.) after the nRF24L01+ leaves power down mode
     // before the CE is set high.
     // Worst case Tpd2stb is 4.5ms, it depends on the crystal inductance.
-
-    config = rf_read_register(CONFIG);
-    config |= PWR_UP;                       // Set PWR_UP
-    config &= ~PRIM_RX;                     // Clear PRIM_RX
-    rf_write_register(CONFIG, config);
-
-    // FIXME: add 4.5 ms delay if power was off
+    if (!powered) {
+        delay_us(4500);
+    }
 }
 
 
@@ -462,17 +469,22 @@ void rf_enable_transmitter(void)
 void rf_enable_receiver(void)
 {
     uint8_t config;
-    // Data sheet page 24: For nRF24L01+ to go from power down mode to TX or RX
-    // mode it must first pass through stand-by mode. There must be a delay of
-    // Tpd2stby (see Table 16.) after the nRF24L01+ leaves power down mode
-    // before the CE is set high.
-    // Worst case Tpd2stb is 4.5ms; it depends on the crystal inductance.
+    bool powered;
 
     config = rf_read_register(CONFIG);
+    powered = (config & PWR_UP);
+
     config |= PWR_UP;                       // Set PWR_UP
     config |= PRIM_RX;                      // Set PRIM_RX
     rf_write_register(CONFIG, config);
 
-    // FIXME: add 4.5 ms delay if power was off
+    // Data sheet page 24: For nRF24L01+ to go from power down mode to TX or RX
+    // mode it must first pass through stand-by mode. There must be a delay of
+    // Tpd2stby (see Table 16.) after the nRF24L01+ leaves power down mode
+    // before the CE is set high.
+    // Worst case Tpd2stb is 4.5ms, it depends on the crystal inductance.
+    if (!powered) {
+        delay_us(4500);
+    }
 }
 

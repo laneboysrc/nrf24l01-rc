@@ -280,6 +280,14 @@ void invoke_ISP(void)
 
 
 // ****************************************************************************
+void delay_us(uint32_t microseconds)
+{
+    (void)microseconds;
+    // FIXME: implement this using the MRT and bus stalling
+}
+
+
+// ****************************************************************************
 int main(void)
 {
     init_hardware();

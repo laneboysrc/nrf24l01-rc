@@ -552,6 +552,7 @@ void init_receiver(void)
 {
     int i;
 
+
     for (i = 0; i < NUMBER_OF_CHANNELS; i++) {
         channels[i] = SERVO_PULSE_CENTER;
     }
@@ -561,6 +562,9 @@ void init_receiver(void)
     initialize_failsafe();
 
     rf_enable_clock();
+    rf_clear_ce();
+    rf_enable_receiver();
+
     rf_set_crc(CRC_2_BYTES);
     rf_set_irq_source(RX_RD);
     rf_set_data_rate(DATA_RATE_250K);
@@ -569,7 +573,6 @@ void init_receiver(void)
     rf_set_payload_size(DATA_PIPE_0, PAYLOAD_SIZE);
     rf_set_rx_address(DATA_PIPE_0, ADDRESS_WIDTH, model_address);
     rf_set_channel(hop_data[0]);
-    rf_enable_receiver();
     rf_flush_rx_fifo();
     rf_clear_irq(RX_RD);
 
