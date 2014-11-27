@@ -1,3 +1,12 @@
+Transmitter:
+; The received data is 12 bit, with center (1500us) being 0x465
+; The data sent across the air is the timer value that has to be set
+; to give the desired time until the timer overflows. The timer tick is
+; 750ns.
+;
+; The algorithm to calculate the timer value is as follows:
+;
+;   timer_value = (uart_data * 14 / 10) + 0xf200
 
 
 Wireless configuration:
@@ -7,7 +16,7 @@ Wireless configuration:
 - 5 byte address size
 - 20 hop channels
 - One hop every 5 ms
-- 3 packets every 5 ms: 2 times stick/failsafe data, 1 time bind data
+- 3 packets every 5 ms: 2 times stick or failsafe data, 1 time bind data
 
 
 Binding procedure:
