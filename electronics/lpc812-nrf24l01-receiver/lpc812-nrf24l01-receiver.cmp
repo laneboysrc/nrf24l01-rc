@@ -1,4 +1,4 @@
-Cmp-Mod V01 Created by CvPcb (2013-jul-07)-stable date = Thu 27 Nov 2014 05:06:50 PM SGT
+Cmp-Mod V01 Created by CvPcb (2013-jul-07)-stable date = Thu 27 Nov 2014 05:15:49 PM SGT
 
 BeginCmp
 TimeStamp = /546ED3B5;
@@ -25,14 +25,14 @@ BeginCmp
 TimeStamp = /546EFF7D;
 Reference = C4;
 ValeurCmp = 18p;
-IdModule  = SM0603_Capa;
+IdModule  = SM0805;
 EndCmp
 
 BeginCmp
 TimeStamp = /546EFF8A;
 Reference = C5;
 ValeurCmp = 18p;
-IdModule  = SM0603_Capa;
+IdModule  = SM0805;
 EndCmp
 
 BeginCmp
@@ -88,7 +88,7 @@ BeginCmp
 TimeStamp = /546F059C;
 Reference = R1;
 ValeurCmp = 270;
-IdModule  = SM0603;
+IdModule  = SM0805;
 EndCmp
 
 BeginCmp
