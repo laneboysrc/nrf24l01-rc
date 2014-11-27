@@ -30,7 +30,7 @@ static uint8_t get_pipe_no(uint8_t pipe)
 // Write a command to the nRF24, followed by data bytes
 // Returns the STATUS register value
 // ****************************************************************************
-uint8_t rf_write_command_buffer(uint8_t cmd, uint8_t count, const uint8_t *buffer)
+static uint8_t rf_write_command_buffer(uint8_t cmd, uint8_t count, const uint8_t *buffer)
 {
     int i;
 
@@ -53,7 +53,7 @@ uint8_t rf_write_command_buffer(uint8_t cmd, uint8_t count, const uint8_t *buffe
 // Send a command to the nRF24 and read *count* bytes of data from the nRF24.
 // Returns the STATUS register value
 // ****************************************************************************
-uint8_t rf_read_command_buffer(uint8_t cmd, uint8_t count, uint8_t *buffer)
+static uint8_t rf_read_command_buffer(uint8_t cmd, uint8_t count, uint8_t *buffer)
 {
     int i;
 
@@ -77,7 +77,7 @@ uint8_t rf_read_command_buffer(uint8_t cmd, uint8_t count, uint8_t *buffer)
 
 
 // ****************************************************************************
-uint8_t rf_read_register(uint8_t reg)
+static uint8_t rf_read_register(uint8_t reg)
 {
     write_buffer[0] = R_REGISTER | reg;
     write_buffer[1] = 0;
@@ -93,22 +93,25 @@ uint8_t rf_read_register(uint8_t reg)
 // Example: TX_ADDR register has up to 5 bytes of data
 // Returns the STATUS register, and the data read from the register in *buffer*
 // ****************************************************************************
-uint8_t rf_read_multi_byte_register(uint8_t reg, uint8_t count, uint8_t *buffer)
-{
-    return rf_read_command_buffer(R_REGISTER | reg, count, buffer);
-}
+// static uint8_t rf_read_multi_byte_register(uint8_t reg, uint8_t count, uint8_t *buffer)
+// {
+//     return rf_read_command_buffer(R_REGISTER | reg, count, buffer);
+// }
 
 
 // ****************************************************************************
-void rf_write_register(uint8_t reg, uint8_t value)
+static void rf_write_register(uint8_t reg, uint8_t value)
 {
-    // FIXME:
     // Data sheet page 52: The nRF24L01+ must be in a standby or power down mode
     // before writing to the configuration registers.
     // i.e. CE must be 0 in receive mode
     //
     // It is unclear what a "configuration register" is, because in order
     // to change to power down mode one has to write the CONFIG register?!
+    // We assume that registers that configure the transceiver are meant, like
+    // setting the channel, address, payload size, CRC, etc.
+    //
+    // It is left to the user of this library to set/clear CE properly.
 
     write_buffer[0] = W_REGISTER | reg;
     write_buffer[1] = value;
@@ -122,13 +125,8 @@ void rf_write_register(uint8_t reg, uint8_t value)
 // Example: TX_ADDR register has up to 5 bytes of data
 // Returns the STATUS register
 // ****************************************************************************
-uint8_t rf_write_multi_byte_register(uint8_t reg, uint8_t count, const uint8_t *buffer)
+static uint8_t rf_write_multi_byte_register(uint8_t reg, uint8_t count, const uint8_t *buffer)
 {
-    // FIXME:
-    // Data sheet page 52: The nRF24L01+ must be in a standby or power down mode
-    // before writing to the configuration registers.
-    // i.e. CE must be 0 in receive mode
-
     return rf_write_command_buffer(W_REGISTER | reg, count, buffer);
 }
 
@@ -468,7 +466,7 @@ void rf_enable_receiver(void)
     // mode it must first pass through stand-by mode. There must be a delay of
     // Tpd2stby (see Table 16.) after the nRF24L01+ leaves power down mode
     // before the CE is set high.
-    // Worst case Tpd2stb is 4.5ms, it depends on the crystal inductance.
+    // Worst case Tpd2stb is 4.5ms; it depends on the crystal inductance.
 
     config = rf_read_register(CONFIG);
     config |= PWR_UP;                       // Set PWR_UP

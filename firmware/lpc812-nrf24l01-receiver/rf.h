@@ -83,13 +83,6 @@
 
 #define NO_AUTO_ACKNOWLEDGE 0
 
-//******************************************************************************
-uint8_t rf_read_register(uint8_t reg);
-void rf_write_register(uint8_t reg, uint8_t value);
-uint8_t rf_write_command_buffer(uint8_t cmd, uint8_t count, const uint8_t *buffer);
-uint8_t rf_read_command_buffer(uint8_t cmd, uint8_t count, uint8_t *buffer);
-uint8_t rf_write_multi_byte_register(uint8_t reg, uint8_t count , const uint8_t *buffer);
-uint8_t rf_read_multi_byte_register(uint8_t reg, uint8_t count , uint8_t *buffer);
 
 //******************************************************************************
 void rf_enable_clock(void);
