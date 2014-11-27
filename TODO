@@ -1,2 +1,2 @@
-- Re-consider using the watchdog; plus failsafe if crystal oscillator fails
+- Use IRC if crystal oscillator fails can not be started
 

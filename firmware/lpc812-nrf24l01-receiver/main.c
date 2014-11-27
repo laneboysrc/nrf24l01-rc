@@ -33,7 +33,65 @@ void MRT_irq_handler(void);
 bool systick;
 
 static volatile uint32_t systick_count;
-static volatile bool delay_flag = false;
+
+
+
+// ****************************************************************************
+static void feed_the_watchdog(void)
+{
+    LPC_WWDT->FEED = 0xaa;
+    LPC_WWDT->FEED = 0x55;
+}
+
+
+// ****************************************************************************
+static void service_systick(void)
+{
+    if (!systick_count) {
+        systick = false;
+        return;
+    }
+
+    systick = true;
+
+    // Disable the SysTick interrupt. Use memory barriers to ensure that no
+    // interrupt is pending in the pipeline.
+    // More info:
+    // http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dai0321a/BIHHFHJD.html
+    SysTick->CTRL &= ~(1 << 1);
+    __DSB();
+    __ISB();
+    --systick_count;
+    SysTick->CTRL |= (1 << 1);      // Re-enable the system tick interrupt
+}
+
+
+// ****************************************************************************
+static void stack_check(void)
+{
+#ifndef NO_DEBUG
+    #define CANARY 0xcafebabe
+
+    static uint32_t *last_found = (uint32_t *)(0x10001000 - 48);
+    uint32_t *now;
+
+    if (last_found == (uint32_t *)0x10000000) {
+        return;
+    }
+
+    now = last_found;
+    while (*now != CANARY && now > (uint32_t *)0x10000000) {
+        --now;
+    }
+
+    if (now != last_found) {
+        last_found = now;
+        uart0_send_cstring("Stack down to 0x");
+        uart0_send_uint32_hex((uint32_t)now);
+        uart0_send_linefeed();
+    }
+#endif
+}
 
 
 // ****************************************************************************
@@ -191,9 +249,7 @@ static void init_hardware(void)
     // ------------------------
     // Multi Rate Timer configuration
     // This timer is used for the delay_us functionality
-    LPC_MRT->Channel[0].CTRL = (1 << 0) |  // Enable interrupt
-                               (0x1 << 1); // One-shot interrupt mode
-    NVIC_EnableIRQ(MRT_IRQn);
+    LPC_MRT->Channel[0].CTRL = (0x1 << 1); // One-shot mode
 
 
     // ------------------------
@@ -207,6 +263,7 @@ static void init_hardware(void)
     // The application can use more than 100ms when erasing a single page
     // of flash, so we give us more than that.
     LPC_WWDT->TC = 2000;
+    feed_the_watchdog();
 
     // ------------------------
     // SysTick configuration
@@ -247,78 +304,11 @@ void SCT_irq_handler(void)
 
 
 // ****************************************************************************
-void MRT_irq_handler(void)
-{
-    // Clear GFLAG0
-    LPC_MRT->Channel[0].CTRL = (1 << 0);
-    delay_flag = false;
-}
-
-
-// ****************************************************************************
 void SysTick_handler(void)
 {
     if (SysTick->CTRL & (1 << 16)) {       // Read and clear Countflag
         ++systick_count;
     }
-}
-
-
-// ****************************************************************************
-static void service_systick(void)
-{
-    if (!systick_count) {
-        systick = false;
-        return;
-    }
-
-    systick = true;
-
-    // Disable the SysTick interrupt. Use memory barriers to ensure that no
-    // interrupt is pending in the pipeline.
-    // More info:
-    // http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dai0321a/BIHHFHJD.html
-    SysTick->CTRL &= ~(1 << 1);
-    __DSB();
-    __ISB();
-    --systick_count;
-    SysTick->CTRL |= (1 << 1);      // Re-enable the system tick interrupt
-}
-
-
-// ****************************************************************************
-static void stack_check(void)
-{
-#ifndef NO_DEBUG
-    #define CANARY 0xcafebabe
-
-    static uint32_t *last_found = (uint32_t *)(0x10001000 - 48);
-    uint32_t *now;
-
-    if (last_found == (uint32_t *)0x10000000) {
-        return;
-    }
-
-    now = last_found;
-    while (*now != CANARY && now > (uint32_t *)0x10000000) {
-        --now;
-    }
-
-    if (now != last_found) {
-        last_found = now;
-        uart0_send_cstring("Stack down to 0x");
-        uart0_send_uint32_hex((uint32_t)now);
-        uart0_send_linefeed();
-    }
-#endif
-}
-
-
-// ****************************************************************************
-static void feed_the_watchdog(void)
-{
-    LPC_WWDT->FEED = 0xaa;
-    LPC_WWDT->FEED = 0x55;
 }
 
 
@@ -346,14 +336,11 @@ void invoke_ISP(void)
 // ****************************************************************************
 void delay_us(uint32_t microseconds)
 {
-    // Use the one-shot Multi Rate Timer to create an interrupt after the
-    // requested milliseconds, which clears the delay_flag so execution returns
-    // to the caller.
-    delay_flag = true;
+    LPC_MRT->Channel[0].STAT |= 1;
+    LPC_MRT->Channel[0].INTVAL =
+        ((__SYSTEM_CLOCK / 1000000) * microseconds) & 0x7fffffff;
 
-    LPC_MRT->Channel[0].INTVAL = (1 << 31) | ((__SYSTEM_CLOCK / 1000000) * microseconds);
-
-    while (delay_flag) {
+    while (!(LPC_MRT->Channel[0].STAT & 1)) {
         ;
     }
 }
@@ -366,6 +353,10 @@ int main(void)
     init_uart0(BAUDRATE);
     init_spi();
     init_hardware_final();
+
+#ifndef NO_DEBUG
+    uart0_send_cstring("Hardware initialized\n");
+#endif
 
     // Wait a for a short time after power up before talking to the nRF24
     while (systick_count < (50 / __SYSTICK_IN_MS)) {
