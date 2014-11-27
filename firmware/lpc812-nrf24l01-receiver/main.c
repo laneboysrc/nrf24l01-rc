@@ -44,6 +44,27 @@ static void init_hardware(void)
 #if __SYSTEM_CLOCK != 12000000
 #error Clock initialization code expexts __SYSTEM_CLOCK to be set to 1200000
 #endif
+
+#ifndef USE_IRC
+    LPC_SYSCON->PDRUNCFG &= ~(1 << 7);          // Enable the system PLL
+
+    LPC_SYSCON->SYSPLLCLKSEL = 0x1;             // PLL input is the crystal oscillator
+    LPC_SYSCON->SYSPLLCLKUEN = 0;               // Toggle PLL-enable
+    LPC_SYSCON->SYSPLLCLKUEN = 1;
+
+    // Set the PLL to 16Mhz * 3 / 4 = 12 Mhz
+    LPC_SYSCON->SYSPLLCTRL = (0x2 << 0) |       // M = 3
+                             (0x2 << 5);        // P = 4
+
+    while (!(LPC_SYSCON->SYSPLLSTAT & 1)) {     // Wait for PLL lock
+        ;
+    }
+
+    LPC_SYSCON->MAINCLKSEL = 0x3;               // Use the PLL clock output as main clock
+    LPC_SYSCON->MAINCLKUEN = 0;                 // Toggle CLK-enable
+    LPC_SYSCON->MAINCLKUEN = 1;
+#endif
+
     // Set flash wait-states to 1 system clock
     LPC_FLASHCTRL->FLASHCFG = 0;
 

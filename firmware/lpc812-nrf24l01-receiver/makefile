@@ -77,7 +77,8 @@ CFLAGS += -fsigned-char -fdata-sections -ffunction-sections -fno-common
 CFLAGS += -fpack-struct=4
 CFLAGS += -Os
 CFLAGS += -D__SYSTEM_CLOCK=$(SYSTEM_CLOCK)
-#FLAGS += -DNO_DEBUG -DBAUDRATE=38400
+#CFLAGS += -DNO_DEBUG -DBAUDRATE=38400
+CFLAGS += -DUSE_IRC
 
 LDFLAGS = $(CPU_FLAGS)
 LDFLAGS += -mthumb -mcpu=cortex-m0plus -mlittle-endian
