@@ -25,14 +25,15 @@
 void SysTick_handler(void);
 void PININT0_irq_handler(void);
 void SCT_irq_handler(void);
+void MRT_irq_handler(void);
 
 
 
 // Global flag that is true for one mainloop every __SYSTICK_IN_MS
 bool systick;
 
-static uint32_t volatile systick_count;
-
+static volatile uint32_t systick_count;
+static volatile bool delay_flag = false;
 
 
 // ****************************************************************************
@@ -47,9 +48,9 @@ static void init_hardware(void)
     LPC_FLASHCTRL->FLASHCFG = 0;
 
     // ------------------------
-    // Turn on peripheral clocks for SCTimer, IOCON, SPI0
+    // Turn on peripheral clocks for SCTimer, IOCON, SPI0, MRT
     // (GPIO, SWM alrady enabled after reset)
-    LPC_SYSCON->SYSAHBCLKCTRL |= (1 << 8) | (1 << 18) | (1 << 11);
+    LPC_SYSCON->SYSAHBCLKCTRL |= (1 << 8) | (1 << 18) | (1 << 11) | (1 << 10);
 
 
     // ------------------------
@@ -165,6 +166,14 @@ static void init_hardware(void)
 
 
     // ------------------------
+    // Multi Rate Timer configuration
+    // This timer is used for the delay_us functionality
+    LPC_MRT->Channel[0].CTRL = (1 << 0) |  // Enable interrupt
+                               (0x1 << 1); // One-shot interrupt mode
+    NVIC_EnableIRQ(MRT_IRQn);
+
+
+    // ------------------------
     // SysTick configuration
     SysTick->LOAD = __SYSTEM_CLOCK * __SYSTICK_IN_MS / 1000;
     SysTick->VAL = __SYSTEM_CLOCK * __SYSTICK_IN_MS / 1000;
@@ -199,6 +208,15 @@ void SCT_irq_handler(void)
     LPC_SCT->EVFLAG = (1 << 4);
 
     hop_timer_handler();
+}
+
+
+// ****************************************************************************
+void MRT_irq_handler(void)
+{
+    // Clear GFLAG0
+    LPC_MRT->Channel[0].CTRL = (1 << 0);
+    delay_flag = false;
 }
 
 
@@ -282,8 +300,16 @@ void invoke_ISP(void)
 // ****************************************************************************
 void delay_us(uint32_t microseconds)
 {
-    (void)microseconds;
-    // FIXME: implement this using the MRT and bus stalling
+    // Use the one-shot Multi Rate Timer to create an interrupt after the
+    // requested milliseconds, which clears the delay_flag so execution returns
+    // to the caller.
+    delay_flag = true;
+
+    LPC_MRT->Channel[0].INTVAL = (1 << 31) | ((__SYSTEM_CLOCK / 1000000) * microseconds);
+
+    while (delay_flag) {
+        ;
+    }
 }
 
 
