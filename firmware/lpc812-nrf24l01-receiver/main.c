@@ -68,10 +68,12 @@ static void init_hardware(void)
     // Set flash wait-states to 1 system clock
     LPC_FLASHCTRL->FLASHCFG = 0;
 
+
     // ------------------------
-    // Turn on peripheral clocks for SCTimer, IOCON, SPI0, MRT
+    // Turn on peripheral clocks for SCTimer, IOCON, SPI0, MRT, WWDT
     // (GPIO, SWM alrady enabled after reset)
-    LPC_SYSCON->SYSAHBCLKCTRL |= (1 << 8) | (1 << 18) | (1 << 11) | (1 << 10);
+    LPC_SYSCON->SYSAHBCLKCTRL |=
+        (1 << 18) | (1 << 17) | (1 << 11) | (1 << 10) | (1 << 8);
 
 
     // ------------------------
@@ -195,6 +197,18 @@ static void init_hardware(void)
 
 
     // ------------------------
+    // Watchdog configuration
+    LPC_SYSCON->WDTOSCCTRL = (1 << 5) |     // 0.6 MHz
+                             (0xff << 0);   // Divide by 64 for ~9.4 kHz Watchdog clock
+    LPC_SYSCON->PDRUNCFG &= ~(1 << 6);      // Watchdog oscillator on
+    LPC_WWDT->MOD = (1 << 0) |              // Watchdog enabled
+                    (1 << 1);               // Watchdog causes reset
+    // Set approx 200ms watchdog timeout.
+    // The application can use more than 100ms when erasing a single page
+    // of flash, so we give us more than that.
+    LPC_WWDT->TC = 2000;
+
+    // ------------------------
     // SysTick configuration
     SysTick->LOAD = __SYSTEM_CLOCK * __SYSTICK_IN_MS / 1000;
     SysTick->VAL = __SYSTEM_CLOCK * __SYSTICK_IN_MS / 1000;
@@ -301,9 +315,20 @@ static void stack_check(void)
 
 
 // ****************************************************************************
+static void feed_the_watchdog(void)
+{
+    LPC_WWDT->FEED = 0xaa;
+    LPC_WWDT->FEED = 0x55;
+}
+
+
+// ****************************************************************************
 void invoke_ISP(void)
 {
     unsigned int param[5];
+
+    // Disable the watchdog through power-down of the watchdog osc
+    LPC_SYSCON->PDRUNCFG |= (1 << 6);
 
     param[0] = 57;  // Reinvoke ISP
     __disable_irq();
@@ -359,5 +384,6 @@ int main(void)
         process_receiver();
         output_preprocessor();
         stack_check();
+        feed_the_watchdog();
     }
 }

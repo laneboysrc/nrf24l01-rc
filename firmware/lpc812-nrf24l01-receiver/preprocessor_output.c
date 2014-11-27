@@ -14,14 +14,20 @@
 #define SERVO_PULSE_CLAMP_LOW 800
 #define SERVO_PULSE_CLAMP_HIGH 2300
 
+#ifdef EXTENDED_PREPROCESSOR_OUTPUT
+    #define TX_DATA_SIZE 8
+#else
+    #define TX_DATA_SIZE 4
+#endif
 
 extern bool systick;
 extern uint16_t channels[NUMBER_OF_CHANNELS];
+extern uint16_t raw_data[2];
 extern bool successful_stick_data;
 
 
 static bool initialized = false;
-static uint8_t tx_data[4];
+static uint8_t tx_data[TX_DATA_SIZE];
 static uint8_t next_tx_index = 0xff;
 bool ch3_2pos = false;
 uint16_t ch3_raw;
@@ -124,6 +130,13 @@ void output_preprocessor(void)
             tx_data[2] = 0;
             tx_data[3] = 0 + (1 << 4);          // CH3 + STARTUP_MODE flag
         }
+
+#ifdef EXTENDED_PREPROCESSOR_OUTPUT
+        tx_data[4] = (raw_data[0] >> 5) & 0x7f;
+        tx_data[5] = ((raw_data[0] << 2) | (raw_data[1] >> 14))  & 0x7f;
+        tx_data[6] = (raw_data[1] >> 7)  & 0x7f;
+        tx_data[7] = raw_data[1] & 0x7f;
+#endif
 
         tx_data[0] = SLAVE_MAGIC_BYTE;
         next_tx_index = 0;

@@ -37,6 +37,7 @@ extern bool systick;
 
 
 uint16_t channels[NUMBER_OF_CHANNELS];
+uint16_t raw_data[2];
 bool successful_stick_data = false;
 
 
@@ -109,6 +110,26 @@ static uint16_t stickdata2ms(uint16_t stickdata)
     // ms = (0xffff - stickdata) * 3 / 4;
     ms = (0xffff - stickdata);
     return ms & 0xffff;
+}
+
+
+// ****************************************************************************
+// This code undos the value scaling that the transmitter nRF module does
+// when receiving a 12 bit channel value via the UART, while forming the
+// transmit packet.
+//
+// The transmitter calculates
+//
+//    value = (uart_data * 14 / 10) + 0xf200
+//
+// As such the input range via the UART can be 0x000 .. 0x9ff
+// ****************************************************************************
+static uint16_t stickdata2txdata(uint16_t stickdata)
+{
+    uint32_t txdata;
+
+    txdata = (stickdata - 0xf200) * 10 / 14;
+    return txdata & 0xffff;
 }
 
 
@@ -411,6 +432,17 @@ static void process_receiving(void)
         channels[1] = stickdata2ms((payload[3] << 8) + payload[2]);
         channels[2] = stickdata2ms((payload[5] << 8) + payload[4]);
         output_pulses();
+
+        // Save raw received data for the pre-processor to output, so someone
+        // can build custom extension based on hijacking channel 3 and using
+        // the unused payload bytes 6 and 9.
+        // Note:
+        //   - See hk310-expansion project for hijacking channel 3
+        //   - Custom nRF module firmware required in the transmitter to utilize
+        //     payload 6 + 9
+        raw_data[0] = stickdata2txdata((payload[5] << 8) + payload[4]);
+        raw_data[1] = (payload[6] << 8) + payload[9];
+
 
         if (!successful_stick_data) {
             LPC_SCT->CTRL_H &= ~(1u << 2);      // Start the SCTimer H

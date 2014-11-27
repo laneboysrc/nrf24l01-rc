@@ -77,16 +77,18 @@ CFLAGS += -fsigned-char -fdata-sections -ffunction-sections -fno-common
 CFLAGS += -fpack-struct=4
 CFLAGS += -Os
 CFLAGS += -D__SYSTEM_CLOCK=$(SYSTEM_CLOCK)
+
 #CFLAGS += -DNO_DEBUG -DBAUDRATE=38400
+CFLAGS += -DEXTENDED_PREPROCESSOR_OUTPUT
 CFLAGS += -DUSE_IRC
 
-LDFLAGS = $(CPU_FLAGS)
+LDFLAGS := $(CPU_FLAGS)
 LDFLAGS += -mthumb -mcpu=cortex-m0plus -mlittle-endian
 LDFLAGS += -Wl,-T,$(LINKER_SCRIPT) -Wl,-nostdlib -Wl,--warn-common
 LDFLAGS += -Wl,--gc-sections -Wl,-O3
 LDFLAGS += -Wl,-Map=$(TARGET_MAP) -Wl,--cref
 
-LDLIBS = $(addprefix -l,$(LIBS))
+LDLIBS := $(addprefix -l,$(LIBS))
 
 
 ###############################################################################

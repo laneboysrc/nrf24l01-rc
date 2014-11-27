@@ -1,3 +1,2 @@
-- Pre-processor output of raw data
-
 - Re-consider using the watchdog; plus failsafe if crystal oscillator fails
+
