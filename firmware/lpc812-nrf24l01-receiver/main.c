@@ -161,22 +161,25 @@ static void init_hardware(void)
                           (GPIO_BIT_NRF_MISO << 8) |    // SPI0_MISO
                           (GPIO_BIT_NRF_MOSI << 0);     // SPI0_MOSI
 
-    LPC_SWM->PINASSIGN6 = (GPIO_BIT_CH1 << 24) |        // CTOUT_0
+    LPC_SWM->PINASSIGN6 = (0xff /*GPIO_BIT_CH1*/ << 24) |        // CTOUT_0
                           (0xff << 16) |
                           (0xff << 8) |
                           (0xff << 0);
 
     LPC_SWM->PINASSIGN7 = (0xff << 24) |
                           (0xff << 16) |
-                          (GPIO_BIT_CH3 << 8) |         // CTOUT_2
-                          (GPIO_BIT_CH2 << 0);          // CTOUT_1
+                          (0xff /*GPIO_BIT_CH3*/ << 8) |         // CTOUT_2
+                          (0xff /*GPIO_BIT_CH2*/ << 0);          // CTOUT_1
 
     // Configure outputs
-    LPC_GPIO_PORT->DIR0 |= (1 << GPIO_BIT_NRF_SCK) |
-                           (1 << GPIO_BIT_NRF_MOSI) |
-                           (1 << GPIO_BIT_NRF_CSN) |
-                           (1 << GPIO_BIT_NRF_CE) |
-                           (1 << GPIO_BIT_LED);
+    LPC_GPIO_PORT->DIR0 = (1 << GPIO_BIT_NRF_SCK) |
+                          (1 << GPIO_BIT_NRF_MOSI) |
+                          (1 << GPIO_BIT_NRF_CSN) |
+                          (1 << GPIO_BIT_NRF_CE) |
+                          (1 << GPIO_BIT_CH1) |
+                          (1 << GPIO_BIT_CH2) |
+                          (1 << GPIO_BIT_CH3) |
+                          (1 << GPIO_BIT_LED);
     GPIO_NRF_CE = 0;
     GPIO_LED = 0;
 

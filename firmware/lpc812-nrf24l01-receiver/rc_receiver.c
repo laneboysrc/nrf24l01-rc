@@ -140,6 +140,7 @@ static void stop_hop_timer(void)
     LPC_SCT->CTRL_L |= (1u << 2);
 
     perform_hop_requested = false;
+    GPIO_CH2 = 0;
 }
 
 
@@ -157,6 +158,7 @@ static void restart_hop_timer(void)
 
     hops_without_packet = 0;
     perform_hop_requested = false;
+    GPIO_CH2 = 0;
 }
 
 
@@ -169,11 +171,13 @@ static void restart_packet_receiving(void)
     hop_index = 0;
     hops_without_packet = 0;
     perform_hop_requested = false;
+    GPIO_CH2 = 0;
     rf_set_rx_address(DATA_PIPE_0, ADDRESS_WIDTH, model_address);
     rf_set_channel(hop_data[0]);
     rf_flush_rx_fifo();
     rf_clear_irq(RX_RD);
     rf_int_fired = false;
+    GPIO_CH1 = 0;
     rf_set_ce();
 }
 
@@ -292,7 +296,9 @@ static void process_binding(void)
     if (!rf_int_fired) {
         return;
     }
-    rf_int_fired = 0;
+    rf_int_fired = false;
+    GPIO_CH1 = 0;
+
 
     while (!rf_is_rx_fifo_emtpy()) {
         rf_read_fifo(payload, PAYLOAD_SIZE);
@@ -402,6 +408,7 @@ static void process_receiving(void)
     // ================================
     if (perform_hop_requested) {
         perform_hop_requested = false;
+        GPIO_CH2 = 0;
         ++hops_without_packet;
 
 
@@ -423,10 +430,9 @@ static void process_receiving(void)
     if (!rf_int_fired) {
         return;
     }
-    uart0_send_char('*');
+    rf_int_fired = false;
+    GPIO_CH1 = 0;
 
-
-    rf_int_fired = 0;
     while (!rf_is_rx_fifo_emtpy()) {
         rf_read_fifo(payload, PAYLOAD_SIZE);
     }
@@ -644,6 +650,7 @@ void process_receiver(void)
 void rf_interrupt_handler(void)
 {
     rf_int_fired = true;
+    GPIO_CH1 = 1;
 }
 
 
@@ -651,4 +658,5 @@ void rf_interrupt_handler(void)
 void hop_timer_handler(void)
 {
     perform_hop_requested = true;
+    GPIO_CH2 = 1;
 }
