@@ -373,7 +373,11 @@ int main(void)
     while (1) {
         service_systick();
         process_receiver();
+
+#ifdef ENABLE_PREPROCESSOR_OUTPUT
         output_preprocessor();
+#endif
+
         stack_check();
         feed_the_watchdog();
     }

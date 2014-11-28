@@ -5,6 +5,9 @@
 #include <uart0.h>
 #include <preprocessor_output.h>
 
+#ifdef ENABLE_PREPROCESSOR_OUTPUT
+
+
 
 #define SLAVE_MAGIC_BYTE 0x87
 #define CH3_HYSTERESIS 5
@@ -24,7 +27,6 @@ extern bool systick;
 extern uint16_t channels[NUMBER_OF_CHANNELS];
 extern uint16_t raw_data[2];
 extern bool successful_stick_data;
-
 
 static bool initialized = false;
 static uint8_t tx_data[TX_DATA_SIZE];
@@ -85,7 +87,7 @@ static void normalize_channel(CHANNEL_T *c)
     }
 }
 
-#undef NO_DEBUG
+
 // ****************************************************************************
 void output_preprocessor(void)
 {
@@ -148,3 +150,5 @@ void output_preprocessor(void)
     }
 #endif
 }
+
+#endif // PREPROCESSOR_OUTPUT
