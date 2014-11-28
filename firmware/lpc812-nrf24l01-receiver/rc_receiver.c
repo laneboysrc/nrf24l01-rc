@@ -137,52 +137,39 @@ static uint16_t stickdata2txdata(uint16_t stickdata)
 static void stop_hop_timer(void)
 {
     // Stop the SCTimer L
-    LPC_SCT->CTRL_L |= (1u << 2);
+    LPC_SCT->CTRL_L |= (1 << 2);
 
     perform_hop_requested = false;
-    GPIO_CH2 = 0;
 }
 
 
 // ****************************************************************************
 static void restart_hop_timer(void)
 {
-    // Stop the SCTimer L; Load the difference between the first and subsequent
-    // hop time. We set the first hop time to 4ms, then subsequent hops
-    // to 5ms. This way we are hopping 1ms before expecting the
-    // packet on the new channel.
-    LPC_SCT->CTRL_L |= (1u << 2);
+    LPC_SCT->CTRL_L |= (1 << 2) | (1 << 3);
     LPC_SCT->COUNT_L = HOP_TIME_IN_US - FIRST_HOP_TIME_IN_US;
-    LPC_SCT->MATCHREL[0].L = HOP_TIME_IN_US - 1;
-    LPC_SCT->CTRL_L &= ~(1u << 2);
+    LPC_SCT->CTRL_L &= ~(1 << 2);
 
     hops_without_packet = 0;
     perform_hop_requested = false;
-    GPIO_CH2 = 0;
 }
 
 
 // ****************************************************************************
 static void restart_packet_receiving(void)
 {
-    GPIO_CH3 = 1;
-
     stop_hop_timer();
 
     rf_clear_ce();
     hop_index = 0;
     hops_without_packet = 0;
     perform_hop_requested = false;
-    GPIO_CH2 = 0;
     rf_set_rx_address(DATA_PIPE_0, ADDRESS_WIDTH, model_address);
     rf_set_channel(hop_data[0]);
     rf_flush_rx_fifo();
     rf_clear_irq(RX_RD);
     rf_int_fired = false;
-    GPIO_CH1 = 0;
     rf_set_ce();
-
-    GPIO_CH3 = 0;
 }
 
 
@@ -301,8 +288,6 @@ static void process_binding(void)
         return;
     }
     rf_int_fired = false;
-    GPIO_CH1 = 0;
-
 
     while (!rf_is_rx_fifo_emtpy()) {
         rf_read_fifo(payload, PAYLOAD_SIZE);
@@ -412,12 +397,10 @@ static void process_receiving(void)
     // ================================
     if (perform_hop_requested) {
         perform_hop_requested = false;
-        GPIO_CH2 = 0;
         ++hops_without_packet;
 
 
         if (hops_without_packet > MAX_HOP_WITHOUT_PACKET) {
-            uart0_send_cstring("Resyn\n");
             restart_packet_receiving();
         }
         else {
@@ -425,7 +408,6 @@ static void process_receiving(void)
             hop_index = (hop_index + 1) % NUMBER_OF_HOP_CHANNELS;
             rf_set_channel(hop_data[hop_index]);
             rf_set_ce();
-            uart0_send_uint32(hop_index);
         }
     }
 
@@ -435,7 +417,6 @@ static void process_receiving(void)
         return;
     }
     rf_int_fired = false;
-    GPIO_CH1 = 0;
 
     while (!rf_is_rx_fifo_emtpy()) {
         rf_read_fifo(payload, PAYLOAD_SIZE);
@@ -609,7 +590,6 @@ void init_receiver(void)
 {
     int i;
 
-
     for (i = 0; i < NUMBER_OF_CHANNELS; i++) {
         channels[i] = SERVO_PULSE_CENTER;
     }
@@ -617,6 +597,9 @@ void init_receiver(void)
 
     read_bind_data();
     initialize_failsafe();
+
+    stop_hop_timer();
+    LPC_SCT->MATCHREL[0].L = HOP_TIME_IN_US - 1;
 
     rf_enable_clock();
     rf_clear_ce();
@@ -632,6 +615,7 @@ void init_receiver(void)
     rf_set_channel(hop_data[0]);
     rf_flush_rx_fifo();
     rf_clear_irq(RX_RD);
+    rf_int_fired = false;
 
     rf_set_ce();
 
@@ -654,7 +638,6 @@ void process_receiver(void)
 void rf_interrupt_handler(void)
 {
     rf_int_fired = true;
-    GPIO_CH1 = 1;
 }
 
 
@@ -662,5 +645,4 @@ void rf_interrupt_handler(void)
 void hop_timer_handler(void)
 {
     perform_hop_requested = true;
-    GPIO_CH2 = 1;
 }

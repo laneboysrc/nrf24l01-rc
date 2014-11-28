@@ -161,15 +161,15 @@ static void init_hardware(void)
                           (GPIO_BIT_NRF_MISO << 8) |    // SPI0_MISO
                           (GPIO_BIT_NRF_MOSI << 0);     // SPI0_MOSI
 
-    LPC_SWM->PINASSIGN6 = (0xff /*GPIO_BIT_CH1*/ << 24) |        // CTOUT_0
+    LPC_SWM->PINASSIGN6 = (GPIO_BIT_CH1 << 24) |        // CTOUT_0
                           (0xff << 16) |
                           (0xff << 8) |
                           (0xff << 0);
 
     LPC_SWM->PINASSIGN7 = (0xff << 24) |
                           (0xff << 16) |
-                          (0xff /*GPIO_BIT_CH3*/ << 8) |         // CTOUT_2
-                          (0xff /*GPIO_BIT_CH2*/ << 0);          // CTOUT_1
+                          (GPIO_BIT_CH3 << 8) |         // CTOUT_2
+                          (GPIO_BIT_CH2 << 0);          // CTOUT_1
 
     // Configure outputs
     LPC_GPIO_PORT->DIR0 = (1 << GPIO_BIT_NRF_SCK) |
@@ -232,21 +232,21 @@ static void init_hardware(void)
     // We don't start the timer here but only after receiving the first
     // valid stick data package.
 
-    LPC_SCT->CTRL_L |= (1 << 3) |                   // Clear the counter L
+    LPC_SCT->CTRL_L |= (1 << 3) |                    // Clear the counter L
         (((__SYSTEM_CLOCK / 1000000) - 1) << 5);    // PRE_L[12:5] = divide for 1 MHz
+    LPC_SCT->MATCHREL[0].L = 4000  - 1;
     LPC_SCT->EVENT[4].STATE = 0xFFFF;               // Event happens in all states
     LPC_SCT->EVENT[4].CTRL = (0 << 0) |             // Match register
                              (0 << 4) |             // Select counter L
                              (0x1 << 12);           // Match condition only
     LPC_SCT->EVEN |= (1 << 4);                      // Event 4 generates an interrupt
-    NVIC_EnableIRQ(SCT_IRQn);
+    LPC_SCT->CTRL_L &= ~(1 << 2);
 
 
     // ------------------------
     // Configure the exernal interrupt from the NRF chip
     LPC_SYSCON->PINTSEL[0] = 11;            // PIO0_11 (NRF_IRQ) on PININT0
     LPC_PIN_INT->IENF = (1 << 0);           // Enable falling edge on PININT0
-    NVIC_EnableIRQ(PININT0_IRQn);
 
 
     // ------------------------
@@ -284,6 +284,9 @@ static void init_hardware_final(void)
 {
     // Turn off peripheral clock for IOCON and SWM to preserve power
     LPC_SYSCON->SYSAHBCLKCTRL &= ~((1 << 18) | (1 << 7));
+
+    NVIC_EnableIRQ(PININT0_IRQn);
+    NVIC_EnableIRQ(SCT_IRQn);
 }
 
 
