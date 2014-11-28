@@ -23,7 +23,7 @@ extern IAP iap_entry;
 
 
 __attribute__ ((section(".persistent_data")))
-const volatile uint32_t persistent_data[NUMBER_OF_PERSISTENT_ELEMENTS];
+const volatile uint8_t persistent_data[NUMBER_OF_PERSISTENT_ELEMENTS];
 
 
 // ****************************************************************************
@@ -32,7 +32,7 @@ void load_persistent_storage(uint8_t *data)
     int i;
 
     for (i = 0; i < NUMBER_OF_PERSISTENT_ELEMENTS; i++) {
-        data[i] = ((uint8_t *) persistent_data)[i];
+        data[i] = persistent_data[i];
     }
 }
 
