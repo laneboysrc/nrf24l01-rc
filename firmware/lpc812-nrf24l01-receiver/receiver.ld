@@ -6,13 +6,24 @@ MEMORY
 
 SECTIONS
 {
-    .text :
+    .vectors :
     {
         _text = .;
         KEEP(*(.isr_vector))
+        . = ALIGN(4);
+    } > FLASH
+
+
+    .persistent_data :
+    {
         . = ALIGN(64);
         KEEP(*(.persistent_data))
         . = ALIGN(64);
+    } > FLASH
+
+
+    .text :
+    {
         KEEP(*(.after_vectors))
         *(.text*)
         *(.rodata*)
@@ -31,15 +42,6 @@ SECTIONS
     } > RAM
 
 
-    /* Light programs must be located at the end of the flash memory,
-     * which is after the RAM initialization data
-     */
-    .light_programs (_etext + SIZEOF(.data)) :
-    {
-        *(.light_programs)
-    } > FLASH
-
-
     .bss :
     {
         _bss = .;
@@ -48,6 +50,7 @@ SECTIONS
         . = ALIGN(4);
         _ebss = .;
     } > RAM
+
 
     /* The stack starts 32 bytes below to of RAM as those 32 bytes are needed
      * for the IAR ROM function that we use to write the Flash with persistent

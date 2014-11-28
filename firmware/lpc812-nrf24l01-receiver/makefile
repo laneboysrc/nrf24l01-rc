@@ -125,7 +125,8 @@ $(TARGET_BIN): $(TARGET_ELF)
 
 $(TARGET_HEX): $(TARGET_ELF)
 	$(ECHO) [CP] $@
-	$(QUIET) $(OBJCOPY) $< -O ihex $@
+	$(QUIET) $(OBJCOPY) --remove-section=.persistent_data $< -O ihex $@
+##--remove-section=.persistent_data
 
 # Create list files that include C code as well as Assembler
 list: $(OBJECTS:.o=.lst)
