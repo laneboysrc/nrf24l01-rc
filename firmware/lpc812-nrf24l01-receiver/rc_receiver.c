@@ -165,6 +165,8 @@ static void restart_hop_timer(void)
 // ****************************************************************************
 static void restart_packet_receiving(void)
 {
+    GPIO_CH3 = 1;
+
     stop_hop_timer();
 
     rf_clear_ce();
@@ -179,6 +181,8 @@ static void restart_packet_receiving(void)
     rf_int_fired = false;
     GPIO_CH1 = 0;
     rf_set_ce();
+
+    GPIO_CH3 = 0;
 }
 
 

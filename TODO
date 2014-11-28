@@ -2,3 +2,5 @@
 
 - Check syncing/hopping/receiving performance
     - There seems to be an issue sometimes after binding
+
+- Test delay function accuracy
