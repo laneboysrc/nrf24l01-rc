@@ -1,4 +1,4 @@
-Cmp-Mod V01 Created by CvPcb (2013-jul-07)-stable date = Sat 29 Nov 2014 04:01:16 PM SGT
+Cmp-Mod V01 Created by CvPcb (2013-jul-07)-stable date = Sat 29 Nov 2014 07:45:09 PM SGT
 
 BeginCmp
 TimeStamp = /54792183;
@@ -116,7 +116,7 @@ BeginCmp
 TimeStamp = /547925D0;
 Reference = SW1;
 ValeurCmp = SW_PUSH;
-IdModule  = SW_PUSH_SMALL;
+IdModule  = SW_PUSH_ROUND_6mm;
 EndCmp
 
 BeginCmp

@@ -1,6 +1,6 @@
-update=Sat 29 Nov 2014 03:03:29 PM SGT
+update=Sat 29 Nov 2014 07:10:09 PM SGT
 version=1
-last_client=cvpcb
+last_client=pcbnew
 [general]
 version=1
 [eeschema]
@@ -30,14 +30,19 @@ LibName15=contrib
 LibName16=nrf24le1-module-15x21
 LibName17=opto
 LibName18=MCP1703
+[cvpcb]
+version=1
+NetIExt=net
+[cvpcb/libraries]
+EquName1=devcms
 [pcbnew]
 version=1
 LastNetListRead=nrf24le1-receiver.net
 UseCmpFile=1
 PadDrill="    0.000000"
 PadDrillOvalY="    0.000000"
-PadSizeH="    1.016000"
-PadSizeV="    1.016000"
+PadSizeH="    2.032000"
+PadSizeV="    2.032000"
 PcbTextSizeV="    1.500000"
 PcbTextSizeH="    1.500000"
 PcbTextThickness="    0.300000"
@@ -50,6 +55,7 @@ DrawSegmentWidth="    0.200000"
 BoardOutlineThickness="    0.100000"
 ModuleOutlineThickness="    0.150000"
 [pcbnew/libraries]
+LibDir=
 LibName1=sockets
 LibName2=connect
 LibName3=discret
@@ -68,9 +74,4 @@ LibName15=pga_sockets
 LibName16=valves
 LibName17=nrf24le1-module-15x21
 LibName18=testpad
-LibDir=
-[cvpcb]
-version=1
-NetIExt=net
-[cvpcb/libraries]
-EquName1=devcms
+LibName19=switch-misc
