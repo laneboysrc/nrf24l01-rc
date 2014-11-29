@@ -1,0 +1,173 @@
+PCBNEW-LibModule-V1  Sat 29 Nov 2014 09:39:01 AM SGT
+# encoding utf-8
+Units mm
+$INDEX
+NRF24LE1-module-15x21
+$EndINDEX
+$MODULE NRF24LE1-module-15x21
+Po 0 0 0 15 547923AE 00000000 ~P
+Li NRF24LE1-module-15x21
+Cd NRF24LE1 module 15x21mm with SMD crystal
+Sc 0
+AR /547920F7
+Op 0 0 0
+T0 7.62 -21.844 1 1 0 0.15 N V 21 N "U2"
+T1 7.874 -10.668 1 1 0 0.15 N V 21 N "NRF24LE1-MODULE-15X21"
+DS 0 0 14.986 0 0.15 21
+DS 14.986 0 14.986 -20.828 0.15 21
+DS 14.986 -20.828 0 -20.828 0.15 21
+DS 0 -20.828 0 0 0.15 21
+$PAD
+Sh "1" R 1.016 3.556 0 0 0
+Dr 0 0 0
+At SMD N 00888000
+Ne 0 ""
+Po 1.016 0
+.LocalClearance 0.127
+$EndPAD
+$PAD
+Sh "2" R 1.016 3.556 0 0 0
+Dr 0 0 0
+At SMD N 00888000
+Ne 0 ""
+Po 2.286 0
+.LocalClearance 0.127
+$EndPAD
+$PAD
+Sh "3" R 1.016 3.556 0 0 0
+Dr 0 0 0
+At SMD N 00888000
+Ne 0 ""
+Po 3.556 0
+.LocalClearance 0.127
+$EndPAD
+$PAD
+Sh "4" R 1.016 3.556 0 0 0
+Dr 0 0 0
+At SMD N 00888000
+Ne 0 ""
+Po 4.826 0
+.LocalClearance 0.127
+$EndPAD
+$PAD
+Sh "5" R 1.016 3.556 0 0 0
+Dr 0 0 0
+At SMD N 00888000
+Ne 0 ""
+Po 6.096 0
+.LocalClearance 0.127
+$EndPAD
+$PAD
+Sh "6" R 1.016 3.556 0 0 0
+Dr 0 0 0
+At SMD N 00888000
+Ne 0 ""
+Po 7.366 0
+.LocalClearance 0.127
+$EndPAD
+$PAD
+Sh "7" R 1.016 3.556 0 0 0
+Dr 0 0 0
+At SMD N 00888000
+Ne 0 ""
+Po 8.636 0
+.LocalClearance 0.127
+$EndPAD
+$PAD
+Sh "8" R 1.016 3.556 0 0 0
+Dr 0 0 0
+At SMD N 00888000
+Ne 0 ""
+Po 9.906 0
+.LocalClearance 0.127
+$EndPAD
+$PAD
+Sh "9" R 1.016 3.556 0 0 0
+Dr 0 0 0
+At SMD N 00888000
+Ne 0 ""
+Po 11.176 0
+.LocalClearance 0.127
+$EndPAD
+$PAD
+Sh "10" R 1.016 3.556 0 0 0
+Dr 0 0 0
+At SMD N 00888000
+Ne 0 ""
+Po 12.446 0
+.LocalClearance 0.127
+$EndPAD
+$PAD
+Sh "11" R 1.016 3.556 0 0 0
+Dr 0 0 0
+At SMD N 00888000
+Ne 0 ""
+Po 13.716 0
+.LocalClearance 0.127
+$EndPAD
+$PAD
+Sh "12" R 1.016 3.556 0 0 900
+Dr 0 0 0
+At SMD N 00888000
+Ne 0 ""
+Po 14.986 -3.302
+.LocalClearance 0.127
+$EndPAD
+$PAD
+Sh "13" R 1.016 3.556 0 0 900
+Dr 0 0 0
+At SMD N 00888000
+Ne 0 ""
+Po 14.986 -4.572
+.LocalClearance 0.127
+$EndPAD
+$PAD
+Sh "14" R 1.016 3.556 0 0 900
+Dr 0 0 0
+At SMD N 00888000
+Ne 0 ""
+Po 14.986 -5.842
+.LocalClearance 0.127
+$EndPAD
+$PAD
+Sh "15" R 1.016 3.556 0 0 900
+Dr 0 0 0
+At SMD N 00888000
+Ne 0 ""
+Po 14.986 -7.112
+.LocalClearance 0.127
+$EndPAD
+$PAD
+Sh "16" R 1.016 3.556 0 0 900
+Dr 0 0 0
+At SMD N 00888000
+Ne 0 ""
+Po 14.986 -8.382
+.LocalClearance 0.127
+$EndPAD
+$PAD
+Sh "17" R 1.016 3.556 0 0 900
+Dr 0 0 0
+At SMD N 00888000
+Ne 0 ""
+Po 14.986 -9.652
+.LocalClearance 0.127
+$EndPAD
+$PAD
+Sh "18" R 1.016 3.556 0 0 900
+Dr 0 0 0
+At SMD N 00888000
+Ne 0 ""
+Po 14.986 -10.922
+.LocalClearance 0.127
+$EndPAD
+$PAD
+Sh "19" R 1.016 3.556 0 0 900
+Dr 0 0 0
+At SMD N 00888000
+Ne 0 ""
+Po 14.986 -12.192
+.LocalClearance 0.127
+$EndPAD
+$EndMODULE NRF24LE1-module-15x21
+$EndLIBRARY
