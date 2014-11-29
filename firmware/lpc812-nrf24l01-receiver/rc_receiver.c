@@ -146,8 +146,11 @@ static void stop_hop_timer(void)
 // ****************************************************************************
 static void restart_hop_timer(void)
 {
-    LPC_SCT->CTRL_L |= (1 << 2) | (1 << 3);
-    LPC_SCT->COUNT_L = HOP_TIME_IN_US - FIRST_HOP_TIME_IN_US;
+    LPC_SCT->CTRL_L |= (1 << 2);
+    // We need to set the MATCH register, not the MATCHREL register here as
+    // only on the first match the MATCHREL gets copied in!
+    LPC_SCT->MATCH[0].L = FIRST_HOP_TIME_IN_US;
+    LPC_SCT->COUNT_L = 0;
     LPC_SCT->CTRL_L &= ~(1 << 2);
 
     hops_without_packet = 0;
@@ -612,6 +615,7 @@ void init_receiver(void)
     rf_set_address_width(ADDRESS_WIDTH);
     rf_set_payload_size(DATA_PIPE_0, PAYLOAD_SIZE);
     rf_set_rx_address(DATA_PIPE_0, ADDRESS_WIDTH, model_address);
+
     rf_set_channel(hop_data[0]);
     rf_flush_rx_fifo();
     rf_clear_irq(RX_RD);

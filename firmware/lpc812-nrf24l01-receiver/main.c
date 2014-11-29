@@ -199,10 +199,9 @@ static void init_hardware(void)
     // Timer L is used for frequency hopping. It is configured as a simple
     // auto-reload that fires an interrupt in regular intervals, using event[4].
     // The rc_receiver.c takes care of setting the counter and limit values.
-    LPC_SCT->CONFIG = 0;
+    LPC_SCT->CONFIG = (1 << 18) |                   // Auto-limit on counter H
+                      (1 << 17);                    // Auto-limit on counter L
 
-    LPC_SCT->CONFIG |= (1 << 18) |                  // Auto-limit on counter H
-                       (1 << 17);                   // Auto-limit on counter L
     LPC_SCT->CTRL_H |= (1 << 3) |                   // Clear the counter H
         (((__SYSTEM_CLOCK / 1333333) - 1) << 5);    // PRE_H[12:5] = divide for 750ns clock
     LPC_SCT->MATCHREL[0].H = 16000 - 1;             // 16 ms servo pulse repeat time
@@ -232,15 +231,13 @@ static void init_hardware(void)
     // We don't start the timer here but only after receiving the first
     // valid stick data package.
 
-    LPC_SCT->CTRL_L |= (1 << 3) |                    // Clear the counter L
+    LPC_SCT->CTRL_L |= (1 << 3) | (1 << 2) |        // Reset and Halt Counter L
         (((__SYSTEM_CLOCK / 1000000) - 1) << 5);    // PRE_L[12:5] = divide for 1 MHz
-    LPC_SCT->MATCHREL[0].L = 4000  - 1;
     LPC_SCT->EVENT[4].STATE = 0xFFFF;               // Event happens in all states
     LPC_SCT->EVENT[4].CTRL = (0 << 0) |             // Match register
                              (0 << 4) |             // Select counter L
                              (0x1 << 12);           // Match condition only
     LPC_SCT->EVEN |= (1 << 4);                      // Event 4 generates an interrupt
-    LPC_SCT->CTRL_L &= ~(1 << 2);
 
 
     // ------------------------
@@ -304,7 +301,6 @@ void SCT_irq_handler(void)
     // Clear the Event 4 flag. It is the only one we've set up to trigger
     // an interrupt so no need to check other flags.
     LPC_SCT->EVFLAG = (1 << 4);
-
     hop_timer_handler();
 }
 
@@ -365,11 +361,7 @@ int main(void)
 #endif
 
     // Wait a for a short time after power up before talking to the nRF24
-    while (systick_count < (50 / __SYSTICK_IN_MS)) {
-        ;
-    }
-    systick_count = 0;
-
+    delay_us(20000);
     init_receiver();
 
 #ifndef NO_DEBUG

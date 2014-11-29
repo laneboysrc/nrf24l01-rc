@@ -1,5 +1,2 @@
 - Use IRC if crystal oscillator fails can not be started
 
-- Check syncing/hopping/receiving performance
-    - There seems to be an issue sometimes after binding
-
