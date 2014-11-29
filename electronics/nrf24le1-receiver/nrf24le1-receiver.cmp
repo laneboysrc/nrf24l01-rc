@@ -1,4 +1,4 @@
-Cmp-Mod V01 Created by CvPcb (2013-jul-07)-stable date = Sat 29 Nov 2014 09:35:24 AM SGT
+Cmp-Mod V01 Created by CvPcb (2013-jul-07)-stable date = Sat 29 Nov 2014 04:01:16 PM SGT
 
 BeginCmp
 TimeStamp = /54792183;
@@ -54,6 +54,27 @@ TimeStamp = /54792130;
 Reference = K4;
 ValeurCmp = CONN_3;
 IdModule  = SIL-3;
+EndCmp
+
+BeginCmp
+TimeStamp = /54796D23;
+Reference = P1;
+ValeurCmp = CONN_1;
+IdModule  = testpad_80mil_sq;
+EndCmp
+
+BeginCmp
+TimeStamp = /54796D32;
+Reference = P2;
+ValeurCmp = CONN_1;
+IdModule  = testpad_80mil_sq;
+EndCmp
+
+BeginCmp
+TimeStamp = /54797ABF;
+Reference = P3;
+ValeurCmp = CONN_1;
+IdModule  = testpad_80mil_sq;
 EndCmp
 
 BeginCmp
