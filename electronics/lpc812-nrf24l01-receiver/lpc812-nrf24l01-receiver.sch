@@ -38,10 +38,10 @@ EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
 Sheet 1 1
-Title ""
+Title "LPC812 / NRF24L01+ RC receiver"
 Date "27 nov 2014"
-Rev ""
-Comp ""
+Rev "1"
+Comp "LANE Boys RC"
 Comment1 ""
 Comment2 ""
 Comment3 ""
