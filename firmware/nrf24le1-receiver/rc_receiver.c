@@ -51,7 +51,6 @@ static __xdata uint16_t pulse_buffer_1_2;
 static bool rf_int_fired = false;
 static uint8_t led_state;
 static uint16_t blink_timer;
-static uint16_t bind_button_timer;
 
 static __xdata uint8_t payload[PAYLOAD_SIZE];
 
@@ -101,18 +100,31 @@ static void initialize_failsafe(void) {
 // ****************************************************************************
 static void output_pulses(void)
 {
+    if (use_buffer_0) {
+        pulse_buffer_1_0 = channels[0];
+        pulse_buffer_1_1 = channels[1];
+        pulse_buffer_1_2 = channels[2];
+    }
+    else {
+        pulse_buffer_0_0 = channels[0];
+        pulse_buffer_0_1 = channels[1];
+        pulse_buffer_0_2 = channels[2];
+    }
 
+    use_buffer_0 ^= 1;
 }
 
 
 // ****************************************************************************
 static uint16_t stickdata2ms(uint16_t stickdata)
 {
-    uint16_t ms;
+    // uint16_t ms;
 
-    // ms = (0xffff - stickdata) * 3 / 4;
-    ms = (0xffff - stickdata);
-    return ms & 0xffff;
+    // // ms = (0xffff - stickdata) * 3 / 4;
+    // ms = (0xffff - stickdata);
+    // return ms & 0xffff;
+
+    return stickdata;
 }
 
 
@@ -129,16 +141,14 @@ static uint16_t stickdata2ms(uint16_t stickdata)
 // ****************************************************************************
 static uint16_t stickdata2txdata(uint16_t stickdata)
 {
-    uint32_t txdata;
-
-    txdata = (stickdata - 0xf200) * 10 / 14;
-    return txdata & 0xffff;
+    return (stickdata - 0xf200) * 10 / 14;
 }
 
 
 // ****************************************************************************
 static void stop_hop_timer(void)
 {
+    T2CON = 0;              // Stop timer 2
     perform_hop_requested = false;
 }
 
@@ -146,6 +156,10 @@ static void stop_hop_timer(void)
 // ****************************************************************************
 static void restart_hop_timer(void)
 {
+    T2CON = 0;              // Stop timer 2
+    TIMER2 = TIMER_VALUE_US(FIRST_HOP_TIME_IN_US);
+    T2CON = 0x41;           // Timer 2 clock = f/12, Reload Mode 0, INT3 rising edge ?!?
+
     hops_without_packet = 0;
     perform_hop_requested = false;
 }
@@ -430,9 +444,9 @@ static void process_receiving(void)
     // ================================
     // payload[7] is 0x55 for stick data
     if (payload[7] == 0x55) {   // Stick data
-        channels[0] = stickdata2ms((payload[1] << 8) + payload[0]);
-        channels[1] = stickdata2ms((payload[3] << 8) + payload[2]);
-        channels[2] = stickdata2ms((payload[5] << 8) + payload[4]);
+        channels[0] = (payload[1] << 8) + payload[0];
+        channels[1] = (payload[3] << 8) + payload[2];
+        channels[2] = (payload[5] << 8) + payload[4];
         output_pulses();
 
         // Save raw received data for the pre-processor to output, so someone
@@ -456,9 +470,9 @@ static void process_receiving(void)
         // payload[8]: 0x5a if enabled, 0x5b if disabled
         if (payload[8] == 0x5a) {
             failsafe_enabled = true;
-            failsafe[0] = stickdata2ms((payload[1] << 8) + payload[0]);
-            failsafe[1] = stickdata2ms((payload[3] << 8) + payload[2]);
-            failsafe[2] = stickdata2ms((payload[5] << 8) + payload[4]);
+            failsafe[0] = (payload[1] << 8) + payload[0];
+            failsafe[1] = (payload[3] << 8) + payload[2];
+            failsafe[2] = (payload[5] << 8) + payload[4];
         }
         else {
             // If failsafe is disabled use default values of 1500ms, just
@@ -484,10 +498,6 @@ static void process_systick(void)
         --bind_timer;
     }
 
-    if (bind_button_timer) {
-        --bind_button_timer;
-    }
-
     if (blink_timer) {
         --blink_timer;
     }
@@ -497,10 +507,8 @@ static void process_systick(void)
 // ****************************************************************************
 static void process_bind_button(void)
 {
-    static bool isp_timeout_active;
     static bool old_button_state = BUTTON_RELEASED;
     bool new_button_state;
-
 
     if (!systick) {
         return;
@@ -508,27 +516,12 @@ static void process_bind_button(void)
 
     new_button_state = GPIO_BIND;
 
-    if (isp_timeout_active && (bind_button_timer == 0)) {
-        GPIO_LED = ~LED_ON;
-#ifndef NO_DEBUG
-        uart0_send_cstring("Launching ISP!\n");
-#endif
-        // invoke_ISP();
-        // We should never return here...
-    }
-
     if (new_button_state == old_button_state) {
         return;
     }
     old_button_state = new_button_state;
 
     if (new_button_state == BUTTON_PRESSED) {
-        bind_button_timer = ISP_TIMEOUT;
-        isp_timeout_active = true;
-    }
-
-    if (new_button_state == BUTTON_RELEASED) {
-        isp_timeout_active = false;
         binding_requested = true;
     }
 }
@@ -638,6 +631,9 @@ void rf_interrupt_handler(void) __interrupt ((0x004b - 3) / 8)
 // Timer 2 interrupt handler at 0x002b
 void hop_timer_handler(void) __interrupt ((0x002b - 3) / 8)
 {
+    IRCON_tf2 = 0;          // Clear the interrupt flag
+    TIMER2 = TIMER_VALUE_US(HOP_TIME_IN_US);
+
     perform_hop_requested = true;
 }
 

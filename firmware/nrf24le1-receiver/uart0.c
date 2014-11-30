@@ -2,14 +2,15 @@
 ******************************************************************************/
 #include <stdint.h>
 
+#include <platform.h>
 #include <uart0.h>
 
 
 #define NO_LEADING_ZEROS (0)
 
 
-#define RECEIVE_BUFFER_SIZE (16)        // Must be modulo 2 for speed
-#define RECEIVE_BUFFER_INDEX_MASK (RECEIVE_BUFFER_SIZE - 1)
+// #define RECEIVE_BUFFER_SIZE (16)        // Must be modulo 2 for speed
+// #define RECEIVE_BUFFER_INDEX_MASK (RECEIVE_BUFFER_SIZE - 1)
 
 /*
 INT32_MIN  is -2147483648 (decimal needs 12 characters, incl. terminating '\0')
@@ -24,13 +25,11 @@ which is the maximum needed for decimal.
 #define TRANSMIT_BUFFER_SIZE (12)
 
 
-static __xdata uint8_t receive_buffer[RECEIVE_BUFFER_SIZE];
-static volatile uint16_t read_index = 0;
-static volatile uint16_t write_index = 0;
+// static __xdata uint8_t receive_buffer[RECEIVE_BUFFER_SIZE];
+// static volatile uint16_t read_index = 0;
+// static volatile uint16_t write_index = 0;
 static __xdata char temp[TRANSMIT_BUFFER_SIZE];
 static __xdata char buf[TRANSMIT_BUFFER_SIZE];
-
-
 
 
 // ****************************************************************************
@@ -74,15 +73,31 @@ static void int32_to_cstring(int32_t value, char *result, uint8_t radix)
 
 
 // ****************************************************************************
-void init_uart0(int baudrate)
+void init_uart0(bool baudrate_57600)
 {
-    (void)baudrate;
+    S0CON = 0x40;           // 8-bit UART, receiving disabled, flags cleared
+    PCON |= 0x80;           // set SMOD bit
+    ADCON_bd = 1;           // Sed BD bit
+
+    if (baudrate_57600) {
+        S0RELH = 0x03;
+        S0RELL = 0xf7;
+    }
+    else {  // 38400
+        S0RELH = 0x03;
+        S0RELL = 0xf3;
+    }
+
+    S0CON_ti0 = 1;          // Set "Tx data was sent" flag
 }
 
 
 // ****************************************************************************
 bool uart0_send_is_ready(void)
 {
+    if (!S0CON_ti0) {
+        return false;
+    }
     return true;
 }
 
@@ -90,7 +105,10 @@ bool uart0_send_is_ready(void)
 // ****************************************************************************
 void uart0_send_char(const char c)
 {
-    (void)c;
+    while (!uart0_send_is_ready());
+
+    S0CON_ti0 = 0;
+    S0BUF = c;
 }
 
 
@@ -161,19 +179,19 @@ void uart0_send_linefeed(void)
 // ****************************************************************************
 // ****************************************************************************
 // ****************************************************************************
+// Read routines are not implemented
+
+// // ****************************************************************************
+// bool uart0_read_is_byte_pending(void)
+// {
+//     return 1;
+// }
 
 
-// ****************************************************************************
-bool uart0_read_is_byte_pending(void)
-{
-    return 1;
-}
+// // ****************************************************************************
+// uint8_t uart0_read_byte(void)
+// {
+//     while (!uart0_read_is_byte_pending());
 
-
-// ****************************************************************************
-uint8_t uart0_read_byte(void)
-{
-    while (!uart0_read_is_byte_pending());
-
-    return 0;
-}
+//     return 0;
+// }

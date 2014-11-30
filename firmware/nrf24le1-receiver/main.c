@@ -17,11 +17,13 @@
 
 
 #ifndef BAUDRATE
-    #define BAUDRATE 115200
+    #define BAUDRATE 38400
 #endif
 
+#if BAUDRATE != 38400  &&  BAUDRATE != 57600
+    #error Only 38400 and 57600 BAUD supported
+#endif
 
-#define TIMER_VALUE_US(x) (0xffff - ((uint32_t)(__SYSTEM_CLOCK / 1000) / 12 * x / 1000))
 
 #define TIMER_16_MS TIMER_VALUE_US(16000)
 #define TIMER_150_US TIMER_VALUE_US(150)
@@ -83,6 +85,7 @@ static void init_hardware(void)
 
     IEN0_tf0 = 1;           // Enable Timer0 interrupt
     IEN0_tf1 = 1;           // Enable Timer1 interrupt
+    IEN0_tf2 = 1;           // Enable Timer2 interrupt
     IEN1_rfirq = 1;
 
     IP0 = (1 << 3);         // Timer 1 interrupt has higher priority than the rest
@@ -107,7 +110,7 @@ void delay_us(uint16_t microseconds)
 int main(void)
 {
     init_hardware();
-    init_uart0(BAUDRATE);
+    init_uart0((BAUDRATE == 115200));
     init_spi();
     init_hardware_final();
 

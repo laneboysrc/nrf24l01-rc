@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-void init_uart0(int baudrate);
+void init_uart0(bool baudrate_57600);
 
 bool uart0_send_is_ready(void);
 void uart0_send_char(const char c);
@@ -17,7 +17,8 @@ void uart0_send_uint8_hex(uint8_t number);
 void uart0_send_uint8_binary(uint8_t number);
 void uart0_send_linefeed(void);
 
-bool uart0_read_is_byte_pending(void);
-uint8_t uart0_read_byte(void);
+// Read routines are not implemented
+// bool uart0_read_is_byte_pending(void);
+// uint8_t uart0_read_byte(void);
 
 #endif /* __UART0_H */

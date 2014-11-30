@@ -8,6 +8,7 @@ SOURCE_DIRS := .
 BUILD_DIR := build
 
 SYSTEM_CLOCK := 16000000
+BAUDRATE := 38400
 
 SOURCES := $(foreach sdir, $(SOURCE_DIRS), $(wildcard $(sdir)/*.c))
 DEPENDENCIES := makefile platform.h nrf24le1.h
@@ -39,7 +40,7 @@ OBJCOPY := $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)objcopy
 
 MKDIR_P = mkdir -p
 FLASH_TOOL :=
-TERMINAL_PROGRAM := miniterm.py -p /dev/ttyUSB0 -b 115200 --echo
+TERMINAL_PROGRAM := miniterm.py -p /dev/ttyUSB0 -b $(BAUDRATE) --echo
 
 
 
@@ -58,8 +59,8 @@ $(OBJECTS): $(DEPENDENCIES)
 CFLAGS := -mmcs51 --std-c99 -I.
 CFLAGS += -D__SYSTEM_CLOCK=$(SYSTEM_CLOCK)
 CFLAGS += --opt-code-speed
+CFLAGS += -DBAUDRATE=$(BAUDRATE)
 #CFLAGS += -DNO_DEBUG
-#CFLAGS += -DBAUDRATE=38400
 #CFLAGS += -DENABLE_PREPROCESSOR_OUTPUT -DEXTENDED_PREPROCESSOR_OUTPUT
 
 LDFLAGS := --out-fmt-ihx

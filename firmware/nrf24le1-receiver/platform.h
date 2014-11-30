@@ -10,6 +10,8 @@
 #define SERVO_PULSE_CENTER 1500 * 4 / 3
 #define INITIAL_ENDPOINT_DELTA 250
 
+#define TIMER_VALUE_US(x) (0xffff - ((uint32_t)(__SYSTEM_CLOCK / 1000) / 12 * x / 1000))
+
 
 // ****************************************************************************
 // IO pins: (nRF24LE1 module 15x21 mm with 32pin QFN)
