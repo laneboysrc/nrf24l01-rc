@@ -36,41 +36,48 @@
 extern bool systick;
 
 
-uint16_t channels[NUMBER_OF_CHANNELS];
-uint16_t raw_data[2];
+__xdata uint16_t channels[NUMBER_OF_CHANNELS];
+__xdata uint16_t raw_data[2];
 bool successful_stick_data = false;
 
+static bool use_buffer_0;
+static __xdata uint16_t pulse_buffer_0_0;
+static __xdata uint16_t pulse_buffer_0_1;
+static __xdata uint16_t pulse_buffer_0_2;
+static __xdata uint16_t pulse_buffer_1_0;
+static __xdata uint16_t pulse_buffer_1_1;
+static __xdata uint16_t pulse_buffer_1_2;
 
 static bool rf_int_fired = false;
-static unsigned int led_state;
-static unsigned int blink_timer;
-static unsigned int bind_button_timer;
+static uint8_t led_state;
+static uint16_t blink_timer;
+static uint16_t bind_button_timer;
 
-static uint8_t payload[PAYLOAD_SIZE];
+static __xdata uint8_t payload[PAYLOAD_SIZE];
 
 static uint8_t failsafe_enabled;
-static uint16_t failsafe[NUMBER_OF_CHANNELS];
-static unsigned int failsafe_timer;
+static __xdata uint16_t failsafe[NUMBER_OF_CHANNELS];
+static uint16_t failsafe_timer;
 
-static uint8_t model_address[ADDRESS_WIDTH];
+static __xdata uint8_t model_address[ADDRESS_WIDTH];
 static bool perform_hop_requested = false;
-static unsigned int hops_without_packet;
-static unsigned int hop_index;
-static uint8_t hop_data[NUMBER_OF_HOP_CHANNELS];
+static uint8_t hops_without_packet;
+static uint8_t hop_index;
+static __xdata uint8_t hop_data[NUMBER_OF_HOP_CHANNELS];
 
 static bool binding_requested = false;
 static bool binding = false;
-static unsigned int bind_timer;
+static uint16_t bind_timer;
 static const uint8_t BIND_CHANNEL = 0x51;
 static const uint8_t BIND_ADDRESS[ADDRESS_WIDTH] = {0x12, 0x23, 0x23, 0x45, 0x78};
-static uint8_t bind_storage_area[ADDRESS_WIDTH + NUMBER_OF_HOP_CHANNELS] __attribute__ ((aligned (4)));
+static __xdata uint8_t bind_storage_area[ADDRESS_WIDTH + NUMBER_OF_HOP_CHANNELS];
 
 
 
 // ****************************************************************************
 // static void print_payload(void)
 // {
-//     int i;
+//     uint8_t i;
 //     for (i = 0; i < PAYLOAD_SIZE; i++) {
 //         uart0_send_uint8_hex(payload[i]);
 //         uart0_send_char(' ');
@@ -81,7 +88,7 @@ static uint8_t bind_storage_area[ADDRESS_WIDTH + NUMBER_OF_HOP_CHANNELS] __attri
 
 // ****************************************************************************
 static void initialize_failsafe(void) {
-    int i;
+    uint8_t i;
 
     failsafe_enabled = false;
     failsafe_timer = FAILSAFE_TIMEOUT;
@@ -94,18 +101,14 @@ static void initialize_failsafe(void) {
 // ****************************************************************************
 static void output_pulses(void)
 {
-    int i;
 
-    for (i = 0; i < NUMBER_OF_CHANNELS; i++) {
-        LPC_SCT->MATCHREL[i + 1].H = channels[i];
-    }
 }
 
 
 // ****************************************************************************
 static uint16_t stickdata2ms(uint16_t stickdata)
 {
-    uint32_t ms;
+    uint16_t ms;
 
     // ms = (0xffff - stickdata) * 3 / 4;
     ms = (0xffff - stickdata);
@@ -136,9 +139,6 @@ static uint16_t stickdata2txdata(uint16_t stickdata)
 // ****************************************************************************
 static void stop_hop_timer(void)
 {
-    // Stop the SCTimer L
-    LPC_SCT->CTRL_L |= (1 << 2);
-
     perform_hop_requested = false;
 }
 
@@ -146,13 +146,6 @@ static void stop_hop_timer(void)
 // ****************************************************************************
 static void restart_hop_timer(void)
 {
-    LPC_SCT->CTRL_L |= (1 << 2);
-    // We need to set the MATCH register, not the MATCHREL register here as
-    // only on the first match the MATCHREL gets copied in!
-    LPC_SCT->MATCH[0].L = FIRST_HOP_TIME_IN_US;
-    LPC_SCT->COUNT_L = 0;
-    LPC_SCT->CTRL_L &= ~(1 << 2);
-
     hops_without_packet = 0;
     perform_hop_requested = false;
 }
@@ -179,7 +172,7 @@ static void restart_packet_receiving(void)
 // ****************************************************************************
 static void read_bind_data(void)
 {
-    int i;
+    uint8_t i;
 
     load_persistent_storage(bind_storage_area);
 
@@ -196,7 +189,7 @@ static void read_bind_data(void)
 // ****************************************************************************
 static void save_bind_data(void)
 {
-    int i;
+    uint8_t i;
 
     for (i = 0; i < ADDRESS_WIDTH; i++) {
         model_address[i] = bind_storage_area[i];
@@ -246,9 +239,9 @@ static void binding_done(void)
 // ****************************************************************************
 static void process_binding(void)
 {
-    static unsigned int bind_state;
+    static uint8_t bind_state;
     static uint16_t checksum;
-    int i;
+    uint8_t i;
 
     // ================================
     if (!binding) {
@@ -385,7 +378,7 @@ static void process_receiving(void)
     // in case the transmitter is not on yet.
     if (successful_stick_data) {
         if (failsafe_timer == 0) {
-            int i;
+            uint8_t i;
 
             for (i = 0; i < NUMBER_OF_CHANNELS; i++) {
                 channels[i] = failsafe[i];
@@ -452,10 +445,6 @@ static void process_receiving(void)
         raw_data[0] = stickdata2txdata((payload[5] << 8) + payload[4]);
         raw_data[1] = (payload[6] << 8) + payload[9];
 
-
-        if (!successful_stick_data) {
-            LPC_SCT->CTRL_H &= ~(1u << 2);      // Start the SCTimer H
-        }
         successful_stick_data = true;
 
         failsafe_timer = FAILSAFE_TIMEOUT;
@@ -524,7 +513,7 @@ static void process_bind_button(void)
 #ifndef NO_DEBUG
         uart0_send_cstring("Launching ISP!\n");
 #endif
-        invoke_ISP();
+        // invoke_ISP();
         // We should never return here...
     }
 
@@ -548,15 +537,15 @@ static void process_bind_button(void)
 // ****************************************************************************
 static void process_led(void)
 {
-    static unsigned int old_led_state = 0xffffffff;
+    static uint8_t old_led_state = 0xff;
     static bool blinking;
-    static unsigned int blink_timer_reload_value;
+    static uint16_t blink_timer_reload_value;
 
 
     if (blinking) {
         if (blink_timer == 0) {
             blink_timer = blink_timer_reload_value;
-            GPIO_LED = ~GPIO_LED;
+            GPIO_LED = !GPIO_LED;
         }
     }
 
@@ -591,7 +580,7 @@ static void process_led(void)
 // ****************************************************************************
 void init_receiver(void)
 {
-    int i;
+    uint8_t i;
 
     for (i = 0; i < NUMBER_OF_CHANNELS; i++) {
         channels[i] = SERVO_PULSE_CENTER;
@@ -602,7 +591,6 @@ void init_receiver(void)
     initialize_failsafe();
 
     stop_hop_timer();
-    LPC_SCT->MATCHREL[0].L = HOP_TIME_IN_US - 1;
 
     rf_enable_clock();
     rf_clear_ce();
@@ -639,14 +627,51 @@ void process_receiver(void)
 
 
 // ****************************************************************************
-void rf_interrupt_handler(void)
+// RF_IRQ interrupt handler at 0x004b
+void rf_interrupt_handler(void) __interrupt ((0x004b - 3) / 8)
 {
     rf_int_fired = true;
 }
 
 
 // ****************************************************************************
-void hop_timer_handler(void)
+// Timer 2 interrupt handler at 0x002b
+void hop_timer_handler(void) __interrupt ((0x002b - 3) / 8)
 {
     perform_hop_requested = true;
 }
+
+
+// ****************************************************************************
+// Timer 1 interrupt handler at 0x001b
+// ****************************************************************************
+void servo_pulse_timer_handler(void) __interrupt ((0x001b - 3) / 8) __using (1)
+{
+    static uint8_t servo_pulse_state;
+
+    if (servo_pulse_state == 0) {
+        GPIO_CH1 = 1;
+        TIMER1 = use_buffer_0 ? pulse_buffer_0_0 : pulse_buffer_1_0;
+    }
+    else if (servo_pulse_state == 1) {
+        GPIO_CH1 = 0;
+        GPIO_CH2 = 1;
+        TIMER1 = use_buffer_0 ? pulse_buffer_0_1 : pulse_buffer_1_1;
+    }
+    else if (servo_pulse_state == 2) {
+        GPIO_CH2 = 0;
+        GPIO_CH3 = 1;
+        TIMER1 = use_buffer_0 ? pulse_buffer_0_2 : pulse_buffer_1_2;
+    }
+    else {
+        GPIO_CH3 = 0;
+        // All done: stop the timer and reset for the next pulse train
+        TCON_tr1 = 0;
+        servo_pulse_state = 0;
+        return;
+    }
+
+    ++servo_pulse_state;
+}
+
+

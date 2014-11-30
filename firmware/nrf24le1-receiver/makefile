@@ -7,13 +7,13 @@ TARGET := receiver
 SOURCE_DIRS := .
 BUILD_DIR := build
 
-SYSTEM_CLOCK := 12000000
+SYSTEM_CLOCK := 16000000
 
 SOURCES := $(foreach sdir, $(SOURCE_DIRS), $(wildcard $(sdir)/*.c))
-DEPENDENCIES := makefile receiver.ld platform.h
-DEPENDENCIES += uart0.h rc_receiver.h rf.h spi.h persistent_storage.h
-LIBS := gcc
-LINKER_SCRIPT := receiver.ld
+DEPENDENCIES := makefile platform.h nrf24le1.h
+DEPENDENCIES += spi.h rc_receiver.h rf.h
+LIBS :=
+LINKER_SCRIPT :=
 
 
 ###############################################################################
@@ -30,64 +30,41 @@ endif
 
 ###############################################################################
 # Toolchain setup
-TOOLCHAIN_PREFIX := arm-none-eabi-
+TOOLCHAIN_PREFIX :=
 TOOLCHAIN_PATH :=
 
-CC := $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)gcc
-LD := $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)gcc
+CC := $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)sdcc
+LD := $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)sdcc
 OBJCOPY := $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)objcopy
 
 MKDIR_P = mkdir -p
-FLASH_TOOL := lpc81x_isp.py --run --flash
+FLASH_TOOL :=
 TERMINAL_PROGRAM := miniterm.py -p /dev/ttyUSB0 -b 115200 --echo
 
-
-# FIXME: make sure we can do without that tool!
-MAP_SUMMARY_TOOL := parse_gcc_map_file
 
 
 ###############################################################################
 # Target and object file setup
-OBJECTS := $(patsubst %.c, $(BUILD_DIR)/%.o, $(SOURCES))
+OBJECTS := $(patsubst %.c, $(BUILD_DIR)/%.rel, $(SOURCES))
 
-TARGET_ELF := $(addprefix $(BUILD_DIR)/, $(TARGET).elf)
-TARGET_BIN := $(addprefix $(BUILD_DIR)/, $(TARGET).bin)
 TARGET_HEX := $(addprefix $(BUILD_DIR)/, $(TARGET).hex)
-TARGET_MAP := $(addprefix $(BUILD_DIR)/, $(TARGET).map)
 
 $(OBJECTS): $(DEPENDENCIES)
-$(TARGET_MAP): $(TARGET_ELF)
 
 
 ###############################################################################
 # Compiler and linker flags
-CPU_FLAGS = -mthumb -mcpu=cortex-m0plus -mlittle-endian
 
-CFLAGS := $(CPU_FLAGS)
-CFLAGS += -std=c99
-CFLAGS += -W -Wall -Wextra -Wpedantic
-CFLAGS += -Wstrict-prototypes -Wshadow -Wwrite-strings
-CFLAGS += -Wdeclaration-after-statement -Waddress -Wlogical-op
-CFLAGS += -Wold-style-definition -Wmissing-prototypes -Wmissing-declarations
-CFLAGS += -Wmissing-field-initializers -Wdouble-promotion -Wfloat-equal
-CFLAGS += -Wswitch-enum -Wswitch-default -Wuninitialized -Wunknown-pragmas
-CFLAGS += -Wundef
-CFLAGS += -I. -isystem./LPC8xx
-CFLAGS += -fsigned-char -fdata-sections -ffunction-sections -fno-common
-CFLAGS += -fpack-struct=4
-CFLAGS += -Os
+CFLAGS := -mmcs51 --std-c99 -I.
 CFLAGS += -D__SYSTEM_CLOCK=$(SYSTEM_CLOCK)
-
+CFLAGS += --opt-code-speed
 #CFLAGS += -DNO_DEBUG
 #CFLAGS += -DBAUDRATE=38400
 #CFLAGS += -DENABLE_PREPROCESSOR_OUTPUT -DEXTENDED_PREPROCESSOR_OUTPUT
-CFLAGS += -DUSE_IRC
 
-LDFLAGS := $(CPU_FLAGS)
-LDFLAGS += -mthumb -mcpu=cortex-m0plus -mlittle-endian
-LDFLAGS += -Wl,-T,$(LINKER_SCRIPT) -Wl,-nostdlib -Wl,--warn-common
-LDFLAGS += -Wl,--gc-sections -Wl,-O3
-LDFLAGS += -Wl,-Map=$(TARGET_MAP) -Wl,--cref
+LDFLAGS := --out-fmt-ihx
+LDFLAGS += --xram-size 0x400
+LDFLAGS += --code-size 0x4000
 
 LDLIBS := $(addprefix -l,$(LIBS))
 
@@ -99,13 +76,9 @@ vpath %.c $(SOURCE_DIRS)
 dummy := $(shell $(MKDIR_P) $(BUILD_DIR))   # Always create the build directory
 
 define compile-objects
-$1/%.o: %.c
+$1/%.rel: %.c
 	$(ECHO) [CC] $$<
 	$(QUIET) $(CC) $(CFLAGS) -c $$< -o $$@
-
-$1/%.lst: %.c
-	$(ECHO) [LIST] $$<
-	$(QUIET) $(CC) -c -g -Wa,-adlhn $(CFLAGS) $$< -o /dev/null > $$@
 endef
 
 $(foreach bdir, $(BUILD_DIR), $(eval $(call compile-objects,$(bdir))))
@@ -113,27 +86,11 @@ $(foreach bdir, $(BUILD_DIR), $(eval $(call compile-objects,$(bdir))))
 
 ###############################################################################
 # Rules
-all : $(TARGET_BIN) $(TARGET_HEX)
+all : $(TARGET_HEX)
 
-$(TARGET_ELF): $(OBJECTS) $(LINKER_SCRIPT)
+$(TARGET_HEX): $(OBJECTS)
 	$(ECHO) [LD] $@
 	$(QUIET) $(LD) $(LDFLAGS) -o $@ $(OBJECTS) $(LDLIBS)
-
-$(TARGET_BIN): $(TARGET_ELF)
-	$(ECHO) [CP] $@
-	$(QUIET) $(OBJCOPY) $< -O binary $@
-
-$(TARGET_HEX): $(TARGET_ELF)
-	$(ECHO) [CP] $@
-	$(QUIET) $(OBJCOPY) --remove-section=.persistent_data $< -O ihex $@
-##--remove-section=.persistent_data
-
-# Create list files that include C code as well as Assembler
-list: $(OBJECTS:.o=.lst)
-
-# Print a memory usage summary
-summary: $(TARGET_MAP)
-	$(QUIET) $(MAP_SUMMARY_TOOL) $<
 
 # Invoke the tool to program the microcontroller
 program: $(TARGET_BIN)
@@ -149,4 +106,4 @@ clean:
 	$(QUIET) $(RM) -rf $(BUILD_DIR)/*
 
 
-.PHONY : all clean program terminal list summary
+.PHONY : all clean program terminal
