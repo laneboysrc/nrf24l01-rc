@@ -12,21 +12,52 @@
 ******************************************************************************/
 #include <stdint.h>
 
+#include <platform.h>
 #include <persistent_storage.h>
 #include <uart0.h>
 
-
+#define PERSISTENT_DATA_PAGE 32
+__xdata __at (0xfa00) uint8_t persistent_data[256] ;
 
 
 // ****************************************************************************
 void load_persistent_storage(uint8_t *data)
 {
-    (void)data;
+	uint8_t i;
+
+    for (i = 0; i < NUMBER_OF_PERSISTENT_ELEMENTS; i++) {
+        data[i] = persistent_data[i];
+    }
 }
 
 
 // ****************************************************************************
 void save_persistent_storage(uint8_t new_data[])
 {
-    (void)new_data;
+	uint8_t i;
+	__bit save_ea;
+
+	save_ea = IEN0_all;
+	IEN0_all = 0;
+
+    for (i = 0; i < NUMBER_OF_PERSISTENT_ELEMENTS; i++) {
+        if (new_data[i] != persistent_data[i]) {
+        	PCON &= ~(1 << 4);		// Clear the PMW bit to work on the NV Memory area
+        	FSR_wen = 1;
+
+        	// Clear the NV memory page the presistent data resides in
+        	FCR = PERSISTENT_DATA_PAGE;
+        	while (FSR_rdyn);
+
+        	// Write the persistent data
+		    for (i = 0; i < NUMBER_OF_PERSISTENT_ELEMENTS; i++) {
+		        persistent_data[i] = new_data[i];
+	        	while (FSR_rdyn);
+		    }
+
+        	FSR_wen = 0;
+		}
+	}
+
+	IEN0_all = save_ea;
 }
