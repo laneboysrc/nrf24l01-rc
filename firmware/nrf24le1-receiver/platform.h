@@ -18,36 +18,79 @@
 // IO pins: (nRF24LE1 module 15x21 mm with 32pin QFN)
 //
 // Note: the pin numbers in the brackets refer to the module pinout, not
-// the nRF24LE1 pinout!
+// the nRF24LE1 IC pinout!
 //
-// P0.0
-// P0.1  (4 ) LED
+//            Our board             XR3100      HKR3000
+//
+// P0.0                             LED green
+// P0.1  (4 ) LED                   LED red
 // P0.2
-// P0.3  (8 ) Tx
-// P0.4  (9 ) Rx
-// P0.5  (10) CH1 / FSCK
-// P0.6  (12) BIND
-// P0.7  (13) CH2 / FMOSI
-// P1.0  (14) CH3 / FMISO
-// P1.1  (15) FCSN
-// P1.2
-// P1.3
-// P1.4
+// P0.3  (8 ) Tx                    BIND        SDA
+// P0.4  (9 ) Rx                                SCL
+// P0.5  (10) CH1 / FSCK            CH1         CH1
+// P0.6  (12) BIND                              BIND
+// P0.7  (13) CH2 / FMOSI           CH2         CH2
+// P1.0  (14) CH3 / FMISO           CH3         CH3
+// P1.1  (15) FCSN                  CH4         CH4
+// P1.2                                         LED green
+// P1.3                             SCL         LED red
+// P1.4                             SDA
 // P1.5
 // P1.6
 //
-// 3.3V     (5 )
-// GND      (11)
-// PROG     (7 )
-// RESET    (19)
+// 3.3V  (5 )
+// GND   (11)
+// PROG  (7 )
+// RESET (19)
+//
+// NOTE: this firmware does not make use of the EEPROM on the HobbyKing
+// receivers. Bind data is always stored in the NV memory of the nRF24LE1.
+//
 // ****************************************************************************
 
-#define GPIO_BIND P0_6
-#define GPIO_LED P0_1
-#define GPIO_CH1 P0_5
-#define GPIO_CH2 P0_7
-#define GPIO_CH3 P1_0
-#define GPIO_PPM P1_1
+// FIXME: consider what to do with unused pins!
+// Best is to switch them to outputs and ground them, except for SCL and SDA
+// which should be inputs with pull-ups
+
+#if HARDWARE == XR3100
+    #define GPIO_BIND P0_3
+    #define GPIO_LED_GREEN P0_0
+    #define GPIO_LED P0_1
+    #define GPIO_CH1 P0_5
+    #define GPIO_CH2 P0_7
+    #define GPIO_CH3 P1_0
+    #define GPIO_PPM P1_1
+
+    #define GPIO_P0DIR 0x5c
+    #define GPIO_P1DIR 0xfc
+    #define GPIO_P0CON 0x53     // Enable pull-up on bind button P0.3
+
+#elif HARDWARE == HKR3000
+    #define GPIO_BIND P0_6
+    #define GPIO_LED_GREEN P1_2
+    #define GPIO_LED P1_3
+    #define GPIO_CH1 P0_5
+    #define GPIO_CH2 P0_7
+    #define GPIO_CH3 P1_0
+    #define GPIO_PPM P1_1
+
+
+    #define GPIO_P0DIR 0x5f
+    #define GPIO_P1DIR 0xf0
+    #define GPIO_P0CON 0x56     // Enable pull-up on bind button P0.6
+
+#else
+    #define GPIO_BIND P0_6
+    #define GPIO_LED P0_1
+    #define GPIO_CH1 P0_5
+    #define GPIO_CH2 P0_7
+    #define GPIO_CH3 P1_0
+    #define GPIO_PPM P1_1
+
+    #define GPIO_P0DIR 0x5d
+    #define GPIO_P1DIR 0xfc
+    #define GPIO_P0CON 0x56     // Enable pull-up on bind button P0.6
+#endif
 
 
 // ****************************************************************************

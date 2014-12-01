@@ -13,8 +13,21 @@ BAUDRATE := 38400
 SOURCES := $(foreach sdir, $(SOURCE_DIRS), $(wildcard $(sdir)/*.c))
 DEPENDENCIES := makefile platform.h nrf24le1.h
 DEPENDENCIES += spi.h rc_receiver.h rf.h
-LIBS :=
-LINKER_SCRIPT :=
+
+
+###############################################################################
+# Hardware selection
+#
+# Set the variable HARDWARE to one of the following:
+#
+# 	NRF24LE1_MODULE is our own hardware design using an off-the-shelf module
+# 	HKR3000 is the blue HobbyKing receiver that ships with the HK310 transmitter
+# 	XR3100 is the small HobbyKing receiver that ships with Turnigy 3XS
+NRF24LE1_MODULE := 0
+XR3100 := 1
+HKR3000 := 2
+
+HARDWARE := NRF24LE1_MODULE
 
 
 ###############################################################################
@@ -59,13 +72,13 @@ $(OBJECTS): $(DEPENDENCIES)
 CFLAGS := -mmcs51 --std-c99 -I.
 CFLAGS += -D__SYSTEM_CLOCK=$(SYSTEM_CLOCK)
 CFLAGS += --opt-code-speed
+CFLAGS += -DNRF24LE1_MODULE=0 -DXR3100=1 -DHKR3000=2 -DHARDWARE=$(HARDWARE)
 CFLAGS += -DBAUDRATE=$(BAUDRATE)
 #CFLAGS += -DNO_DEBUG
 #CFLAGS += -DENABLE_PREPROCESSOR_OUTPUT -DEXTENDED_PREPROCESSOR_OUTPUT
 
 LDFLAGS := --out-fmt-ihx
-LDFLAGS += --xram-size 0x400
-LDFLAGS += --code-size 0x4000
+LDFLAGS += --code-size 0x4000 --xram-size 0x400
 
 LDLIBS := $(addprefix -l,$(LIBS))
 

@@ -78,6 +78,11 @@ static void service_systick(void)
 // ****************************************************************************
 static void init_hardware(void)
 {
+    // Due to varying hardware the values are defined in platform.h
+    P0DIR = GPIO_P0DIR;
+    P1DIR = GPIO_P1DIR;
+    P0CON = GPIO_P0CON;
+
     TMOD = 0x11;            // Set Timer0 and Timer1 as 16 bit timer
     TCON = 0;               // Clear Timer0 and Timer1 flags
 

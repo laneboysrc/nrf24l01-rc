@@ -551,11 +551,19 @@ static void process_led(void)
 
     switch (led_state) {
         case LED_STATE_RECEIVING:
+#ifdef GPIO_LED_GREEN
+            GPIO_LED_GREEN = LED_ON;
+            GPIO_LED = ~LED_ON;
+#else
             GPIO_LED = LED_ON;
+#endif
             blinking = false;
             break;
 
         case LED_STATE_BINDING:
+#ifdef GPIO_LED_GREEN
+            GPIO_LED_GREEN = ~LED_ON;
+#endif
             GPIO_LED = ~LED_ON;
             blink_timer_reload_value = BLINK_TIME_BINDING;
             blinking = true;
@@ -564,6 +572,9 @@ static void process_led(void)
         case LED_STATE_IDLE:
         case LED_STATE_FAILSAFE:
         default:
+#ifdef GPIO_LED_GREEN
+            GPIO_LED_GREEN = ~LED_ON;
+#endif
             GPIO_LED = ~LED_ON;
             blink_timer_reload_value = BLINK_TIME_FAILSAFE;
             blinking = true;
