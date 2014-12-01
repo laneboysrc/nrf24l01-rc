@@ -23,6 +23,7 @@
 #define SPI_TXDATCTL_LEN(l) ((l - 1) << 24)
 
 
+// ****************************************************************************
 void init_spi(void)
 {
     // FIXME: check datasheet page 53..55 regarding timings
@@ -38,17 +39,10 @@ void init_spi(void)
 }
 
 
-uint8_t spi_transaction(
-    unsigned int count, uint8_t *write_buffer, uint8_t *read_buffer)
+// ****************************************************************************
+uint8_t spi_transaction(unsigned int count, uint8_t *buffer)
 {
-    uint8_t *out = write_buffer;
-    uint8_t *in = read_buffer;
-
-    uint8_t result;
-
-    if (in == NULL) {
-        in = &result;
-    }
+    uint8_t *ptr = buffer;
 
     // Wait for MSTIDLE
     while (~LPC_SPI->STAT & SPI_STAT_MSTIDLE);
@@ -57,22 +51,13 @@ uint8_t spi_transaction(
         // Wait for TXRDY
         while (~LPC_SPI->STAT & SPI_STAT_TXRDY);
 
-        if (out != NULL) {
-            LPC_SPI->TXDAT = *(out++);
-        }
-        else {
-            LPC_SPI->TXDAT = 0;
-        }
+        LPC_SPI->TXDAT = *ptr;
 
         // Wait for RXRDY
         while (~LPC_SPI->STAT & SPI_STAT_RXRDY);
 
-        *in = LPC_SPI->RXDAT;
-
-        // Increment in only when we are dealing with an input buffer
-        if (read_buffer != NULL) {
-            ++in;
-        }
+        *ptr = LPC_SPI->RXDAT;
+        ++ptr;
     }
 
     // Force END OF TRANSFER
@@ -81,23 +66,6 @@ uint8_t spi_transaction(
     // Wait for MSTIDLE
     while (~LPC_SPI->STAT & SPI_STAT_MSTIDLE);
 
-    return read_buffer != NULL ? *read_buffer : result;
+    return *buffer;
 }
 
-
-uint8_t spi_read(void)
-{
-    return spi_transaction(1, NULL, NULL);
-}
-
-
-void spi_write(uint8_t byte)
-{
-    spi_transaction(1, &byte, NULL);
-}
-
-
-uint8_t spi_read_write(uint8_t byte)
-{
-    return spi_transaction(1, &byte, NULL);
-}
