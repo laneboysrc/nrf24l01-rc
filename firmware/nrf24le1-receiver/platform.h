@@ -48,9 +48,6 @@
 //
 // ****************************************************************************
 
-// FIXME: consider what to do with unused pins!
-// Best is to switch them to outputs and ground them, except for SCL and SDA
-// which should be inputs with pull-ups
 
 #if HARDWARE == XR3100
     #define GPIO_BIND P0_3
@@ -61,9 +58,14 @@
     #define GPIO_CH3 P1_0
     #define GPIO_PPM P1_1
 
-    #define GPIO_P0DIR 0x5c
-    #define GPIO_P1DIR 0xfc
-    #define GPIO_P0CON 0x53     // Enable pull-up on bind button P0.3
+    #define GPIO_INIT() \
+    P0 = 0; \
+    P0DIR = 0x08;    /* P0.3 is inputs, rest outputs */ \
+    P0CON = 0x53;    /* Enable pull-up on bind button P0.3 */ \
+    P1 = 0; \
+    P1DIR = 0x18;    /* P1.3 and P1.4 are inputs, rest outputs */ \
+    P1CON = 0x53;    /* Enable pull-up on SDA P1.3 */ \
+    P1CON = 0x54;    /* Enable pull-up on SCL P1.4 */
 
 #elif HARDWARE == HKR3000
     #define GPIO_BIND P0_6
@@ -74,10 +76,14 @@
     #define GPIO_CH3 P1_0
     #define GPIO_PPM P1_1
 
-
-    #define GPIO_P0DIR 0x5f
-    #define GPIO_P1DIR 0xf0
-    #define GPIO_P0CON 0x56     // Enable pull-up on bind button P0.6
+    #define GPIO_INIT() \
+    P0 = 0; \
+    P0DIR = 0x58;    /* P0.3, P0.4 and P0.6 are inputs, rest outputs */ \
+    P0CON = 0x53;    /* Enable pull-up on SDA P0.3 */ \
+    P0CON = 0x54;    /* Enable pull-up on SCL P0.4 */ \
+    P0CON = 0x56;    /* Enable pull-up on bind button P0.6 */ \
+    P1 = 0; \
+    P1DIR = 0x00;    /* All P1 ports are output */ \
 
 #else
     #define GPIO_BIND P0_6
@@ -87,9 +93,13 @@
     #define GPIO_CH3 P1_0
     #define GPIO_PPM P1_1
 
-    #define GPIO_P0DIR 0x5d
-    #define GPIO_P1DIR 0xfc
-    #define GPIO_P0CON 0x56     // Enable pull-up on bind button P0.6
+    #define GPIO_INIT() \
+    P0 = 0; \
+    P0DIR = 0x40;    /* All P0 ports except P0.6 are output */ \
+    P0CON = 0x56;    /* Enable pull-up on bind button P0.6 */ \
+    P1 = 0; \
+    P1DIR = 0x00;    /* All P1 ports are output */ \
+
 #endif
 
 
