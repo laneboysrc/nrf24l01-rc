@@ -42,7 +42,8 @@ void save_persistent_storage(uint8_t new_data[])
 
     for (i = 0; i < NUMBER_OF_PERSISTENT_ELEMENTS; i++) {
         if (new_data[i] != persistent_data[i]) {
-        	PCON &= ~(1 << 4);		// Clear the PMW bit to work on the NV Memory area
+            // Clear the PMW bit to work on the NV Memory area
+        	PCON &= ~(1 << 4);
         	FSR_wen = 1;
 
         	// Clear the NV memory page the presistent data resides in

@@ -1,4 +1,6 @@
-#pragma once
+#ifndef __RF_H__
+#define __RF_H__
+
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -114,3 +116,4 @@ void rf_set_data_pipes(uint8_t pipes, uint8_t auto_acknowledge_pipes);
 void rf_set_payload_size(uint8_t pipes, uint8_t payload_size);
 void rf_set_rx_address(uint8_t pipe, uint8_t address_width, const uint8_t address[]);
 
+#endif

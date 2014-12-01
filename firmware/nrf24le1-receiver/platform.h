@@ -1,4 +1,5 @@
-#pragma once
+#ifndef __PLATFORM_H__
+#define __PLATFORM_H__
 
 #include <stdint.h>
 #include <nrf24le1.h>
@@ -41,11 +42,12 @@
 // RESET    (19)
 // ****************************************************************************
 
-#define GPIO_BIND P1_3
+#define GPIO_BIND P0_6
 #define GPIO_LED P0_1
-#define GPIO_CH1 P0_2
-#define GPIO_CH2 P1_0
-#define GPIO_CH3 P1_1
+#define GPIO_CH1 P0_5
+#define GPIO_CH2 P0_7
+#define GPIO_CH3 P1_0
+#define GPIO_PPM P1_1
 
 
 // ****************************************************************************
@@ -63,3 +65,5 @@
 
 
 void delay_us(uint16_t microseconds);
+
+#endif // __PLATFORM_H__

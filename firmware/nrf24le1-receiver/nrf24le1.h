@@ -1,3 +1,8 @@
+// ****************************************************************************
+// Special Function Register definition for the 8051 MCU in the nRF24LE1
+// ****************************************************************************
+#ifndef __NRF24LE1_H__
+#define __NRF24LE1_H__
 
 __sfr __at (0x80) P0;
 __sbit __at (0x80) P0_0;
@@ -15,8 +20,6 @@ __sfr __at (0x83) DPH;
 __sfr __at (0x84) DPL1;
 __sfr __at (0x85) DPH1;
 __sfr __at (0x87) PCON;
-
-__sfr16 __at (0x8584) DP1;
 
 __sfr __at (0x88) TCON;
 __sbit __at (0x88) TCON_it0;
@@ -214,3 +217,4 @@ __sfr __at (0xfd) SPIMCON1;
 __sfr __at (0xfe) SPIMSTAT;
 __sfr __at (0xff) SPIMDAT;
 
+#endif // __NRF24LE1_H__

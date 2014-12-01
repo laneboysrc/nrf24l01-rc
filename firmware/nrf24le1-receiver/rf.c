@@ -6,8 +6,7 @@
 #include <spi.h>
 #include <rf.h>
 
-static __xdata uint8_t write_buffer[RF_MAX_BUFFER_LENGTH + 1];
-static __xdata uint8_t read_buffer[RF_MAX_BUFFER_LENGTH + 1];
+static __xdata uint8_t spi_buffer[RF_MAX_BUFFER_LENGTH + 1];
 
 
 // ****************************************************************************
@@ -16,13 +15,29 @@ static __xdata uint8_t read_buffer[RF_MAX_BUFFER_LENGTH + 1];
 static uint8_t get_pipe_no(uint8_t pipe)
 {
     uint8_t pipe_no;
+    uint8_t mask;
+
+    mask = 0x01;
 
     for (pipe_no = 0; pipe_no < 6; pipe_no++) {
-        if (pipe == (1 << pipe_no)) {
+        if (pipe == mask) {
             return pipe_no;
         }
+        mask <<= 1;
     }
     return 0;
+}
+
+
+// ****************************************************************************
+// Send a one-byte command to the nRF24.
+// Returns the STATUS register value
+// ****************************************************************************
+static uint8_t rf_command(uint8_t cmd)
+{
+    spi_buffer[0] = cmd;
+
+    return spi_transaction(1, spi_buffer);
 }
 
 
@@ -38,14 +53,12 @@ static uint8_t rf_write_command_buffer(uint8_t cmd, uint8_t count, const uint8_t
         count = RF_MAX_BUFFER_LENGTH;
     }
 
-    write_buffer[0] = cmd;
+    spi_buffer[0] = cmd;
     for (i = 0; i < count; i++) {
-        write_buffer[i + 1] = buffer[i];
+        spi_buffer[i + 1] = buffer[i];
     }
 
-    // spi_transaction(count + 1, write_buffer, read_buffer);
-
-    return read_buffer[0];
+    return spi_transaction(count + 1, spi_buffer);
 }
 
 
@@ -61,42 +74,28 @@ static uint8_t rf_read_command_buffer(uint8_t cmd, uint8_t count, uint8_t *buffe
         count = RF_MAX_BUFFER_LENGTH;
     }
 
-    write_buffer[0] = cmd;
-    for (i = 0; i < count; i++) {
-        write_buffer[i + 1] = 0;
-    }
+    spi_buffer[0] = cmd;
 
-    // spi_transaction(count + 1, write_buffer, read_buffer);
+    spi_transaction(count + 1, spi_buffer);
 
     for (i = 0; i < count; i++) {
-        buffer[i] = read_buffer[i + 1];
+        buffer[i] = spi_buffer[i + 1];
     }
 
-    return read_buffer[0];
+    return spi_buffer[0];
 }
 
 
 // ****************************************************************************
 static uint8_t rf_read_register(uint8_t reg)
 {
-    write_buffer[0] = R_REGISTER | reg;
-    write_buffer[1] = 0;
+    spi_buffer[0] = R_REGISTER | reg;
+    spi_buffer[1] = 0;
 
-    // spi_transaction(2, write_buffer, read_buffer);
+    spi_transaction(2, spi_buffer);
 
-    return read_buffer[1];
+    return spi_buffer[1];
 }
-
-
-// ****************************************************************************
-// Read a register that returns multiple bytes of data.
-// Example: TX_ADDR register has up to 5 bytes of data
-// Returns the STATUS register, and the data read from the register in *buffer*
-// ****************************************************************************
-// static uint8_t rf_read_multi_byte_register(uint8_t reg, uint8_t count, uint8_t *buffer)
-// {
-//     return rf_read_command_buffer(R_REGISTER | reg, count, buffer);
-// }
 
 
 // ****************************************************************************
@@ -113,10 +112,10 @@ static void rf_write_register(uint8_t reg, uint8_t value)
     //
     // It is left to the user of this library to set/clear CE properly.
 
-    write_buffer[0] = W_REGISTER | reg;
-    write_buffer[1] = value;
+    spi_buffer[0] = W_REGISTER | reg;
+    spi_buffer[1] = value;
 
-    // spi_transaction(2, write_buffer, NULL);
+    spi_transaction(2, spi_buffer);
 }
 
 
@@ -127,7 +126,18 @@ static void rf_write_register(uint8_t reg, uint8_t value)
 // ****************************************************************************
 static uint8_t rf_write_multi_byte_register(uint8_t reg, uint8_t count, const uint8_t *buffer)
 {
-    return rf_write_command_buffer(W_REGISTER | reg, count, buffer);
+    uint8_t i;
+
+    if (count > RF_MAX_BUFFER_LENGTH) {
+        count = RF_MAX_BUFFER_LENGTH;
+    }
+
+    spi_buffer[0] = W_REGISTER | reg;
+    for (i = 0; i < count; i++) {
+        spi_buffer[i + 1] = buffer[i];
+    }
+
+    return spi_transaction(count + 1, spi_buffer);
 }
 
 
@@ -154,7 +164,7 @@ void rf_disable_clock(void)
 // ****************************************************************************
 uint8_t rf_get_status(void)
 {
-    return rf_read_command_buffer(NOP, 0, NULL);
+    return rf_command(NOP);
 }
 
 
@@ -245,16 +255,14 @@ void rf_read_fifo(uint8_t *buffer, size_t byte_count)
 // ****************************************************************************
 void rf_flush_rx_fifo(void)
 {
-    write_buffer[0] = FLUSH_RX;
-    // spi_transaction(1, write_buffer, NULL);
+    rf_command(FLUSH_RX);
 }
 
 
 // ****************************************************************************
 void rf_flush_tx_fifo(void)
 {
-    write_buffer[0] = FLUSH_TX;
-    // spi_transaction(1, write_buffer, NULL);
+    rf_command(FLUSH_TX);
 }
 
 
@@ -414,11 +422,14 @@ void rf_set_data_rate(uint8_t data_rate)
 void rf_set_payload_size(uint8_t pipes, uint8_t payload_size)
 {
     uint8_t i;
+    uint8_t mask;
 
+    mask = 0x01;
     for (i = 0; i < 6; i++) {
-        if ((pipes & (1 << i))) {
+        if ((pipes & mask)) {
             rf_write_register(RX_PW_P0 + i, payload_size);
         }
+        mask <<= 1;
     }
 }
 

@@ -25,8 +25,8 @@
 #endif
 
 
-#define TIMER_16_MS TIMER_VALUE_US(16000)
-#define TIMER_150_US TIMER_VALUE_US(150)
+#define TIMER_16_MS     TIMER_VALUE_US(16000)
+#define TIMER_150_US    TIMER_VALUE_US(150)
 
 
 extern bool successful_stick_data;
@@ -40,6 +40,8 @@ static volatile uint8_t systick_count;
 
 // ****************************************************************************
 // Prototypes for the interrupt handlers located in other files
+// They need to reside here as SDCC assigns the vectors only for prototypes
+// located in the file that contains the main() function,
 void rf_interrupt_handler(void) __interrupt ((0x004b - 3) / 8);
 void hop_timer_handler(void) __interrupt ((0x002b - 3) / 8);
 void servo_pulse_timer_handler(void) __interrupt ((0x001b - 3) / 8) __using (1);
@@ -54,8 +56,7 @@ void timer0_isr(void) __interrupt (1)
     if (successful_stick_data) {
         // Start timer1 with a very short interval to kick off one set of
         // servo pulses
-        TH1 = TIMER_150_US >> 8;
-        TL1 = TIMER_150_US;
+        TIMER1 = TIMER_150_US;
         TCON_tr1 = 1;
     }
 }
@@ -80,8 +81,7 @@ static void init_hardware(void)
     TMOD = 0x11;            // Set Timer0 and Timer1 as 16 bit timer
     TCON = 0;               // Clear Timer0 and Timer1 flags
 
-    TH0 = TIMER_16_MS >> 8;
-    TL0 = TIMER_16_MS;
+    TIMER0 = TIMER_16_MS;
 
     IEN0_tf0 = 1;           // Enable Timer0 interrupt
     IEN0_tf1 = 1;           // Enable Timer1 interrupt
@@ -102,7 +102,12 @@ static void init_hardware_final(void)
 // ****************************************************************************
 void delay_us(uint16_t microseconds)
 {
-    (void)microseconds;
+    volatile uint8_t dummy;
+
+    dummy = 0;
+    while (microseconds) {
+        dummy += 2;
+    }
 }
 
 

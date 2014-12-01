@@ -116,6 +116,8 @@ static void output_pulses(void)
 
 
 // ****************************************************************************
+// Not needed for the nRF24LE1 port as the data sent by the transmitter
+// alreaday corresponds to the timer value for the servo pulse
 static uint16_t stickdata2ms(uint16_t stickdata)
 {
     // uint16_t ms;
@@ -547,8 +549,6 @@ static void process_led(void)
     }
     old_led_state = led_state;
 
-    GPIO_LED = 0;
-
     switch (led_state) {
         case LED_STATE_RECEIVING:
             GPIO_LED = LED_ON;
@@ -556,6 +556,7 @@ static void process_led(void)
             break;
 
         case LED_STATE_BINDING:
+            GPIO_LED = ~LED_ON;
             blink_timer_reload_value = BLINK_TIME_BINDING;
             blinking = true;
             break;
@@ -563,6 +564,7 @@ static void process_led(void)
         case LED_STATE_IDLE:
         case LED_STATE_FAILSAFE:
         default:
+            GPIO_LED = ~LED_ON;
             blink_timer_reload_value = BLINK_TIME_FAILSAFE;
             blinking = true;
             break;
@@ -645,16 +647,32 @@ void servo_pulse_timer_handler(void) __interrupt ((0x001b - 3) / 8) __using (1)
 {
     static uint8_t servo_pulse_state;
 
-    if (servo_pulse_state == 0) {
+    GPIO_PPM = 1;
+
+    // This code has been written to provide reasonably effectient assembler
+    // code for SDCC.
+    //
+    // - if/else if/else is used instead of switch, as switch does indirect
+    //   jumps and uses multiplication to calculate the jump address
+    //
+    // - Instead of using an array for the double-buffering of servo pulses
+    //   individual variables are used to prevent expensive 16-bit pointer
+    //   arithmetic.
+    //
+    // - The register pair TH1/TL1 is declared as __sfr16 TIMER1 for compact
+    //   code
+
+    ++servo_pulse_state;
+    if (servo_pulse_state == 1) {
         GPIO_CH1 = 1;
         TIMER1 = use_buffer_0 ? pulse_buffer_0_0 : pulse_buffer_1_0;
     }
-    else if (servo_pulse_state == 1) {
+    else if (servo_pulse_state == 2) {
         GPIO_CH1 = 0;
         GPIO_CH2 = 1;
         TIMER1 = use_buffer_0 ? pulse_buffer_0_1 : pulse_buffer_1_1;
     }
-    else if (servo_pulse_state == 2) {
+    else if (servo_pulse_state == 3) {
         GPIO_CH2 = 0;
         GPIO_CH3 = 1;
         TIMER1 = use_buffer_0 ? pulse_buffer_0_2 : pulse_buffer_1_2;
@@ -664,10 +682,9 @@ void servo_pulse_timer_handler(void) __interrupt ((0x001b - 3) / 8) __using (1)
         // All done: stop the timer and reset for the next pulse train
         TCON_tr1 = 0;
         servo_pulse_state = 0;
-        return;
     }
 
-    ++servo_pulse_state;
+    GPIO_PPM = 0;
 }
 
 
