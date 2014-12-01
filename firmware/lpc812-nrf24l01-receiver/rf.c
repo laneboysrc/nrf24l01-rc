@@ -76,7 +76,9 @@ static uint8_t rf_read_register(uint8_t reg)
     spi_buffer[0] = R_REGISTER | reg;
     spi_buffer[1] = 0;
 
-    return spi_transaction(2, spi_buffer);
+    spi_transaction(2, spi_buffer);
+
+    return spi_buffer[1];
 }
 
 
