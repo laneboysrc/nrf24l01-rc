@@ -233,7 +233,7 @@ r 1e adr_l
 r 24 rf_int_fired
 r 25 div_16ms
 r 2b factory
-r 2c div_4ms
+r 2c div_5ms
 r 2d rf_data_avail
 
 r 19 bind_state
