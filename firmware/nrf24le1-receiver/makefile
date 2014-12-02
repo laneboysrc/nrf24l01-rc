@@ -1,4 +1,4 @@
-.DEFAULT_GOAL := all
+.DEFAULT_GOAL := program
 
 
 ###############################################################################
@@ -51,7 +51,7 @@ CC := $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)sdcc
 LD := $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)sdcc
 
 MKDIR_P = mkdir -p
-FLASH_TOOL :=
+FLASH_TOOL := ../../nrf_prog_v1_0/nrf_spi_program_firmware.py
 TERMINAL_PROGRAM := miniterm.py -p /dev/ttyUSB0 -b $(BAUDRATE) --echo
 
 
@@ -61,6 +61,7 @@ TERMINAL_PROGRAM := miniterm.py -p /dev/ttyUSB0 -b $(BAUDRATE) --echo
 OBJECTS := $(patsubst %.c, $(BUILD_DIR)/%.rel, $(SOURCES))
 
 TARGET_HEX := $(addprefix $(BUILD_DIR)/, $(TARGET).hex)
+TARGET_BIN := $(addprefix $(BUILD_DIR)/, $(TARGET).bin)
 
 $(OBJECTS): $(DEPENDENCIES)
 
@@ -106,9 +107,13 @@ $(TARGET_HEX): $(OBJECTS)
 	$(ECHO) [LD] $@
 	$(QUIET) $(LD) $(LDFLAGS) -o $@ $(OBJECTS) $(LDLIBS)
 
+$(TARGET_BIN): $(TARGET_HEX)
+	$(ECHO) [HEX-\>BIN] $@
+	$(QUIET) srec_cat $< -intel -o $@ -binary
+
 # Invoke the tool to program the microcontroller
 program: $(TARGET_BIN)
-	$(QUIET )$(FLASH_TOOL) $<
+	$(QUIET) $(FLASH_TOOL) $<
 
 # Invoke a tool for UART communication
 terminal:

@@ -192,6 +192,10 @@ static void read_bind_data(void)
 
     load_persistent_storage(bind_storage_area);
 
+    uart0_send_cstring("Persistent data: 0x");
+    uart0_send_uint8_hex(bind_storage_area[0]);
+    uart0_send_linefeed();
+
     for (i = 0; i < ADDRESS_WIDTH; i++) {
         model_address[i] = bind_storage_area[i];
     }

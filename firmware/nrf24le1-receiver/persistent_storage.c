@@ -48,12 +48,10 @@ void save_persistent_storage(uint8_t new_data[])
 
         	// Clear the NV memory page the presistent data resides in
         	FCR = PERSISTENT_DATA_PAGE;
-        	while (FSR_rdyn);
 
         	// Write the persistent data
 		    for (i = 0; i < NUMBER_OF_PERSISTENT_ELEMENTS; i++) {
 		        persistent_data[i] = new_data[i];
-	        	while (FSR_rdyn);
 		    }
 
         	FSR_wen = 0;
