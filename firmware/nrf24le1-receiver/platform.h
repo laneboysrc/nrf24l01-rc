@@ -85,7 +85,7 @@
     P1 = 0; \
     P1DIR = 0x00;    /* All P1 ports are output */ \
 
-#else
+#else // HARDWARE == NRF24LE1_MODULE
     #define GPIO_BIND P0_6
     #define GPIO_LED P0_1
     #define GPIO_CH1 P0_5
@@ -94,7 +94,7 @@
     #define GPIO_PPM P1_1
 
     #define GPIO_INIT() \
-    P0 = 0; \
+    P0 = 0x08;       /* All ports except 0.3 set to 0 */ \
     P0DIR = 0x40;    /* All P0 ports except P0.6 are output */ \
     P0CON = 0x56;    /* Enable pull-up on bind button P0.6 */ \
     P1 = 0; \

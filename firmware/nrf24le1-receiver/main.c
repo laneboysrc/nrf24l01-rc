@@ -49,10 +49,12 @@ void servo_pulse_timer_handler(void) __interrupt ((0x001b - 3) / 8) __using (1);
 
 
 // ****************************************************************************
-// Timer 0 interrupt handler at vector 1 (0x000b)
-void timer0_isr(void) __interrupt (1)
+// Timer 0 interrupt handler
+void timer0_isr(void) __interrupt ((0x000b - 3) / 8)
 {
+    TIMER0 = TIMER_16_MS;
     ++systick_count;
+
     if (successful_stick_data) {
         // Start timer1 with a very short interval to kick off one set of
         // servo pulses
@@ -81,8 +83,8 @@ static void init_hardware(void)
     // Due to varying hardware the IO initialization is a macro in platform.h
     GPIO_INIT();
 
+    TCON = 0;               // Clear Timer0 and Timer1 flags, stop both timers
     TMOD = 0x11;            // Set Timer0 and Timer1 as 16 bit timer
-    TCON = 0;               // Clear Timer0 and Timer1 flags
 
     TIMER0 = TIMER_16_MS;
 
@@ -90,6 +92,8 @@ static void init_hardware(void)
     IEN0_tf1 = 1;           // Enable Timer1 interrupt
     IEN0_tf2 = 1;           // Enable Timer2 interrupt
     IEN1_rfirq = 1;
+
+    TCON_tr0 = 1;           // Start Timer 0
 
     IP0 = (1 << 3);         // Timer 1 interrupt has higher priority than the rest
 }
@@ -107,9 +111,16 @@ void delay_us(uint16_t microseconds)
 {
     volatile uint8_t dummy;
 
+    // Spot-on for larger timeouts (verifyed with an oscilloscope)
+
+    microseconds >>= 1;
+
     dummy = 0;
-    while (microseconds) {
-        dummy += 2;
+    while (microseconds--) {
+        ++dummy;
+        ++dummy;
+        ++dummy;
+        ++dummy;
     }
 }
 
@@ -118,7 +129,7 @@ void delay_us(uint16_t microseconds)
 int main(void)
 {
     init_hardware();
-    init_uart0((BAUDRATE == 115200));
+    init_uart0((BAUDRATE == 57600));
     init_spi();
     init_hardware_final();
 

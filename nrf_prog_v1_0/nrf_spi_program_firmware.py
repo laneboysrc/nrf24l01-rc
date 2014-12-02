@@ -7,7 +7,8 @@ from __future__ import print_function
 import argparse
 import sys
 import serial
-from binascii import hexlify
+from binascii import hexlify, unhexlify
+from time import sleep
 
 
 class NRFProgrammer(object):
@@ -76,32 +77,50 @@ class NRFProgrammer(object):
         ''' Write binary *data*, starting at *start* to the NRF flash '''
         self.command(self.ACCESS_MODE, self.ACCESS_MODE_ENTER)
 
+
         # First erase all the pages we will be programming
         # NOTE: we do not perform ERASE ALL as it clears the info page in the
         # chip, destroying important chip data
-
         start_page = start // self.PAGE_SIZE
         end_page = (start + len(data)) // self.PAGE_SIZE
 
-        print("Erasing page {start:d} to {stop:d}".format(
-            start=start_page, stop=end_page))
+        print("Erasing page {start:d} to {stop:d} ".format(
+            start=start_page, stop=end_page), end="")
+        sys.stdout.flush()
 
+        # Since the ERASE PAGE command is not implemented in the PIC firmware
+        # we have to do it ourself via raw SPI commands
         while start_page <= end_page:
-            self.command(self.ERASE_PAGE, "{:02X}".format(start_page))
+            self.command(self.SPI, "06")        # set WREN
+            self.command(self.SPI, "52{:02X}".format(start_page))
+
+            # Wait until the WREN bit has been cleared
+            fsr = ord(unhexlify(self.command(self.SPI, "0500")[2:]))
+            while fsr & (1 << 5):
+                fsr = ord(unhexlify(self.command(self.SPI, "0500")[2:]))
+
             start_page += 1
+            print(".", end="")
+            sys.stdout.flush()
+
+        print()
 
 
         # Write the start address, then the new firmware image in 256 byte
         # chunks
         self.command(self.ADDRESS, "{:04X}".format(start))
 
-        print("Programming ...")
+        print("Programming ", end="")
+        sys.stdout.flush()
         while len(data):
-            firmware = hexlify(data[:self.MAX_PARAMETER_LENGTH])
+            firmware = hexlify(data[:self.MAX_PARAMETER_LENGTH]).upper()
             self.command(self.PROGRAM, firmware)
-            print(".", end=None)
             data = data[self.MAX_PARAMETER_LENGTH:]
+            print(".", end="")
+            sys.stdout.flush()
+
         print()
+
 
         self.command(self.ACCESS_MODE, self.ACCESS_MODE_EXIT)
         return data

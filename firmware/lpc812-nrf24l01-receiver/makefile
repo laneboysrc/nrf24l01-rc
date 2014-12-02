@@ -38,7 +38,7 @@ LD := $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)gcc
 OBJCOPY := $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)objcopy
 
 MKDIR_P = mkdir -p
-FLASH_TOOL := lpc81x_isp.py --run --flash
+FLASH_TOOL := lpc81x_isp.py --wait --run --flash
 TERMINAL_PROGRAM := miniterm.py -p /dev/ttyUSB0 -b 115200 --echo
 
 
@@ -136,7 +136,7 @@ summary: $(TARGET_MAP)
 	$(QUIET) $(MAP_SUMMARY_TOOL) $<
 
 # Invoke the tool to program the microcontroller
-program: $(TARGET_BIN)
+program: $(TARGET_HEX)
 	$(QUIET )$(FLASH_TOOL) $<
 
 # Invoke a tool for UART communication

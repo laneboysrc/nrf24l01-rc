@@ -76,7 +76,7 @@ static void int32_to_cstring(int32_t value, char *result, uint8_t radix)
 // ****************************************************************************
 void init_uart0(bool baudrate_57600)
 {
-    S0CON = 0x40;           // 8-bit UART, receiving disabled, flags cleared
+    S0CON = 0x50;           // 8-bit UART, Serial port enabled, flags cleared
     PCON |= 0x80;           // set SMOD bit
     ADCON_bd = 1;           // Sed BD bit
 

@@ -47,6 +47,8 @@ __sbit __at (0x91) P1_1;
 __sbit __at (0x92) P1_2;
 __sbit __at (0x93) P1_3;
 __sbit __at (0x94) P1_4;
+__sbit __at (0x95) P1_5;
+__sbit __at (0x96) P1_6;
 
 __sfr __at (0x92) DPS;
 __sfr __at (0x93) P0DIR;
