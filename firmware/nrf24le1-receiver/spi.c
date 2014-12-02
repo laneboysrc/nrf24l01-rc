@@ -9,6 +9,7 @@
 // ****************************************************************************
 void init_spi(void)
 {
+    // Nothing to do for the nRF24LE1, which has an internal SPI via registers
 }
 
 

@@ -8,7 +8,6 @@
 #include <uart0.h>
 
 
-
 #define PAYLOAD_SIZE 10
 #define ADDRESS_WIDTH 5
 #define NUMBER_OF_HOP_CHANNELS 20
@@ -30,8 +29,10 @@
 #define BUTTON_PRESSED 0
 #define BUTTON_RELEASED 1
 
-#define LED_ON 0
-
+// On all hardware variants the LEDs connect to ground, so the IO pin has to
+// go high to light them up.
+#define LED_ON 1
+#define LED_OFF (~LED_ON)
 
 extern bool systick;
 
@@ -131,13 +132,13 @@ static uint16_t stickdata2ms(uint16_t stickdata)
 
 
 // ****************************************************************************
-// This code undos the value scaling that the transmitter nRF module does
+// This code undoes the value scaling that the transmitter nRF module does
 // when receiving a 12 bit channel value via the UART, while forming the
 // transmit packet.
 //
 // The transmitter calculates
 //
-//    value = (uart_data * 14 / 10) + 0xf200
+//    value_sent = (uart_data * 14 / 10) + 0xf200
 //
 // As such the input range via the UART can be 0x000 .. 0x9ff
 // ****************************************************************************
@@ -160,7 +161,7 @@ static void restart_hop_timer(void)
 {
     T2CON = 0;              // Stop timer 2
     TIMER2 = TIMER_VALUE_US(FIRST_HOP_TIME_IN_US);
-    T2CON = 0x41;           // Timer 2 clock = f/12, Reload Mode 0, INT3 rising edge ?!?
+    T2CON = 0x01;           // Timer 2 clock = f/12, Reload Mode 0
 
     hops_without_packet = 0;
     perform_hop_requested = false;
@@ -191,10 +192,6 @@ static void read_bind_data(void)
     uint8_t i;
 
     load_persistent_storage(bind_storage_area);
-
-    uart0_send_cstring("Persistent data: 0x");
-    uart0_send_uint8_hex(bind_storage_area[0]);
-    uart0_send_linefeed();
 
     for (i = 0; i < ADDRESS_WIDTH; i++) {
         model_address[i] = bind_storage_area[i];
@@ -269,7 +266,6 @@ static void process_binding(void)
             return;
         }
 
-        binding_requested = false;
         led_state = LED_STATE_BINDING;
         binding = true;
         bind_state = 0;
@@ -415,7 +411,8 @@ static void process_receiving(void)
         perform_hop_requested = false;
         ++hops_without_packet;
 
-
+        // If we are missing too many packets we resync by switching to the
+        // first channel and waiting for a packet without hopping.
         if (hops_without_packet > MAX_HOP_WITHOUT_PACKET) {
             restart_packet_receiving();
         }
@@ -439,17 +436,12 @@ static void process_receiving(void)
     }
     rf_clear_irq(RX_RD);
 
-    if (hops_without_packet > 1) {
-        uart0_send_uint32(hops_without_packet);
-        uart0_send_linefeed();
-    }
-
     restart_hop_timer();
 
 
     // ================================
     // payload[7] is 0x55 for stick data
-    if (payload[7] == 0x55) {   // Stick data
+    if (payload[7] == 0x55) {
         channels[0] = (payload[1] << 8) + payload[0];
         channels[1] = (payload[3] << 8) + payload[2];
         channels[2] = (payload[5] << 8) + payload[4];
@@ -557,7 +549,7 @@ static void process_led(void)
         case LED_STATE_RECEIVING:
 #ifdef GPIO_LED_GREEN
             GPIO_LED_GREEN = LED_ON;
-            GPIO_LED = ~LED_ON;
+            GPIO_LED = LED_OFF;
 #else
             GPIO_LED = LED_ON;
 #endif
@@ -566,9 +558,12 @@ static void process_led(void)
 
         case LED_STATE_BINDING:
 #ifdef GPIO_LED_GREEN
-            GPIO_LED_GREEN = ~LED_ON;
+            GPIO_LED_GREEN = LED_OFF;
+            GPIO_LED = LED_ON;
+#else
+            // Single LED: Start blinking with a dark phase
+            GPIO_LED = LED_OFF;
 #endif
-            GPIO_LED = ~LED_ON;
             blink_timer_reload_value = BLINK_TIME_BINDING;
             blinking = true;
             break;
@@ -577,9 +572,12 @@ static void process_led(void)
         case LED_STATE_FAILSAFE:
         default:
 #ifdef GPIO_LED_GREEN
-            GPIO_LED_GREEN = ~LED_ON;
+            GPIO_LED_GREEN = LED_OFF;
+            GPIO_LED = LED_ON;
+#else
+            // Single LED: Start blinking with a dark phase
+            GPIO_LED = LED_OFF;
 #endif
-            GPIO_LED = ~LED_ON;
             blink_timer_reload_value = BLINK_TIME_FAILSAFE;
             blinking = true;
             break;
@@ -590,17 +588,8 @@ static void process_led(void)
 // ****************************************************************************
 void init_receiver(void)
 {
-    uint8_t i;
-
-    for (i = 0; i < NUMBER_OF_CHANNELS; i++) {
-        channels[i] = SERVO_PULSE_CENTER;
-    }
-    output_pulses();
-
     read_bind_data();
     initialize_failsafe();
-
-    stop_hop_timer();
 
     rf_enable_clock();
     rf_clear_ce();
@@ -612,14 +601,8 @@ void init_receiver(void)
     rf_set_data_pipes(DATA_PIPE_0, NO_AUTO_ACKNOWLEDGE);
     rf_set_address_width(ADDRESS_WIDTH);
     rf_set_payload_size(DATA_PIPE_0, PAYLOAD_SIZE);
-    rf_set_rx_address(DATA_PIPE_0, ADDRESS_WIDTH, model_address);
 
-    rf_set_channel(hop_data[0]);
-    rf_flush_rx_fifo();
-    rf_clear_irq(RX_RD);
-    rf_int_fired = false;
-
-    rf_set_ce();
+    restart_packet_receiving();
 
     led_state = LED_STATE_IDLE;
 }
@@ -637,7 +620,8 @@ void process_receiver(void)
 
 
 // ****************************************************************************
-// RF_IRQ interrupt handler at 0x004b
+// RF_IRQ interrupt handler
+// ****************************************************************************
 void rf_interrupt_handler(void) __interrupt ((0x004b - 3) / 8)
 {
     rf_int_fired = true;
@@ -645,7 +629,8 @@ void rf_interrupt_handler(void) __interrupt ((0x004b - 3) / 8)
 
 
 // ****************************************************************************
-// Timer 2 interrupt handler at 0x002b
+// Timer 2 interrupt handler
+// ****************************************************************************
 void hop_timer_handler(void) __interrupt ((0x002b - 3) / 8)
 {
     IRCON_tf2 = 0;          // Clear the interrupt flag
@@ -656,7 +641,7 @@ void hop_timer_handler(void) __interrupt ((0x002b - 3) / 8)
 
 
 // ****************************************************************************
-// Timer 1 interrupt handler at 0x001b
+// Timer 1 interrupt handler
 // ****************************************************************************
 void servo_pulse_timer_handler(void) __interrupt ((0x001b - 3) / 8) __using (1)
 {

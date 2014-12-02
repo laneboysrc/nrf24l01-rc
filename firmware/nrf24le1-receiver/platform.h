@@ -49,6 +49,16 @@
 // ****************************************************************************
 
 
+// ****************************************************************************
+// IO PORT INITIALIZATION
+//
+// All unused ports are switched to output and 0
+// When the UART Tx is used (preprocessor!), P0.3 needs to be configured as
+// output and set to 1 for the Tx function to work.
+// All servo outputs have to be switched to high until the first
+// transmitter pulse is received to prevent the servos glitching at
+// power on.
+// ****************************************************************************
 #if HARDWARE == XR3100
     #define GPIO_BIND P0_3
     #define GPIO_LED_GREEN P0_0
@@ -57,13 +67,15 @@
     #define GPIO_CH2 P0_7
     #define GPIO_CH3 P1_0
     #define GPIO_PPM P1_1
+    //#define GPIO_SDA P1_3
+    //#define GPIO_SCL P1_4
 
     #define GPIO_INIT() \
-    P0 = 0; \
+    P0 = 0xa0; \
     P0DIR = 0x08;    /* P0.3 is inputs, rest outputs */ \
-    P0CON = 0x53;    /* Enable pull-up on bind button P0.3 */ \
-    P1 = 0; \
+    P1 = 0x03; \
     P1DIR = 0x18;    /* P1.3 and P1.4 are inputs, rest outputs */ \
+    P0CON = 0x53;    /* Enable pull-up on bind button P0.3 */ \
     P1CON = 0x53;    /* Enable pull-up on SDA P1.3 */ \
     P1CON = 0x54;    /* Enable pull-up on SCL P1.4 */
 
@@ -75,15 +87,17 @@
     #define GPIO_CH2 P0_7
     #define GPIO_CH3 P1_0
     #define GPIO_PPM P1_1
+    //#define GPIO_SDA P0_3
+    //#define GPIO_SCL P0_4
 
     #define GPIO_INIT() \
-    P0 = 0; \
+    P0 = 0xa0; \
     P0DIR = 0x58;    /* P0.3, P0.4 and P0.6 are inputs, rest outputs */ \
+    P1 = 0x03; \
+    P1DIR = 0x00;    /* All P1 ports are output */ \
     P0CON = 0x53;    /* Enable pull-up on SDA P0.3 */ \
     P0CON = 0x54;    /* Enable pull-up on SCL P0.4 */ \
     P0CON = 0x56;    /* Enable pull-up on bind button P0.6 */ \
-    P1 = 0; \
-    P1DIR = 0x00;    /* All P1 ports are output */ \
 
 #else // HARDWARE == NRF24LE1_MODULE
     #define GPIO_BIND P0_6
@@ -94,11 +108,11 @@
     #define GPIO_PPM P1_1
 
     #define GPIO_INIT() \
-    P0 = 0x08;       /* All ports except 0.3 set to 0 */ \
+    P0 = 0xa8;       /* P0.3, P0.5, P0.7 set to 1 */ \
     P0DIR = 0x40;    /* All P0 ports except P0.6 are output */ \
-    P0CON = 0x56;    /* Enable pull-up on bind button P0.6 */ \
-    P1 = 0; \
+    P1 = 0x03;       /* P1.0, P1.1 set to 1 */ \
     P1DIR = 0x00;    /* All P1 ports are output */ \
+    P0CON = 0x56;    /* Enable pull-up on bind button P0.6 */ \
 
 #endif
 

@@ -24,12 +24,12 @@
 #endif
 
 extern bool systick;
-extern uint16_t channels[NUMBER_OF_CHANNELS];
-extern uint16_t raw_data[2];
+extern __xdata uint16_t channels[NUMBER_OF_CHANNELS];
+extern __xdata uint16_t raw_data[2];
 extern bool successful_stick_data;
 
 static bool initialized = false;
-static uint8_t tx_data[TX_DATA_SIZE];
+static __xdata uint8_t tx_data[TX_DATA_SIZE];
 static uint8_t next_tx_index = 0xff;
 bool ch3_2pos = false;
 uint16_t ch3_raw;
@@ -42,7 +42,7 @@ typedef struct {
     uint16_t right;
 } CHANNEL_T;
 
-CHANNEL_T servo[2];
+__xdata CHANNEL_T servo[2];
 
 static void normalize_channel(CHANNEL_T *c)
 {

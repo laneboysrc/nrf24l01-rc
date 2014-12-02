@@ -15,16 +15,6 @@
 #include <preprocessor_output.h>
 
 
-
-#ifndef BAUDRATE
-    #define BAUDRATE 38400
-#endif
-
-#if BAUDRATE != 38400  &&  BAUDRATE != 57600
-    #error Only 38400 and 57600 BAUD supported
-#endif
-
-
 #define TIMER_16_MS     TIMER_VALUE_US(16000)
 #define TIMER_150_US    TIMER_VALUE_US(150)
 
@@ -129,7 +119,7 @@ void delay_us(uint16_t microseconds)
 int main(void)
 {
     init_hardware();
-    init_uart0((BAUDRATE == 57600));
+    init_uart0();
     init_spi();
     init_hardware_final();
 

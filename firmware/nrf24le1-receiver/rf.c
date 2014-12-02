@@ -20,7 +20,7 @@ static uint8_t get_pipe_no(uint8_t pipe)
     mask = 0x01;
 
     for (pipe_no = 0; pipe_no < 6; pipe_no++) {
-        if (pipe == mask) {
+        if (pipe & mask) {
             return pipe_no;
         }
         mask <<= 1;
@@ -36,7 +36,6 @@ static uint8_t get_pipe_no(uint8_t pipe)
 static uint8_t rf_command(uint8_t cmd)
 {
     spi_buffer[0] = cmd;
-
     return spi_transaction(1, spi_buffer);
 }
 
@@ -142,16 +141,12 @@ static uint8_t rf_write_multi_byte_register(uint8_t reg, uint8_t count, const ui
 
 
 // ****************************************************************************
-// Only available on the nRF24LE1; N/A on nRF24L01+
-// ****************************************************************************
 void rf_enable_clock(void)
 {
     RFCON_rfcken = 1;
 }
 
 
-// ****************************************************************************
-// Only available on the nRF24LE1; N/A on nRF24L01+
 // ****************************************************************************
 void rf_disable_clock(void)
 {
@@ -188,8 +183,6 @@ void rf_clear_ce(void)
 
 // ****************************************************************************
 // Sets the receive address for the given pipe.
-// If address_width is 0 then the current configured address width in the
-// AW_SETUP register is used.
 //
 // Note that pipes 2..5 share the 4 MSB with pipe 1.
 // ****************************************************************************
@@ -198,11 +191,8 @@ void rf_set_rx_address(uint8_t pipe, uint8_t address_width, const uint8_t addres
     uint8_t pipe_no;
 
     pipe_no = get_pipe_no(pipe);
-    if (address_width == 0) {
-        address_width = rf_get_address_width();
-    }
 
-    // Pipes 2..5 inherit the MSB of address from pipe 1
+    // Pipes 2..5 inherit the 4 MSB of address from pipe 1
     // See datasheet page 50, 51
     if (pipe_no >= 2) {
         address_width = 1;
@@ -215,7 +205,7 @@ void rf_set_rx_address(uint8_t pipe, uint8_t address_width, const uint8_t addres
 // ****************************************************************************
 // RF frequency in MHz = 2400 + channel
 //
-// The nRF24L01+ can use channel 0..125 (2.4 .. 2.525 GHz)
+// The nRF24 can use channel 0..125 (2.4 .. 2.525 GHz)
 // The world-wide ISM band is 2.4 .. 2.5 GHz, so only channels 0..100 can
 // be used legally.
 // ****************************************************************************
@@ -230,7 +220,7 @@ void rf_set_channel(uint8_t channel)
 // ****************************************************************************
 bool rf_is_rx_fifo_emtpy(void)
 {
-    return ((rf_get_status() & 0x0e) == 0x0e);
+    return (rf_get_status() & 0x0e) == 0x0e;
 }
 
 
@@ -239,7 +229,7 @@ bool rf_is_rx_fifo_emtpy(void)
 // ****************************************************************************
 bool rf_is_tx_fifo_full(void)
 {
-    return ((rf_get_status() & 0x01));
+    return rf_get_status() & 0x01;
 }
 
 

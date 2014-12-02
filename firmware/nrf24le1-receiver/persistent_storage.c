@@ -1,15 +1,3 @@
-/******************************************************************************
-
-	Use IAP to program the flash
-	A single page of 64 bytes should be sufficient
-	Top 32 bytes of RAM needed
-	RAM buffer with data needs to be on word boundary
-	Uses 148 bytes of stack space
-	Use compare function to only write changes
-	Interrupts must be disabled during erase and write operations
-	Q: How long does erase and write take?
-
-******************************************************************************/
 #include <stdint.h>
 
 #include <platform.h>
@@ -32,6 +20,16 @@ void load_persistent_storage(uint8_t *data)
 
 
 // ****************************************************************************
+// We use the extended endurance area of the flash memory to store the
+// persistent data.  We use page 32, starting at MCU xdata adress 0xfa00.
+// A page is 256 bytes, we only use the first 25 of them.
+//
+// During erasing and programming CPU execution halts. Since the writing is
+// self timed we do not need to check for it to finish, once the CPU resumes
+// operation the write process is done.
+//
+// Erasing a page takes at most 22.5ms, writing a byte 46us. This means that
+// erasing and writing 25 bytes takes 24ms.
 void save_persistent_storage(uint8_t new_data[])
 {
 	uint8_t i;

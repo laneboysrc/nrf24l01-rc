@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-void init_uart0(bool baudrate_57600);
+void init_uart0(void);
 
 bool uart0_send_is_ready(void);
 void uart0_send_char(const char c);

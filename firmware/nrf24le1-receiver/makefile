@@ -8,7 +8,6 @@ SOURCE_DIRS := .
 BUILD_DIR := build
 
 SYSTEM_CLOCK := 16000000
-BAUDRATE := 38400
 
 SOURCES := $(foreach sdir, $(SOURCE_DIRS), $(wildcard $(sdir)/*.c))
 DEPENDENCIES := makefile platform.h nrf24le1.h
@@ -70,13 +69,12 @@ $(OBJECTS): $(DEPENDENCIES)
 # Compiler and linker flags
 
 CFLAGS := -mmcs51 --std-c99 -I.
-CFLAGS += --opt-code-speed
+# CFLAGS += --opt-codettt-speed
 CFLAGS += -D__SYSTEM_CLOCK=$(SYSTEM_CLOCK)
 CFLAGS += -DNRF24LE1_MODULE=$(NRF24LE1_MODULE) -DXR3100=$(XR3100) -DHKR3000=$(HKR3000)
 CFLAGS += -DHARDWARE=$(HARDWARE)
-CFLAGS += -DBAUDRATE=$(BAUDRATE)
 #CFLAGS += -DNO_DEBUG
-#CFLAGS += -DENABLE_PREPROCESSOR_OUTPUT -DEXTENDED_PREPROCESSOR_OUTPUT
+CFLAGS += -DENABLE_PREPROCESSOR_OUTPUT -DEXTENDED_PREPROCESSOR_OUTPUT
 
 LDFLAGS := --out-fmt-ihx
 LDFLAGS += --code-size 0x4000 --xram-size 0x400
@@ -109,7 +107,7 @@ $(TARGET_HEX): $(OBJECTS)
 
 $(TARGET_BIN): $(TARGET_HEX)
 	$(ECHO) [HEX-\>BIN] $@
-	$(QUIET) srec_cat $< -intel -o $@ -binary
+	$(QUIET) srec_cat -Disable_Sequence_Warnings $< -intel -o $@ -binary
 
 # Invoke the tool to program the microcontroller
 program: $(TARGET_BIN)
