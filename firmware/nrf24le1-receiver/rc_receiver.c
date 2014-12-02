@@ -647,7 +647,7 @@ void servo_pulse_timer_handler(void) __interrupt ((0x001b - 3) / 8) __using (1)
 {
     static uint8_t servo_pulse_state;
 
-    GPIO_PPM = 1;
+    GPIO_PPM = 0;
 
     // This code has been written to provide reasonably effectient assembler
     // code for SDCC.
@@ -684,7 +684,7 @@ void servo_pulse_timer_handler(void) __interrupt ((0x001b - 3) / 8) __using (1)
         servo_pulse_state = 0;
     }
 
-    GPIO_PPM = 0;
+    GPIO_PPM = 1;
 }
 
 
