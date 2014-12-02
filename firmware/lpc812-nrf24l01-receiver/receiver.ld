@@ -14,14 +14,6 @@ SECTIONS
     } > FLASH
 
 
-    .persistent_data :
-    {
-        . = ALIGN(64);
-        KEEP(*(.persistent_data))
-        . = ALIGN(64);
-    } > FLASH
-
-
     .text :
     {
         KEEP(*(.after_vectors))
@@ -50,6 +42,13 @@ SECTIONS
         . = ALIGN(4);
         _ebss = .;
     } > RAM
+
+
+    /* Use the top-most page in flash to store the persistent data */
+    .persistent_data : AT (0x4000 - 64)
+    {
+        KEEP(*(.persistent_data))
+    } > FLASH
 
 
     /* The stack starts 32 bytes below to of RAM as those 32 bytes are needed
