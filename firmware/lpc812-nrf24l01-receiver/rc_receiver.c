@@ -147,9 +147,12 @@ static void stop_hop_timer(void)
 static void restart_hop_timer(void)
 {
     LPC_SCT->CTRL_L |= (1 << 2);
+    LPC_SCT->MATCHREL[0].L = HOP_TIME_IN_US - 1;
+
     // We need to set the MATCH register, not the MATCHREL register here as
-    // only on the first match the MATCHREL gets copied in!
+    // only after the first match the MATCHREL gets copied in!
     LPC_SCT->MATCH[0].L = FIRST_HOP_TIME_IN_US;
+
     LPC_SCT->COUNT_L = 0;
     LPC_SCT->CTRL_L &= ~(1 << 2);
 
@@ -177,24 +180,7 @@ static void restart_packet_receiving(void)
 
 
 // ****************************************************************************
-static void read_bind_data(void)
-{
-    int i;
-
-    load_persistent_storage(bind_storage_area);
-
-    for (i = 0; i < ADDRESS_WIDTH; i++) {
-        model_address[i] = bind_storage_area[i];
-    }
-
-    for (i = 0; i < NUMBER_OF_HOP_CHANNELS; i++) {
-        hop_data[i] = bind_storage_area[ADDRESS_WIDTH + i];
-    }
-}
-
-
-// ****************************************************************************
-static void save_bind_data(void)
+static void parse_bind_data(void)
 {
     int i;
 
@@ -205,8 +191,6 @@ static void save_bind_data(void)
     for (i = 0; i < NUMBER_OF_HOP_CHANNELS; i++) {
         hop_data[i] = bind_storage_area[ADDRESS_WIDTH + i];
     }
-
-    save_persistent_storage(bind_storage_area);
 }
 
 
@@ -350,7 +334,8 @@ static void process_binding(void)
                             bind_storage_area[19 + i] = payload[3 + i];
                         }
 
-                        save_bind_data();
+                        save_persistent_storage(bind_storage_area);
+                        parse_bind_data();
 #ifndef NO_DEBUG
                         uart0_send_cstring("Bind successful\n");
 #endif
@@ -591,18 +576,9 @@ static void process_led(void)
 // ****************************************************************************
 void init_receiver(void)
 {
-    int i;
-
-    for (i = 0; i < NUMBER_OF_CHANNELS; i++) {
-        channels[i] = SERVO_PULSE_CENTER;
-    }
-    output_pulses();
-
-    read_bind_data();
+    load_persistent_storage(bind_storage_area);
+    parse_bind_data();
     initialize_failsafe();
-
-    stop_hop_timer();
-    LPC_SCT->MATCHREL[0].L = HOP_TIME_IN_US - 1;
 
     rf_enable_clock();
     rf_clear_ce();
@@ -614,14 +590,8 @@ void init_receiver(void)
     rf_set_data_pipes(DATA_PIPE_0, NO_AUTO_ACKNOWLEDGE);
     rf_set_address_width(ADDRESS_WIDTH);
     rf_set_payload_size(DATA_PIPE_0, PAYLOAD_SIZE);
-    rf_set_rx_address(DATA_PIPE_0, ADDRESS_WIDTH, model_address);
 
-    rf_set_channel(hop_data[0]);
-    rf_flush_rx_fifo();
-    rf_clear_irq(RX_RD);
-    rf_int_fired = false;
-
-    rf_set_ce();
+    restart_packet_receiving();
 
     led_state = LED_STATE_IDLE;
 }

@@ -44,6 +44,8 @@ typedef struct {
 
 CHANNEL_T servo[2];
 
+
+// ****************************************************************************
 static void normalize_channel(CHANNEL_T *c)
 {
     if (c->raw_data < SERVO_PULSE_MIN  ||  c->raw_data > SERVO_PULSE_MAX) {

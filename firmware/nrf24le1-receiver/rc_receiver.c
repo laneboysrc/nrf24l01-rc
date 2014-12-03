@@ -187,24 +187,7 @@ static void restart_packet_receiving(void)
 
 
 // ****************************************************************************
-static void read_bind_data(void)
-{
-    uint8_t i;
-
-    load_persistent_storage(bind_storage_area);
-
-    for (i = 0; i < ADDRESS_WIDTH; i++) {
-        model_address[i] = bind_storage_area[i];
-    }
-
-    for (i = 0; i < NUMBER_OF_HOP_CHANNELS; i++) {
-        hop_data[i] = bind_storage_area[ADDRESS_WIDTH + i];
-    }
-}
-
-
-// ****************************************************************************
-static void save_bind_data(void)
+static void parse_bind_data(void)
 {
     uint8_t i;
 
@@ -215,8 +198,6 @@ static void save_bind_data(void)
     for (i = 0; i < NUMBER_OF_HOP_CHANNELS; i++) {
         hop_data[i] = bind_storage_area[ADDRESS_WIDTH + i];
     }
-
-    save_persistent_storage(bind_storage_area);
 }
 
 
@@ -359,7 +340,8 @@ static void process_binding(void)
                             bind_storage_area[19 + i] = payload[3 + i];
                         }
 
-                        save_bind_data();
+                        save_persistent_storage(bind_storage_area);
+                        parse_bind_data();
 #ifndef NO_DEBUG
                         uart0_send_cstring("Bind successful\n");
 #endif
@@ -588,7 +570,8 @@ static void process_led(void)
 // ****************************************************************************
 void init_receiver(void)
 {
-    read_bind_data();
+    load_persistent_storage(bind_storage_area);
+    parse_bind_data();
     initialize_failsafe();
 
     rf_enable_clock();
