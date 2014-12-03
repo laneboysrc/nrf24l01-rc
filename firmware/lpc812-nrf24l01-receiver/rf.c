@@ -26,6 +26,17 @@ static uint8_t get_pipe_no(uint8_t pipe)
 
 
 // ****************************************************************************
+// Send a one-byte command to the nRF24.
+// Returns the STATUS register value
+// ****************************************************************************
+static uint8_t rf_command(uint8_t cmd)
+{
+    spi_buffer[0] = cmd;
+    return spi_transaction(1, spi_buffer);
+}
+
+
+// ****************************************************************************
 // Write a command to the nRF24, followed by data bytes
 // Returns the STATUS register value
 // ****************************************************************************
@@ -137,8 +148,7 @@ void rf_disable_clock(void)
 // ****************************************************************************
 uint8_t rf_get_status(void)
 {
-    spi_buffer[0] = NOP;
-    return spi_transaction(1, spi_buffer);
+    return rf_command(NOP);
 }
 
 
@@ -162,8 +172,6 @@ void rf_clear_ce(void)
 
 // ****************************************************************************
 // Sets the receive address for the given pipe.
-// If address_width is 0 then the current configured address width in the
-// AW_SETUP register is used.
 //
 // Note that pipes 2..5 share the 4 MSB with pipe 1.
 // ****************************************************************************
@@ -172,11 +180,8 @@ void rf_set_rx_address(uint8_t pipe, uint8_t address_width, const uint8_t addres
     uint8_t pipe_no;
 
     pipe_no = get_pipe_no(pipe);
-    if (address_width == 0) {
-        address_width = rf_get_address_width();
-    }
 
-    // Pipes 2..5 inherit the MSB of address from pipe 1
+    // Pipes 2..5 inherit the 4 MSB of address from pipe 1
     // See datasheet page 50, 51
     if (pipe_no >= 2) {
         address_width = 1;
@@ -204,7 +209,7 @@ void rf_set_channel(uint8_t channel)
 // ****************************************************************************
 bool rf_is_rx_fifo_emtpy(void)
 {
-    return ((rf_get_status() & 0x0e) == 0x0e);
+    return (rf_get_status() & 0x0e) == 0x0e;
 }
 
 
@@ -213,7 +218,7 @@ bool rf_is_rx_fifo_emtpy(void)
 // ****************************************************************************
 bool rf_is_tx_fifo_full(void)
 {
-    return ((rf_get_status() & 0x01));
+    return rf_get_status() & 0x01;
 }
 
 
@@ -229,16 +234,14 @@ void rf_read_fifo(uint8_t *buffer, size_t byte_count)
 // ****************************************************************************
 void rf_flush_rx_fifo(void)
 {
-    spi_buffer[0] = FLUSH_RX;
-    spi_transaction(1, spi_buffer);
+    rf_command(FLUSH_RX);
 }
 
 
 // ****************************************************************************
 void rf_flush_tx_fifo(void)
 {
-    spi_buffer[0] = FLUSH_TX;
-    spi_transaction(1, spi_buffer);
+    rf_command(FLUSH_TX);
 }
 
 
