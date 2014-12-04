@@ -1,4 +1,4 @@
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE  1
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE  1
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -78,7 +78,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                       00063 ;   HexCommand values
                       00064 ;   -----------------
                       00065 ;
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE  2
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE  2
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -158,7 +158,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                       00137 ;       2. ACK response for commands that have succeeded.
                       00138 ;
                       00139 ;          'R'[HexData]'T'<HexChecksum>                      (for Form 1)
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE  3
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE  3
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -238,7 +238,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                       00211 ;   TIMER1 - PROG Sequence timer
                       00212 ;   TIMER2 - not used
                       00213 ;
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE  4
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE  4
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -287,13 +287,13 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                       00254 ;
                       00255  ifdef USE_INT_CLOCK
                       00256 
-8007   C9D4           00257         __config _CONFIG1, _FCMEN_OFF & _IESO_OFF & _CLKOUTEN_OFF & _BOREN_OFF & _CPD_OFF & _CP_OFF & _M
-                            CLRE_ON & _PWRTE_ON & _WDTE_NSLEEP & _FOSC_INTOSC
+8007   CDD4           00257         __config _CONFIG1, _FCMEN_OFF & _IESO_OFF & _CLKOUTEN_OFF & _BOREN_NSLEEP & _CPD_OFF & _CP_OFF &
+                             _MCLRE_ON & _PWRTE_ON & _WDTE_NSLEEP & _FOSC_INTOSC
                       00258 
                       00259  else
                       00260 
-                      00261         __config _CONFIG1, _FCMEN_OFF & _IESO_OFF & _CLKOUTEN_OFF & _BOREN_OFF & _CPD_OFF & _CP_OFF & _M
-                            CLRE_ON & _PWRTE_ON & _WDTE_NSLEEP & _FOSC_HS
+                      00261         __config _CONFIG1, _FCMEN_OFF & _IESO_OFF & _CLKOUTEN_OFF & _BOREN_NSLEEP & _CPD_OFF & _CP_OFF &
+                             _MCLRE_ON & _PWRTE_ON & _WDTE_NSLEEP & _FOSC_HS
                       00262 
                       00263  endif
 8008   DDFF           00264         __config _CONFIG2, _LVP_OFF & _BORV_19 & _STVREN_OFF & _PLLEN_ON & _WRT_OFF
@@ -318,7 +318,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                       00283                                         ;   detected
   00000003            00284 BadCmdErr       equ     .3              ; Set with CmdInProcess when a malformed command is
                       00285                                         ;   detected (extraneous/illegal characters)
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE  5
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE  5
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -398,7 +398,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                       00357 ; High address bytes for the fifos: loaded into FSRH (specific pointer is loaded
                       00358 ; into FSRL)
   00000021            00359 CMD_FIFO_HI     equ     0x21
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE  6
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE  6
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -478,7 +478,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                       00431                                         ; 4: SYNC = 0 (Mode select bit)
                       00432                                         ; 3: SENDB = 0 (Send Break Character bit)
                       00433                                         ; 2: BRGH = 1 (High Baud Rate Select)
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE  7
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE  7
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -558,7 +558,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
   00000020            00505 SPACE_CHAR      equ     ' '
                       00506 ;
                       00507 ; Command bytes (should be contiguous starting with 0x00)
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE  8
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE  8
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -638,7 +638,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                       00579                 endm
                       00580 
                       00581 SET_ACTIVITY    macro
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE  9
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE  9
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -718,7 +718,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                       00653         ; Initialize the processor IO first (at slow clock)
 000E   0020           00654         BANKSEL         PORTA
 000F   3006           00655         movlw           PORTA_INIT
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE 10
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE 10
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -798,7 +798,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
 0046   3000           00727         movlw           SSP1CON3_INIT
 0047   0097           00728         movwf           SSP1CON3
 0048   3040           00729         movlw           SSP1STAT_INIT
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE 11
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE 11
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -878,7 +878,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                       00797         ; Validate the argument count
 0070   0822           00798         movf            CmdCount,W
 0071   1D03           00799         btfss           STATUS,Z
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE 12
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE 12
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -958,7 +958,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                       00868 ; SPI Command
                       00869 ;
 0095                  00870 EVAL_CMD_SPI
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE 13
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE 13
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -1038,7 +1038,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
 00B7   2157           00936         call            DoSpiWrite
 00B8   0823           00937         movf            CmdAddrHi,W             ; Address
 00B9   2157           00938         call            DoSpiWrite
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE 14
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE 14
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -1118,7 +1118,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
 00DC   118E               M                 bcf     PORTC,N_ACTIVITY
                       01006 
                       01007         ; Start the SPI Read operation
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE 15
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE 15
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -1198,7 +1198,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
 0100   2121           01072         call            PushRspFifo
 0101   2918           01073         goto            EVAL_CMD_DONE
                       01074 
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE 16
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE 16
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -1278,7 +1278,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                       01136 ; PopCmdFifo: Pop a byte from the Command FIFO.
                       01137 ;
                       01138 ; On entry: SifCmdPopPtr points to the current location to read
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE 17
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE 17
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -1358,7 +1358,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
 0137   0AA3           01208         incf            CmdAddrHi,F
 0138   0008           01209         return
                       01210 
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE 18
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE 18
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -1438,7 +1438,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
 015F   0020           01282         BANKSEL         0
 0160   0008           01283         return
                       01284 
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE 19
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE 19
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -1518,7 +1518,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
 017D                  01350 POLL_PROG_DONE
                       01351         DEASSERT_CSN
 017D   148C               M                 bsf     PORTA,N_CSN
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE 20
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE 20
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -1598,7 +1598,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
 019C   29A5           01423         goto            PROC_TX_SETUP_TERM      ;   Y: No data, just send term
                       01424                                                 ;   N: Setup to send data
                       01425         ; We send space characters for Form 2 responses
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE 21
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE 21
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -1678,7 +1678,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
 01C2   29A5           01487         goto            PROC_TX_SETUP_TERM      ;   Y: No more data, setup to send term
                       01488                                                 ;   N: More data
                       01489         ; Select the appropriate next data state
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE 22
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE 22
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -1758,7 +1758,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                       01551 ;
                       01552 ; On exit: W contains the equivalent ASCII character
                       01553 ;
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE 23
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE 23
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -1838,7 +1838,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
 020A   0226           01623         subwf           SifRxChar,W
 020B   1903           01624         btfsc           STATUS,Z                ; <CR>?
 020C   29F6           01625         goto            PROC_RX_LOOP            ;   Y: Ignore
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE 24
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE 24
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -1918,7 +1918,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
 0242   2A49           01691         goto            PROC_RX_CMD_STATE_L_2   ;   N: Check for command termination
 0243   0E27           01692         swapf           SifTempData,W           ;   Y: Load low-half of command byte
 0244   0426           01693         iorwf           SifRxChar,W
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE 25
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE 25
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -1998,7 +1998,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
 0274                  01757 PROC_RX_DATA_STATE_L
 0274   22B5           01758         call            UpdateRunningRxChksum
 0275   3020           01759         movlw           SPACE_CHAR
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE 26
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE 26
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -2078,7 +2078,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
 02A5   22BF           01823         call            CheckIfHexChar          ; Check for Hex character
 02A6   1FF1           01824         btfss           CmdFlags,IsHexChar      ; Legal Hex Char?
 02A7   2AAE           01825         goto            PROC_RX_NOTE_BAD_CMD    ;   N: Throw this command away
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE 27
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE 27
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -2158,7 +2158,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                       01895 ; On entry: SifRxChar contains the character to test
                       01896 ;
                       01897 ; On exit: CmdFlags.IsHexChar indicates if SifRxChar has been reloaded with a valid
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE 28
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE 28
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -2223,7 +2223,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                       01954 
                       01955 
                       01956         end
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE 29
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE 29
 
 
 SYMBOL TABLE
@@ -2303,7 +2303,7 @@ C1NCH1                            00000001
 C1OE                              00000005
 C1ON                              00000007
 C1OUT                             00000006
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE 30
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE 30
 
 
 SYMBOL TABLE
@@ -2383,7 +2383,7 @@ CCPR2L                            00000298
 CCPR3H                            00000312
 CCPR3L                            00000311
 CCPR4H                            00000319
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE 31
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE 31
 
 
 SYMBOL TABLE
@@ -2463,7 +2463,7 @@ DACPSS1                           00000003
 DACR0                             00000000
 DACR1                             00000001
 DACR2                             00000002
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE 32
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE 32
 
 
 SYMBOL TABLE
@@ -2543,7 +2543,7 @@ FVRRDY                            00000006
 Form2Cmd                          00000001
 GCEN                              00000007
 GIE                               00000007
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE 33
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE 33
 
 
 SYMBOL TABLE
@@ -2623,7 +2623,7 @@ LATC5                             00000005
 LFIOFR                            00000001
 LF_CHAR                           0000000A
 LWLO                              00000005
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE 34
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE 34
 
 
 SYMBOL TABLE
@@ -2703,7 +2703,7 @@ OSCTUNE                           00000098
 OSFIE                             00000007
 OSFIF                             00000007
 OSTS                              00000005
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE 35
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE 35
 
 
 SYMBOL TABLE
@@ -2783,7 +2783,7 @@ PROC_RX_NOTE_CMD                  000002B1
 PROC_RX_RST                       000001FF
 PROC_RX_SEL_STATE                 0000021A
 PROC_RX_SET_IDLE                  000002B2
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE 36
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE 36
 
 
 SYMBOL TABLE
@@ -2863,7 +2863,7 @@ RX_DATA_STATE_H                   00000008
 RX_DATA_STATE_L                   00000010
 RX_IDLE_STATE                     00000001
 R_NOT_W                           00000002
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE 37
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE 37
 
 
 SYMBOL TABLE
@@ -2943,7 +2943,7 @@ SSPM2                             00000002
 SSPM3                             00000003
 SSPMSK                            00000213
 SSPOV                             00000006
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE 38
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE 38
 
 
 SYMBOL TABLE
@@ -3023,7 +3023,7 @@ T6OUTPS0                          00000003
 T6OUTPS1                          00000004
 T6OUTPS2                          00000005
 T6OUTPS3                          00000006
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE 39
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE 39
 
 
 SYMBOL TABLE
@@ -3103,7 +3103,7 @@ TX_TERM_3_STATE                   00000080
 TempReg                           00000070
 TxAckState                        00000000
 TxData1State                      00000002
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE 40
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE 40
 
 
 SYMBOL TABLE
@@ -3183,7 +3183,7 @@ _FOSC_HS                          0000FFFA
 _FOSC_INTOSC                      0000FFFC
 _FOSC_LP                          0000FFF8
 _FOSC_XT                          0000FFF9
-gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-2-2014  10:55:29         PAGE 41
+gpasm-1.0.0 #925 (Jan 14 2013) nrf_spi_if.asm   12-4-2014  15:50:02         PAGE 41
 
 
 SYMBOL TABLE
