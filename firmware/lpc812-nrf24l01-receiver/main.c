@@ -136,7 +136,7 @@ static void init_hardware(void)
 
     // ------------------------
     // Turn on brown-out detection and reset
-    LPC_SYSCON->BODCTRL = (1 << 4) | (1 << 2) | (2 << 0);
+    LPC_SYSCON->BODCTRL = (1 << 4) | (1 << 2) | (3 << 0);
 
 
     // ------------------------
