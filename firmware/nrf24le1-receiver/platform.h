@@ -5,6 +5,22 @@
 #include <nrf24le1.h>
 
 
+// The preprocessour output is only available on the NRF24LE1 module hardware,
+// but not on the XR3100 and HKR3000 hardware as the UART pins on those are
+// used for another purpose.
+// One can use the CPPM output instead on HKR3000 and XR3100
+#if HARDWARE != NRF24LE1_MODULE
+    #undef ENABLE_PREPROCESSOR_OUTPUT
+    #undef ENABLE_UART
+#else
+    #ifdef ENABLE_PREPROCESSOR_OUTPUT
+        #define ENABLE_UART
+    #elif !defined NODEBUG
+        #define ENABLE_UART
+    #endif
+#endif
+
+
 #define __SYSTICK_IN_MS 16
 
 #define NUMBER_OF_CHANNELS 3
