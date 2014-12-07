@@ -74,7 +74,7 @@ CFLAGS += -D__SYSTEM_CLOCK=$(SYSTEM_CLOCK)
 CFLAGS += -DNRF24LE1_MODULE=$(NRF24LE1_MODULE) -DXR3100=$(XR3100) -DHKR3000=$(HKR3000)
 CFLAGS += -DHARDWARE=$(HARDWARE)
 #CFLAGS += -DNO_DEBUG
-CFLAGS += -DENABLE_PREPROCESSOR_OUTPUT -DEXTENDED_PREPROCESSOR_OUTPUT
+#CFLAGS += -DENABLE_PREPROCESSOR_OUTPUT -DEXTENDED_PREPROCESSOR_OUTPUT
 
 LDFLAGS := --out-fmt-ihx
 LDFLAGS += --code-size 0x4000 --xram-size 0x400
@@ -101,7 +101,16 @@ $(foreach bdir, $(BUILD_DIR), $(eval $(call compile-objects,$(bdir))))
 # Rules
 all : $(TARGET_HEX)
 
+nrf24le1_module: HARDWARE := NRF24LE1_MODULE
+xr3100: HARDWARE := XR3100
+hkr3000: HARDWARE := HKR3000
+
+nrf24le1_module: clean $(TARGET_HEX)
+hkr3000: clean $(TARGET_HEX)
+xr3100: clean $(TARGET_HEX)
+
 $(TARGET_HEX): $(OBJECTS)
+	$(ECHO) [INFO] Building for hardware $(HARDWARE)
 	$(ECHO) [LD] $@
 	$(QUIET) $(LD) $(LDFLAGS) -o $@ $(OBJECTS) $(LDLIBS)
 
@@ -123,4 +132,4 @@ clean:
 	$(QUIET) $(RM) -rf $(BUILD_DIR)/*
 
 
-.PHONY : all clean program terminal
+.PHONY : all clean program terminal xr3100 hkr3000 nrf24le1_module

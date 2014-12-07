@@ -1,5 +1,3 @@
 - Use IRC if crystal oscillator fails can not be started
 
-- Enable UART only on our own hardware
-
 - Test pulse accuracy and jitter

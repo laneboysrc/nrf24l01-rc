@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#ifdef ENABLE_UART
+
 void init_uart0(void);
 
 bool uart0_send_is_ready(void);
@@ -20,5 +22,22 @@ void uart0_send_linefeed(void);
 // Read routines are not implemented
 // bool uart0_read_is_byte_pending(void);
 // uint8_t uart0_read_byte(void);
+
+#else /* ENABLE_UART */
+
+#define init_uart0()
+#define uart0_send_cstring(x)
+#define uart0_send_char(x)
+#define uart0_send_int32(x)
+#define uart0_send_uint32(x)
+#define uart0_send_uint32_hex(x)
+#define uart0_send_uint16_hex(x)
+#define uart0_send_uint8_hex(x)
+#define uart0_send_uint8_binary(x)
+#define uart0_send_linefeed()
+
+
+#endif /* ENABLE_UART */
+
 
 #endif /* __UART0_H */

@@ -1,10 +1,9 @@
-#ifndef __UART0_H__
-#define __UART0_H__
-
 #include <stdint.h>
 
 #include <platform.h>
 #include <uart0.h>
+
+#ifdef ENABLE_UART
 
 
 #define NO_LEADING_ZEROS (0)
@@ -190,4 +189,4 @@ void uart0_send_linefeed(void)
 //     return 0;
 // }
 
-#endif
+#endif  // ENABLE_UART
