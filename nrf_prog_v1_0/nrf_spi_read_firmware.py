@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 '''
-This tool reads a firmwre image from nrf_spi.asm
+This tool reads a firmware image from nrf_spi.asm
 '''
 from __future__ import print_function
 
