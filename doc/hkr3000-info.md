@@ -1,12 +1,12 @@
 Transmitter:
-; The received data is 12 bit, with center (1500us) being 0x465
-; The data sent across the air is the timer value that has to be set
-; to give the desired time until the timer overflows. The timer tick is
-; 750ns.
-;
-; The algorithm to calculate the timer value is as follows:
-;
-;   timer_value = (uart_data * 14 / 10) + 0xf200
+The received data is 12 bit, with center (1500us) being 0x465
+The data sent across the air is the timer value that has to be set
+to give the desired time until the timer overflows. The timer tick is
+750ns.
+
+The algorithm to calculate the timer value is as follows:
+
+   timer_value = (uart_data * 14 / 10) + 0xf200
 
 
 Wireless configuration:
@@ -34,7 +34,7 @@ cc cc 02 ho hp hq hr hs ht ..
 
 ff aa 55     Special marker for the first packet
 a[1-5]       The 5 address bytes
-cc cc        A 16 byte checksum of bytes a1..a5
+cc cc        A 16 bit checksum of bytes a1..a5
 h[a-t]       20 channels for frequency hopping
 ..           Not used
 
