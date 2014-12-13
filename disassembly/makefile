@@ -1,4 +1,4 @@
-OBJECTS := xr3100.d52 hk310.d52 hkr3000.d52
+OBJECTS := xr3100.d52 hkr3000.d52 hk310.d52 3xs.d52
 
 DASM := d52
 DASM_OPTS := -d
