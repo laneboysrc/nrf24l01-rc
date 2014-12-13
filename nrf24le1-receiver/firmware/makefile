@@ -1,4 +1,4 @@
-.DEFAULT_GOAL := program
+.DEFAULT_GOAL := all
 
 
 ###############################################################################
@@ -69,12 +69,13 @@ $(OBJECTS): $(DEPENDENCIES)
 # Compiler and linker flags
 
 CFLAGS := -mmcs51 --std-c99 -I.
-# CFLAGS += --opt-codettt-speed
+
 CFLAGS += -D__SYSTEM_CLOCK=$(SYSTEM_CLOCK)
 CFLAGS += -DNRF24LE1_MODULE=$(NRF24LE1_MODULE) -DXR3100=$(XR3100) -DHKR3000=$(HKR3000)
 CFLAGS += -DHARDWARE=$(HARDWARE)
-#CFLAGS += -DNO_DEBUG
-#CFLAGS += -DENABLE_PREPROCESSOR_OUTPUT -DEXTENDED_PREPROCESSOR_OUTPUT
+CFLAGS += -DNO_DEBUG
+CFLAGS += -DENABLE_PREPROCESSOR_OUTPUT
+#CFLAGS += -DEXTENDED_PREPROCESSOR_OUTPUT
 
 LDFLAGS := --out-fmt-ihx
 LDFLAGS += --code-size 0x4000 --xram-size 0x400
@@ -99,7 +100,7 @@ $(foreach bdir, $(BUILD_DIR), $(eval $(call compile-objects,$(bdir))))
 
 ###############################################################################
 # Rules
-all : $(TARGET_HEX)
+all : $(TARGET_BIN)
 
 nrf24le1_module: HARDWARE := NRF24LE1_MODULE
 xr3100: HARDWARE := XR3100
