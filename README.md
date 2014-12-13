@@ -12,6 +12,10 @@ Two variants are provided:
 - [nrf24le1](nrf24le1-receiver/): Using a NRF24LE1 module (integrated 8051 MCU)
 
 
+Technical information about the inner working of the receivers can be found
+in **[hkr3000-info.md](doc/hkr3000-info.md)**.
+
+
 ## Advantages of the NRF24L01+ - LPC812 version
 
 - Easily obtainable and very low cost NRF module (less than USD 1 including shipping in qty 10 on eBay, Aliexpress)
