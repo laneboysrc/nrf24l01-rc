@@ -7,7 +7,7 @@
 - **GNU Make** [https://www.gnu.org/software/make/](https://www.gnu.org/software/make/);
   Windows executable is available at [http://gnuwin32.sourceforge.net/packages/make.htm](http://gnuwin32.sourceforge.net/packages/make.htm)
 
-- Optional: LCP81x-ISP [FIXME: link to tool on our github page]() Alternatively you can use any tool that can flash the LPC812 via ISP.
+- Optional: LCP81x-ISP [https://github.com/laneboysrc/LPC81x-ISP-tool](https://github.com/laneboysrc/LPC81x-ISP-tool) Alternatively you can use any tool that can flash the LPC812 via ISP.
 
 - Windows users: **rm.exe** from [coreutils](http://gnuwin32.sourceforge.net/downlinks/coreutils-bin-zip.php).
 
