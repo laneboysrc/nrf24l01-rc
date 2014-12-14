@@ -1,5 +1,7 @@
 # Tools required to build the LPC812 firmware
 
+**Note: a pre-compiled firmware is available for download [here](receiver.hex).**
+
 - **GCC for ARM** [https://launchpad.net/gcc-arm-embedded/](https://launchpad.net/gcc-arm-embedded/)
 
 - **GNU Make** [https://www.gnu.org/software/make/](https://www.gnu.org/software/make/);
@@ -7,7 +9,7 @@
 
 - Optional: LCP81x-ISP [FIXME: link to tool on our github page]() Alternatively you can use any tool that can flash the LPC812 via ISP.
 
-- Windows users: **cp.exe** and **rm.exe** from [coreutils](http://gnuwin32.sourceforge.net/downlinks/coreutils-bin-zip.php).
+- Windows users: **rm.exe** from [coreutils](http://gnuwin32.sourceforge.net/downlinks/coreutils-bin-zip.php).
 
 
 # Building the firmware

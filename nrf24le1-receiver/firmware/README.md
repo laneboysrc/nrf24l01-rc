@@ -1,11 +1,15 @@
 # Tools required to build the NRF24LE1 firmware
 
+**Note: a pre-compiled firmware is available for download [here](receiver.hex).**
+
 - **SDCC** [http://sdcc.sourceforge.net/](http://sdcc.sourceforge.net/)
 
 - **GNU Make** [https://www.gnu.org/software/make/](https://www.gnu.org/software/make/)
   Windows executable is available at [http://gnuwin32.sourceforge.net/packages/make.htm](http://gnuwin32.sourceforge.net/packages/make.htm)
 
-- Windows users: **cp.exe** and **rm.exe** from [coreutils](http://gnuwin32.sourceforge.net/downlinks/coreutils-bin-zip.php).
+- **srecord package** [http://srecord.sourceforge.net/](http://srecord.sourceforge.net/)
+
+- Windows users: **rm.exe** from [coreutils](http://gnuwin32.sourceforge.net/downlinks/coreutils-bin-zip.php).
 
 
 # Building the firmware
@@ -16,4 +20,4 @@ Running ``make program`` flashes the firmware, assuming you are using the [nrf_p
 
 It may be advisable to check the ``makefile`` whether the settings are desired for your application.
 
-You can build firmware images for the HKR3000 or XR3100 by running ``make hkr3000`` and ``make xr3100``. Note that those receivers include the OTP version, so you can only use/flash the firmware if you change the NRF24LE1 chip to the flash version.
+You can build firmware images for the HKR3000 or XR3100 by running ``make hkr3000`` and ``make xr3100``. Note that those receivers include the OTP version, so you can only flash the firmware if you change to the NRF24LE1**E** (Flash) version.
