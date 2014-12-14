@@ -1,6 +1,6 @@
 # Tools required to build the NRF24LE1 firmware
 
-**Note: a pre-compiled firmware is available for download [here](receiver.hex).**
+**Note: a pre-compiled firmware is available for download [here](receiver.bin).**
 
 - **SDCC** [http://sdcc.sourceforge.net/](http://sdcc.sourceforge.net/)
 
