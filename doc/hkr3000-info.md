@@ -75,9 +75,13 @@ cc cc 02 ho hp hq hr hs ht ..
 ```
 
 ``ff aa 55``     Special marker for the first bind packet
+
 ``a[1-5]``       The 5 address bytes
+
 ``cc cc``        The 16 bit sum of bytes a1..a5
+
 ``h[a-t]``       20 channels for frequency hopping
+
 ``..``           Not used
 
 
