@@ -103,7 +103,47 @@ static void init_hardware(void)
 #error Clock initialization code expexts __SYSTEM_CLOCK to be set to 1200000
 #endif
 
+    // Set flash wait-states to 1 system clock
+    LPC_FLASHCTRL->FLASHCFG = 0;
+
+
+    // ------------------------
+    // Turn on peripheral clocks for SCTimer, IOCON, SPI0, MRT, WWDT
+    // (GPIO, SWM alrady enabled after reset)
+    LPC_SYSCON->SYSAHBCLKCTRL |=
+        (1 << 18) | (1 << 17) | (1 << 11) | (1 << 10) | (1 << 8);
+
+
+    // ------------------------
+    // Turn on brown-out detection and reset
+    LPC_SYSCON->BODCTRL = (1 << 4) | (1 << 2) | (3 << 0);
+
+
+    // ------------------------
+    // Multi Rate Timer configuration
+    // This timer is used for the delay_us functionality
+    LPC_MRT->Channel[0].CTRL = (0x1 << 1); // One-shot mode
+
+
+#ifdef USE_IRC
+    // All special functions disabled, including reset
+    LPC_SWM->PINENABLE0 = 0xffffffff;
+#endif
+
+
+    // XTALIN and XTALOUT enabled, others disabled (including reset)
+    LPC_IOCON->PIO0_8 = 0;              // Turn pull-up off
+    LPC_IOCON->PIO0_9 = 0;
+    LPC_SWM->PINENABLE0 = 0xffffffcf;
+    LPC_SYSCON->SYSOSCCTRL = (1 << 1);  // 15..25 MHz range
+    LPC_SYSCON->PDRUNCFG &= ~(1 << 5);  // Enable the system oscillator
+
+    delay_us(600);
+
+
 #ifndef USE_IRC
+
+
     LPC_SYSCON->PDRUNCFG &= ~(1 << 7);          // Enable the system PLL
 
     LPC_SYSCON->SYSPLLCLKSEL = 0x1;             // PLL input is the crystal oscillator
@@ -123,27 +163,9 @@ static void init_hardware(void)
     LPC_SYSCON->MAINCLKUEN = 1;
 #endif
 
-    // Set flash wait-states to 1 system clock
-    LPC_FLASHCTRL->FLASHCFG = 0;
-
-
-    // ------------------------
-    // Turn on peripheral clocks for SCTimer, IOCON, SPI0, MRT, WWDT
-    // (GPIO, SWM alrady enabled after reset)
-    LPC_SYSCON->SYSAHBCLKCTRL |=
-        (1 << 18) | (1 << 17) | (1 << 11) | (1 << 10) | (1 << 8);
-
-
-    // ------------------------
-    // Turn on brown-out detection and reset
-    LPC_SYSCON->BODCTRL = (1 << 4) | (1 << 2) | (3 << 0);
-
 
     // ------------------------
     // IO configuration
-
-    // All special functions disabled, including reset
-    LPC_SWM->PINENABLE0 = 0xffffffff;
 
     // Enable hardware inputs and outputs
     LPC_SWM->PINASSIGN0 = (0xff << 24) |
@@ -172,7 +194,7 @@ static void init_hardware(void)
                           (GPIO_BIT_CH2 << 0);          // CTOUT_1
 
     // Configure outputs
-    LPC_GPIO_PORT->DIR0 = (1 << GPIO_BIT_NRF_SCK) |
+    LPC_GPIO_PORT->DIR0 |= (1 << GPIO_BIT_NRF_SCK) |
                           (1 << GPIO_BIT_NRF_MOSI) |
                           (1 << GPIO_BIT_NRF_CSN) |
                           (1 << GPIO_BIT_NRF_CE) |
@@ -247,12 +269,6 @@ static void init_hardware(void)
 
 
     // ------------------------
-    // Multi Rate Timer configuration
-    // This timer is used for the delay_us functionality
-    LPC_MRT->Channel[0].CTRL = (0x1 << 1); // One-shot mode
-
-
-    // ------------------------
     // Watchdog configuration
     LPC_SYSCON->WDTOSCCTRL = (1 << 5) |     // 0.6 MHz
                              (0xff << 0);   // Divide by 64 for ~9.4 kHz Watchdog clock
@@ -318,6 +334,10 @@ void SysTick_handler(void)
 void invoke_ISP(void)
 {
     unsigned int param[5];
+
+    // Release RX pin for UART function and make it an input
+    LPC_SWM->PINASSIGN7 = 0xffffffff;
+    LPC_GPIO_PORT->DIR0 &= ~(1 << 0);
 
     // Disable the watchdog through power-down of the watchdog osc
     LPC_SYSCON->PDRUNCFG |= (1 << 6);
