@@ -142,8 +142,8 @@ static void init_hardware(void)
     // ------------------------
     // IO configuration
 
-    // Enable reset, all other special functions disabled
-    LPC_SWM->PINENABLE0 = 0xffffffbf;
+    // All special functions disabled, including reset
+    LPC_SWM->PINENABLE0 = 0xffffffff;
 
     // Enable hardware inputs and outputs
     LPC_SWM->PINASSIGN0 = (0xff << 24) |
@@ -242,8 +242,8 @@ static void init_hardware(void)
 
     // ------------------------
     // Configure the exernal interrupt from the NRF chip
-    LPC_SYSCON->PINTSEL[0] = 11;            // PIO0_11 (NRF_IRQ) on PININT0
-    LPC_PIN_INT->IENF = (1 << 0);           // Enable falling edge on PININT0
+    LPC_SYSCON->PINTSEL[0] = GPIO_BIT_NRF_IRQ;  // PIO0_10 (NRF_IRQ) on PININT0
+    LPC_PIN_INT->IENF = (1 << 0);               // Enable falling edge on PININT0
 
 
     // ------------------------

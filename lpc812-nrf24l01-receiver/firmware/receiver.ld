@@ -45,7 +45,7 @@ SECTIONS
 
 
     /* Use the top-most page in flash to store the persistent data */
-    .persistent_data : AT (0x4000 - 64)
+    .persistent_data (0x4000 - 64) :
     {
         KEEP(*(.persistent_data))
     } > FLASH
