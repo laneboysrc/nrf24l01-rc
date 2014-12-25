@@ -172,8 +172,8 @@ void init_uart0(int baudrate)
 
     LPC_USART0->CFG = UART_CFG_DATALEN(8) | UART_CFG_ENABLE;     // 8n1
 
-    LPC_USART0->INTENSET = (1 << 0);    // Enable RXRDY interrupt
-    NVIC_EnableIRQ(UART0_IRQn);
+    // LPC_USART0->INTENSET = (1 << 0);    // Enable RXRDY interrupt
+    // NVIC_EnableIRQ(UART0_IRQn);
 }
 
 
