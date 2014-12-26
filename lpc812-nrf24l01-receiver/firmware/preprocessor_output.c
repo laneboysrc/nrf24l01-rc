@@ -17,6 +17,8 @@
 #define SERVO_PULSE_CLAMP_LOW 800
 #define SERVO_PULSE_CLAMP_HIGH 2300
 
+#define NUMBER_OF_STARTUP_PACKETS 20
+
 #ifdef EXTENDED_PREPROCESSOR_OUTPUT
     #define TX_DATA_SIZE 8
 #else
@@ -93,8 +95,10 @@ static void normalize_channel(CHANNEL_T *c)
 // ****************************************************************************
 void output_preprocessor(void)
 {
+    static uint8_t startup_count = 0;
+
     if (systick) {
-        if (successful_stick_data) {
+        if (successful_stick_data && startup_count >= NUMBER_OF_STARTUP_PACKETS) {
             // Multiply by 0.75 to get microseconds from 750ns based clock
             servo[0].raw_data = channels[0] * 3 / 4;
             servo[1].raw_data = channels[1] * 3 / 4;
@@ -130,6 +134,9 @@ void output_preprocessor(void)
             tx_data[3] = ch3_2pos ? 1 : 0;
         }
         else {
+            if (startup_count < NUMBER_OF_STARTUP_PACKETS) {
+                ++startup_count;
+            }
             tx_data[1] = 0;
             tx_data[2] = 0;
             tx_data[3] = 0 + (1 << 4);          // CH3 + STARTUP_MODE flag
