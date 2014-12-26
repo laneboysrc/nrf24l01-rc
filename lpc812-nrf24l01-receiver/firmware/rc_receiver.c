@@ -411,10 +411,12 @@ static void process_receiving(void)
     }
     rf_clear_irq(RX_RD);
 
+#ifndef NO_DEBUG
     if (hops_without_packet > 1) {
         uart0_send_uint32(hops_without_packet);
         uart0_send_linefeed();
     }
+#endif
 
     restart_hop_timer();
 
