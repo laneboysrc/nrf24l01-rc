@@ -131,32 +131,28 @@ static void init_hardware(void)
 #endif
 
 
+#ifndef USE_IRC
     // XTALIN and XTALOUT enabled, others disabled (including reset)
     LPC_IOCON->PIO0_8 = 0;              // Turn pull-up off
     LPC_IOCON->PIO0_9 = 0;
     LPC_SWM->PINENABLE0 = 0xffffffcf;
     LPC_SYSCON->SYSOSCCTRL = (1 << 1);  // 15..25 MHz range
     LPC_SYSCON->PDRUNCFG &= ~(1 << 5);  // Enable the system oscillator
-
     delay_us(600);
 
-
-#ifndef USE_IRC
-
-
-    LPC_SYSCON->PDRUNCFG &= ~(1 << 7);          // Enable the system PLL
-
+    LPC_SYSCON->PDRUNCFG &= ~(1 << 7);          // Enable the PLL
     LPC_SYSCON->SYSPLLCLKSEL = 0x1;             // PLL input is the crystal oscillator
     LPC_SYSCON->SYSPLLCLKUEN = 0;               // Toggle PLL-enable
     LPC_SYSCON->SYSPLLCLKUEN = 1;
 
     // Set the PLL to 16Mhz * 3 / 4 = 12 Mhz
-    LPC_SYSCON->SYSPLLCTRL = (0x2 << 0) |       // M = 3
-                             (0x2 << 5);        // P = 4
+    LPC_SYSCON->SYSPLLCTRL = (0x2 << 0);        // M = 3
 
     while (!(LPC_SYSCON->SYSPLLSTAT & 1)) {     // Wait for PLL lock
         ;
     }
+
+    LPC_SYSCON->SYSAHBCLKDIV = 4;               // Divide 48 MHz PLL output by 4 for 12 MHz system clock
 
     LPC_SYSCON->MAINCLKSEL = 0x3;               // Use the PLL clock output as main clock
     LPC_SYSCON->MAINCLKUEN = 0;                 // Toggle CLK-enable
