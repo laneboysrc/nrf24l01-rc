@@ -7,8 +7,8 @@
 #define __SYSTICK_IN_MS 10
 
 #define NUMBER_OF_CHANNELS 3
-#define SERVO_PULSE_CENTER 1500 * 4 / 3
-#define INITIAL_ENDPOINT_DELTA 250
+#define SERVO_PULSE_CENTER 1500
+#define INITIAL_ENDPOINT_DELTA 200
 
 
 // ****************************************************************************

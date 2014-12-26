@@ -95,21 +95,21 @@ void output_preprocessor(void)
 {
     if (systick) {
         if (successful_stick_data) {
-            if (!initialized) {
-                initialized = true;
-                servo[0].centre = channels[0];
-                servo[1].centre = channels[1];
-
-                servo[0].left = channels[0] - INITIAL_ENDPOINT_DELTA;
-                servo[0].right = channels[0] + INITIAL_ENDPOINT_DELTA;
-                servo[1].left = channels[1] - INITIAL_ENDPOINT_DELTA;
-                servo[1].right = channels[1] + INITIAL_ENDPOINT_DELTA;
-            }
-
             // Multiply by 0.75 to get microseconds from 750ns based clock
             servo[0].raw_data = channels[0] * 3 / 4;
             servo[1].raw_data = channels[1] * 3 / 4;
             ch3_raw = channels[2] * 3 / 4;
+
+            if (!initialized) {
+                initialized = true;
+                servo[0].centre = servo[0].raw_data;
+                servo[1].centre = servo[1].raw_data;
+
+                servo[0].left = servo[0].centre - INITIAL_ENDPOINT_DELTA;
+                servo[0].right = servo[0].centre + INITIAL_ENDPOINT_DELTA;
+                servo[1].left = servo[1].centre - INITIAL_ENDPOINT_DELTA;
+                servo[1].right = servo[1].centre + INITIAL_ENDPOINT_DELTA;
+            }
 
             normalize_channel(&servo[0]);
             normalize_channel(&servo[1]);
