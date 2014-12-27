@@ -91,16 +91,26 @@ static void normalize_channel(CHANNEL_T *c)
 
 
 // ****************************************************************************
+// Convert the received timer value into microseconds of servo pulse duration
+static uint16_t stickdata2ms(uint16_t stickdata)
+{
+    uint16_t ms;
+
+    ms = (0xffff - stickdata) * 3 / 4;
+    return ms;
+}
+
+
+// ****************************************************************************
 void output_preprocessor(void)
 {
     static uint8_t startup_count = 0;
 
     if (systick) {
         if (successful_stick_data && startup_count >= NUMBER_OF_STARTUP_PACKETS) {
-            // Multiply by 0.75 to get microseconds from 750ns based clock
-            servo[0].raw_data = channels[0] * 3 / 4;
-            servo[1].raw_data = channels[1] * 3 / 4;
-            ch3_raw = channels[2] * 3 / 4;
+            servo[0].raw_data = stickdata2ms(channels[0]);
+            servo[1].raw_data = stickdata2ms(channels[1]);
+            ch3_raw = stickdata2ms(channels[2]);
 
             if (!initialized) {
                 initialized = true;
