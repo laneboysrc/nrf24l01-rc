@@ -18,7 +18,7 @@
 
 
 #ifndef BAUDRATE
-    #define BAUDRATE 115200
+    #define BAUDRATE 115200stickdata2ms
 #endif
 
 
@@ -207,7 +207,7 @@ static void init_hardware(void)
     //
     // Timer H is used for the servo outputs, setting the servo pins
     // on timer reload and clearing them when a match condition occurs.
-    // The timer is running at 1 MHz clock (1us resolution).
+    // The timer is running at 1.3 MHz clock (750ns resolution).
     // The repeat frequency is 15ms (a multiple of the on-air packet repeat
     // rate).
     // The 3 servo pulses are generated with MATCH registers 1..3. and
@@ -222,10 +222,10 @@ static void init_hardware(void)
 
     LPC_SCT->CTRL_H |= (1 << 3) |                   // Clear the counter H
         (((__SYSTEM_CLOCK / 1333333) - 1) << 5);    // PRE_H[12:5] = divide for 750ns clock
-    LPC_SCT->MATCHREL[0].H = 16000 - 1;             // 16 ms servo pulse repeat time
-    LPC_SCT->MATCHREL[1].H = SERVO_PULSE_CENTER;    // Servo pulse 1.5 ms intially
-    LPC_SCT->MATCHREL[2].H = SERVO_PULSE_CENTER;
-    LPC_SCT->MATCHREL[3].H = SERVO_PULSE_CENTER;
+    LPC_SCT->MATCHREL[0].H = (10000 * 4 / 3) - 1;   // 10 ms servo pulse repeat time
+    LPC_SCT->MATCHREL[1].H = SERVO_PULSE_CENTER * 4 / 3; // Servo pulse 1.5 ms intially
+    LPC_SCT->MATCHREL[2].H = SERVO_PULSE_CENTER * 4 / 3;
+    LPC_SCT->MATCHREL[3].H = SERVO_PULSE_CENTER * 4 / 3;
 
     // All 4 events are setup in the same way:
     // Event happens in all states; Match register of the same number;
