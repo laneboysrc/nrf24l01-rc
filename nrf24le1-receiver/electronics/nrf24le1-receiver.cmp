@@ -1,23 +1,30 @@
-Cmp-Mod V01 Created by CvPcb (2013-jul-07)-stable date = Sat 29 Nov 2014 07:45:09 PM SGT
+Cmp-Mod V01 Created by CvPcb (2013-jul-07)-stable date = Mon 05 Jan 2015 09:47:20 AM SGT
 
 BeginCmp
-TimeStamp = /54792183;
+TimeStamp = /54A9ED05;
 Reference = C1;
-ValeurCmp = C;
+ValeurCmp = 47uF;
 IdModule  = SM0805;
 EndCmp
 
 BeginCmp
 TimeStamp = /5479216A;
 Reference = C2;
-ValeurCmp = C;
+ValeurCmp = 1u;
 IdModule  = SM0805;
 EndCmp
 
 BeginCmp
 TimeStamp = /5479215B;
 Reference = C3;
-ValeurCmp = C;
+ValeurCmp = 1u;
+IdModule  = SM0805;
+EndCmp
+
+BeginCmp
+TimeStamp = /54A9ECE7;
+Reference = C4;
+ValeurCmp = 47uF;
 IdModule  = SM0805;
 EndCmp
 
@@ -80,49 +87,49 @@ EndCmp
 BeginCmp
 TimeStamp = /5479290A;
 Reference = R1;
-ValeurCmp = R;
+ValeurCmp = 270;
 IdModule  = SM0805;
 EndCmp
 
 BeginCmp
 TimeStamp = /5479219C;
 Reference = R2;
-ValeurCmp = R;
+ValeurCmp = 680;
 IdModule  = SM0805;
 EndCmp
 
 BeginCmp
 TimeStamp = /547921A9;
 Reference = R3;
-ValeurCmp = R;
+ValeurCmp = 680;
 IdModule  = SM0805;
 EndCmp
 
 BeginCmp
 TimeStamp = /547921AF;
 Reference = R4;
-ValeurCmp = R;
+ValeurCmp = 680;
 IdModule  = SM0805;
 EndCmp
 
 BeginCmp
 TimeStamp = /547921B5;
 Reference = R5;
-ValeurCmp = R;
+ValeurCmp = 680;
 IdModule  = SM0805;
 EndCmp
 
 BeginCmp
 TimeStamp = /547925D0;
 Reference = SW1;
-ValeurCmp = SW_PUSH;
+ValeurCmp = BIND;
 IdModule  = SW_PUSH_ROUND_6mm;
 EndCmp
 
 BeginCmp
 TimeStamp = /54792138;
 Reference = U1;
-ValeurCmp = MCP1703T-3302E/CB;
+ValeurCmp = MCP1703;
 IdModule  = MCP1703-SOT95P300X145-3N;
 EndCmp
 

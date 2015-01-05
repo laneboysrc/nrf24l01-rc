@@ -24,8 +24,8 @@ $Descr A4 11693 8268
 encoding utf-8
 Sheet 1 1
 Title ""
-Date "30 nov 2014"
-Rev ""
+Date "5 jan 2015"
+Rev "2"
 Comp ""
 Comment1 ""
 Comment2 ""
@@ -118,17 +118,6 @@ F 1 "1u" H 1706 6265 40  0000 L CNN
 F 2 "~" H 1738 6200 30  0000 C CNN
 F 3 "~" H 1700 6350 60  0000 C CNN
 	1    1700 6350
-	1    0    0    -1  
-$EndComp
-$Comp
-L C C1
-U 1 1 54792183
-P 2300 2600
-F 0 "C1" H 2300 2700 40  0000 L CNN
-F 1 "10u" H 2306 2515 40  0000 L CNN
-F 2 "~" H 2338 2450 30  0000 C CNN
-F 3 "~" H 2300 2600 60  0000 C CNN
-	1    2300 2600
 	1    0    0    -1  
 $EndComp
 $Comp
@@ -418,7 +407,7 @@ Wire Wire Line
 Wire Wire Line
 	9300 3000 9700 3000
 Wire Wire Line
-	3350 2200 2300 2200
+	2050 2200 3350 2200
 Wire Wire Line
 	9600 3200 9700 3200
 Wire Wire Line
@@ -570,4 +559,41 @@ Text Notes 2350 5450 0    80   ~ 16
 Power supply 3.3V
 Text Notes 8450 5100 0    80   ~ 16
 Bind button
+$Comp
+L CP C4
+U 1 1 54A9ECE7
+P 2300 2600
+F 0 "C4" H 2350 2700 40  0000 L CNN
+F 1 "47uF" H 2350 2500 40  0000 L CNN
+F 2 "0805" H 2400 2450 30  0000 C CNN
+F 3 "~" H 2300 2600 300 0000 C CNN
+	1    2300 2600
+	1    0    0    -1  
+$EndComp
+$Comp
+L CP C1
+U 1 1 54A9ED05
+P 2050 2600
+F 0 "C1" H 2100 2700 40  0000 L CNN
+F 1 "47uF" H 2100 2500 40  0000 L CNN
+F 2 "0805" H 2150 2450 30  0000 C CNN
+F 3 "~" H 2050 2600 300 0000 C CNN
+	1    2050 2600
+	1    0    0    -1  
+$EndComp
+$Comp
+L VSS #PWR015
+U 1 1 54A9ED8E
+P 2050 2950
+F 0 "#PWR015" H 2050 2950 30  0001 C CNN
+F 1 "VSS" H 2050 2880 30  0000 C CNN
+F 2 "" H 2050 2950 60  0000 C CNN
+F 3 "" H 2050 2950 60  0000 C CNN
+	1    2050 2950
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	2050 2800 2050 2950
+Wire Wire Line
+	2050 2400 2050 2200
 $EndSCHEMATC
