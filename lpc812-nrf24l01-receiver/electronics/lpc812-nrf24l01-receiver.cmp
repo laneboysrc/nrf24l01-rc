@@ -1,4 +1,4 @@
-Cmp-Mod V01 Created by CvPcb (2013-jul-07)-stable date = Thu 27 Nov 2014 05:15:49 PM SGT
+Cmp-Mod V01 Created by CvPcb (2013-jul-07)-stable date = Mon 05 Jan 2015 10:22:39 AM SGT
 
 BeginCmp
 TimeStamp = /546ED3B5;
@@ -36,16 +36,16 @@ IdModule  = SM0805;
 EndCmp
 
 BeginCmp
-TimeStamp = /5471B4BB;
+TimeStamp = /54A9F170;
 Reference = C6;
-ValeurCmp = 10uF;
-IdModule  = SM0805;
+ValeurCmp = 100uF;
+IdModule  = c_tant_A;
 EndCmp
 
 BeginCmp
 TimeStamp = /546F0587;
 Reference = D1;
-ValeurCmp = LED blue;
+ValeurCmp = LED;
 IdModule  = LED-0603;
 EndCmp
 
@@ -117,6 +117,13 @@ TimeStamp = /5471D037;
 Reference = R5;
 ValeurCmp = 680;
 IdModule  = SM0603;
+EndCmp
+
+BeginCmp
+TimeStamp = /54A9F5EB;
+Reference = R6;
+ValeurCmp = 47k;
+IdModule  = SM0805;
 EndCmp
 
 BeginCmp

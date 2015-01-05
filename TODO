@@ -2,10 +2,6 @@
 
 - Test pulse accuracy and jitter
 
-- Pull-down resistor for MISO line on LPC812 NRF24L01 variant
-
-- Add 100uF tantal (2x 47uF?) to 3.3V rail to prevent brown-outs
-
 - Re-initialize RF when failsafe triggers.
   With very weak batteries it happens that a brown-out causes the RF module
   to loose its configuration while the microcontroller still happily runs.
