@@ -7,6 +7,7 @@
 * Hop frequency changed every 5 ms
 * Failsafe sent
 
+
 ## START SIMPLE
 
 * Basic 3 and 4 channel Tx; output to 3 channel receiver
@@ -14,12 +15,15 @@
 * EPA
 * Sub-trim
 * Expo
+* Battery state
 
 
 ## Headless transmitter (Tx) and Programming Box (PB)
 
 * The PB allows live configuration of (sub)-trim values, end points, etc
 * The PB can display the live stick position and channel outputs
+* The PB shows the battery state of the Tx
+
 
 ## RC
 
@@ -35,7 +39,7 @@
     * Momentary buttons can be configured to make a multi-position switch
         * Transmitter beeps the current number
         * Long press support?
-
+* Toggle switches and trims need to remember their state across power cycles
 
 ### Model vs Transmitter hardware configuration
 
@@ -59,6 +63,7 @@
 * The mixer is derived from Deviation
 * The mixer calculates signed 16 bit servo values
 * Common templates like V-tail, Flaperons, 4-wheel steering
+
 
 ## RF protocol
 
@@ -102,8 +107,6 @@
     * Tx->PB Free-to-connect
     * PB->Tx Disconnect
     * Tx->PB Disconnecting-now
-
-
 
 
 ## Battery indication:
