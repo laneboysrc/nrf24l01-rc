@@ -8,7 +8,9 @@
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/cm3/systick.h>
 
-#include "ring_buffer.h"
+#include <ring_buffer.h>
+#include <spi.h>
+#include <nrf24l01p.h>
 
 #define BUFFER_SIZE 1024
 
@@ -152,6 +154,8 @@ int main(void)
     init_systick();
     init_gpio();
     init_uart();
+    init_spi();
+    init_nrf24();
 
     printf("Hello world!\n;");
 
