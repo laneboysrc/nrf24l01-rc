@@ -1,22 +1,8 @@
-# BINARY = stm32f1-nrf24l01-transmitter
-
-# # OBJS = other_files.o
-
-# LDSCRIPT = stm32f103c8t6.ld
-
-# include libopencm3.target.mk
-
-
-
 .DEFAULT_GOAL := all
 
 PROJECT_NAME := tx
 
-
-OPENCM3_DIR = ./libopencm3
-OPENCM3_LIBNAME	= opencm3_stm32f1
-
-
+###############################################################################
 # Supress or show diagnostic compiler output
 ifeq ("$(VERBOSE)", "1")
 ECHO :=
@@ -29,8 +15,8 @@ endif
 endif
 
 
+###############################################################################
 # Toolchain commands
-# GNU_INSTALL_ROOT 	:= /usr
 GNU_INSTALL_ROOT 	:= /opt/gcc-arm-none-eabi-5_2-2015q4
 GNU_PREFIX       	:= arm-none-eabi
 CC               	:= '$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-gcc'
@@ -43,11 +29,17 @@ OBJCOPY          	:= '$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-objcopy'
 SIZE             	:= '$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-size'
 
 OPENOCD          	:= /opt/openocd/bin/openocd
+OPENOCD_INTERFACE   := stlink-v2
+OPENOCD_TARGET      := stm32f1x
 
 MK 				 	:= mkdir -p
 RM 					:= rm -rf
 
+OPENCM3_DIR 		:= ./libopencm3
+OPENCM3_LIBNAME		:= opencm3_stm32f1
 
+
+###############################################################################
 # Source files, include paths, library paths and libraries
 C_SOURCE_FILES += $(abspath main.c)
 
@@ -62,6 +54,7 @@ INC_PATHS += -isystem$(abspath $(OPENCM3_DIR)/include)
 LIB_PATHS += -L$(abspath $(OPENCM3_DIR)/lib)
 
 
+###############################################################################
 # Build directory, where all the intermediate files go
 OBJECT_DIRECTORY = build
 LISTING_DIRECTORY = $(OBJECT_DIRECTORY)
@@ -71,19 +64,30 @@ OUTPUT_BINARY_DIRECTORY = $(OBJECT_DIRECTORY)
 BUILD_DIRECTORIES := $(sort $(OBJECT_DIRECTORY) $(OUTPUT_BINARY_DIRECTORY) $(LISTING_DIRECTORY) )
 
 
+###############################################################################
 # CPU architecture
 ARCH_FLAGS = -DSTM32F1 -mcpu=cortex-m3 -mthumb -msoft-float -mfix-cortex-m3-ldrd
 
 
+###############################################################################
 # C compiler flags
 CFLAGS := $(ARCH_FLAGS)
 CFLAGS += --std=c99
-CFLAGS += -Wall -Werror -O3 -g3
+CFLAGS += -W -Wall -Wextra -Wpedantic
+CFLAGS += -Wstrict-prototypes -Wshadow -Wwrite-strings
+CFLAGS += -Wdeclaration-after-statement -Waddress -Wlogical-op
+CFLAGS += -Wold-style-definition -Wmissing-prototypes -Wmissing-declarations
+CFLAGS += -Wmissing-field-initializers -Wdouble-promotion -Wfloat-equal
+CFLAGS += -Wswitch-enum -Wswitch-default -Wuninitialized -Wunknown-pragmas
+CFLAGS += -Wundef
 # keep every function in separate section. This will allow linker to dump unused functions
 CFLAGS += -fno-common -ffunction-sections -fdata-sections -fno-strict-aliasing
-CFLAGS += -fno-builtin --short-enums
+CFLAGS += -fno-builtin
+CFLAGS += --short-enums -fsigned-char -fpack-struct=4
+CFLAGS += -Os
 
 
+###############################################################################
 # Linker flags
 LDFLAGS := $(ARCH_FLAGS)
 LDFLAGS	+= --static
@@ -95,6 +99,7 @@ LDFLAGS += -Wl,--gc-sections
 LDFLAGS += --specs=nano.specs
 
 
+###############################################################################
 # Create a list of object files and paths
 C_SOURCE_FILE_NAMES = $(notdir $(C_SOURCE_FILES))
 C_PATHS = $(sort $(dir $(C_SOURCE_FILES) ) )
@@ -104,6 +109,9 @@ vpath %.c $(C_PATHS)
 
 OBJECTS = $(C_OBJECTS)
 
+
+###############################################################################
+# Build rules
 
 # Building all targets
 all: $(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).hex echosize
@@ -117,6 +125,11 @@ $(BUILD_DIRECTORIES):
 $(OBJECT_DIRECTORY)/%.o: %.c
 	@echo [CC] $(notdir $<)
 	$(ECHO)$(CC) $(CFLAGS) $(INC_PATHS) -c -o $@ $<
+
+# Create list files
+$(LISTING_DIRECTORY)/%.lst: %.c
+	@echo [LIST] $<
+	$(ECHO)$(CC) -c -g -Wa,-adlhn $(CFLAGS) $(INC_PATHS) $< -o /dev/null > $@
 
 # Link
 $(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).out: $(BUILD_DIRECTORIES) $(OBJECTS)
@@ -133,6 +146,9 @@ $(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).hex: $(OUTPUT_BINARY_DIRECTORY)/$(PRO
 	@echo [OBJCOPY] $(PROJECT_NAME).hex
 	$(ECHO)$(OBJCOPY) -O ihex $(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).out $(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).hex
 
+# Create list files that include C code as well as Assembler
+list: $(BUILD_DIRECTORIES) $(OBJECTS:.o=.lst)
+
 echosize:
 	-@echo ''
 	$(ECHO)$(SIZE) $(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).out
@@ -142,12 +158,12 @@ clean:
 	$(ECHO)$(RM) $(BUILD_DIRECTORIES)
 
 program: $(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).hex
-	$(OPENOCD) -f interface/stlink-v2.cfg -f target/nrf51.cfg -c "init; reset halt ; nrf51 mass_erase ; sleep 500 ; flash write_image $(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).hex ; reset ; shutdown"
+	$(OPENOCD) -f interface/$(OPENOCD_INTERFACE).cfg -f target/$(OPENOCD_TARGET).cfg -c "init; reset halt ; nrf51 mass_erase ; sleep 500 ; flash write_image $(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).hex ; reset ; shutdown"
 
 flash: program
 
 reset:
-	$(OPENOCD) -f interface/stlink-v2.cfg -f target/nrf51.cfg -c "init; reset ; shutdown"
+	$(OPENOCD) -f interface/$(OPENOCD_INTERFACE).cfg -f target/$(OPENOCD_TARGET).cfg -c "init; reset ; shutdown"
 
 terminal:
 	miniterm.py -p /dev/ttyUSB0 -b 460800
