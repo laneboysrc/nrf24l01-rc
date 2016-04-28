@@ -42,6 +42,7 @@ OPENCM3_LIBNAME		:= opencm3_stm32f1
 ###############################################################################
 # Source files, include paths, library paths and libraries
 C_SOURCE_FILES += $(abspath main.c)
+C_SOURCE_FILES += $(abspath ring_buffer.c)
 
 LIBS += -lc -lnosys
 LIBS += -l$(OPENCM3_LIBNAME)
