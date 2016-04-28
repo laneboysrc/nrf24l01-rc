@@ -6,6 +6,7 @@ LIBS:WLA-power
 LIBS:power
 LIBS:device
 LIBS:conn
+LIBS:programming-box-cache
 EELAYER 27 0
 EELAYER END
 $Descr A3 16535 11693
@@ -86,12 +87,6 @@ F 3 "" H 7300 5750 60  0000 C CNN
 	1    7300 5750
 	1    0    0    -1  
 $EndComp
-Wire Wire Line
-	6900 5600 6900 5750
-Wire Wire Line
-	7100 5600 7100 5750
-Wire Wire Line
-	7300 5750 7300 5600
 $Comp
 L VCC #PWR04
 U 1 1 5721AFF0
@@ -103,13 +98,6 @@ F 3 "" H 7450 1850 60  0000 C CNN
 	1    7450 1850
 	1    0    0    -1  
 $EndComp
-Wire Wire Line
-	7450 1850 7450 1950
-Wire Wire Line
-	7100 1950 7100 1900
-Wire Wire Line
-	7100 1900 7650 1900
-Connection ~ 7450 1900
 $Comp
 L VDD #PWR05
 U 1 1 5721B014
@@ -121,8 +109,6 @@ F 3 "" H 6650 1850 60  0000 C CNN
 	1    6650 1850
 	1    0    0    -1  
 $EndComp
-Wire Wire Line
-	6650 1850 6650 1950
 $Comp
 L VCC #PWR06
 U 1 1 5721B02C
@@ -134,8 +120,6 @@ F 3 "" H 13500 2100 60  0000 C CNN
 	1    13500 2100
 	1    0    0    -1  
 $EndComp
-Wire Wire Line
-	13500 2100 13500 2250
 $Comp
 L GND #PWR07
 U 1 1 5721B045
@@ -147,8 +131,6 @@ F 3 "" H 13500 4400 60  0000 C CNN
 	1    13500 4400
 	1    0    0    -1  
 $EndComp
-Wire Wire Line
-	13500 4400 13500 4250
 $Comp
 L VCC #PWR08
 U 1 1 5721B069
@@ -160,8 +142,6 @@ F 3 "" H 13500 6750 60  0000 C CNN
 	1    13500 6750
 	1    0    0    -1  
 $EndComp
-Wire Wire Line
-	13500 6750 13500 6900
 $Comp
 L GND #PWR09
 U 1 1 5721B084
@@ -173,15 +153,6 @@ F 3 "" H 13500 8450 60  0000 C CNN
 	1    13500 8450
 	1    0    0    -1  
 $EndComp
-Wire Wire Line
-	13500 8450 13500 8300
-Wire Wire Line
-	12850 7350 12750 7350
-Wire Wire Line
-	12750 7350 12750 6800
-Wire Wire Line
-	12750 6800 13500 6800
-Connection ~ 13500 6800
 $Comp
 L CONN_2 P2
 U 1 1 5721B0AF
@@ -204,72 +175,24 @@ F 3 "" H 3450 9600 60  0000 C CNN
 	1    3450 9600
 	-1   0    0    1   
 $EndComp
-Wire Wire Line
-	4150 9300 3950 9300
-Wire Wire Line
-	3950 9200 3950 9500
-Wire Wire Line
-	3950 9500 3800 9500
-Wire Wire Line
-	3800 9700 3950 9700
-Wire Wire Line
-	3950 9700 3950 10000
-Wire Wire Line
-	3950 9900 4150 9900
-Wire Wire Line
-	6750 9300 6950 9300
-Wire Wire Line
-	6950 9300 6950 9500
-Wire Wire Line
-	6950 9500 7150 9500
-Wire Wire Line
-	7150 9700 6950 9700
-Wire Wire Line
-	6950 9700 6950 9900
-Wire Wire Line
-	6950 9900 6750 9900
 NoConn ~ 5450 8800
 NoConn ~ 5450 10400
-Wire Wire Line
-	5800 3250 5150 3250
-Wire Wire Line
-	5150 3550 5800 3550
 Text Label 5150 3250 0    60   ~ 0
 SPI1_SCK
 Text Label 5150 3550 0    60   ~ 0
 SPI1_MOSI
-Wire Wire Line
-	11450 3550 12200 3550
-Wire Wire Line
-	11450 3350 12200 3350
 Text Label 11450 3350 0    60   ~ 0
 SPI1_MOSI
 Text Label 11450 3550 0    60   ~ 0
 SPI1_SCK
-Wire Wire Line
-	5150 3700 5800 3700
-Wire Wire Line
-	5150 3100 5800 3100
-Wire Wire Line
-	5150 2950 5800 2950
-Wire Wire Line
-	5150 2800 5800 2800
-Text Label 5150 2800 0    60   ~ 0
+Text Label 9150 3850 2    60   ~ 0
 RST
-Text Label 5150 2950 0    60   ~ 0
+Text Label 9150 2650 2    60   ~ 0
 CS
-Text Label 5150 3100 0    60   ~ 0
+Text Label 9150 2500 2    60   ~ 0
 DC
-Text Label 5150 3700 0    60   ~ 0
+Text Label 5150 3100 0    60   ~ 0
 BL
-Wire Wire Line
-	11450 2750 12200 2750
-Wire Wire Line
-	11450 2950 12200 2950
-Wire Wire Line
-	11450 3150 12200 3150
-Wire Wire Line
-	11450 3750 12200 3750
 Text Label 11450 2750 0    60   ~ 0
 RST
 Text Label 11450 2950 0    60   ~ 0
@@ -300,13 +223,6 @@ F 3 "" H 8600 9450 60  0000 C CNN
 	1    8600 9450
 	1    0    0    -1  
 $EndComp
-Wire Wire Line
-	8600 9500 8600 9450
-Wire Wire Line
-	8200 9500 8600 9500
-Wire Wire Line
-	8350 9250 8350 9500
-Connection ~ 8350 9500
 $Comp
 L PWR_FLAG #FLG011
 U 1 1 5721B41F
@@ -329,77 +245,14 @@ F 3 "" H 8950 9900 60  0000 C CNN
 	1    8950 9900
 	1    0    0    -1  
 $EndComp
-Wire Wire Line
-	8950 9650 8950 9900
-Connection ~ 8950 9700
-Wire Wire Line
-	8200 9700 8950 9700
-Wire Wire Line
-	9150 4300 8350 4300
-Wire Wire Line
-	9150 4450 8350 4450
-Wire Wire Line
-	9150 4600 8350 4600
 Text Label 9150 4300 2    60   ~ 0
 SPI2_SCK
 Text Label 9150 4450 2    60   ~ 0
 SPI2_MISO
 Text Label 9150 4600 2    60   ~ 0
 SPI2_MOSI
-Wire Wire Line
-	5150 3850 5800 3850
-Wire Wire Line
-	5150 4000 5800 4000
-Text Label 5150 3850 0    60   ~ 0
-TX
-Text Label 5150 4000 0    60   ~ 0
-RX
-$Comp
-L CONN_3 K1
-U 1 1 5721B70D
-P 1600 6250
-F 0 "K1" V 1550 6250 50  0000 C CNN
-F 1 "CONN_3" V 1650 6250 40  0000 C CNN
-F 2 "" H 1600 6250 60  0000 C CNN
-F 3 "" H 1600 6250 60  0000 C CNN
-	1    1600 6250
-	-1   0    0    1   
-$EndComp
-$Comp
-L GND #PWR013
-U 1 1 5721B71C
-P 2100 6550
-F 0 "#PWR013" H 2100 6550 30  0001 C CNN
-F 1 "GND" H 2100 6480 30  0001 C CNN
-F 2 "" H 2100 6550 60  0000 C CNN
-F 3 "" H 2100 6550 60  0000 C CNN
-	1    2100 6550
-	1    0    0    -1  
-$EndComp
-Wire Wire Line
-	2100 6550 2100 6350
-Wire Wire Line
-	2100 6350 1950 6350
-Wire Wire Line
-	2650 6250 1950 6250
-Wire Wire Line
-	2650 6150 1950 6150
-Text Label 2650 6150 2    60   ~ 0
-RX
-Text Label 2650 6250 2    60   ~ 0
-TX
-Text Notes 2200 5650 2    60   ~ 0
-Debug UART
-Wire Wire Line
-	12150 7450 12850 7450
-Wire Wire Line
-	12150 7550 12850 7550
-Wire Wire Line
-	12150 7650 12850 7650
-Wire Wire Line
-	12150 7750 12850 7750
-Wire Wire Line
-	12150 7850 12850 7850
+Text Notes 7650 1200 2    60   ~ 0
+Use USB-CDCACM as debug UART?!
 Text Label 12150 7650 0    60   ~ 0
 SPI2_MOSI
 Text Label 12150 7550 0    60   ~ 0
@@ -410,19 +263,15 @@ Text Label 12150 7450 0    60   ~ 0
 IRQ
 Text Label 12150 7850 0    60   ~ 0
 CSN
-Wire Wire Line
-	9150 4150 8350 4150
-Wire Wire Line
-	9150 4000 8350 4000
-Text Label 9150 4000 2    60   ~ 0
-IRQ
 Text Label 9150 4150 2    60   ~ 0
+IRQ
+Text Label 5150 3700 0    60   ~ 0
 CSN
 $Comp
-L PWR_FLAG #FLG014
+L PWR_FLAG #FLG013
 U 1 1 5721BA45
 P 3950 9200
-F 0 "#FLG014" H 3950 9295 30  0001 C CNN
+F 0 "#FLG013" H 3950 9295 30  0001 C CNN
 F 1 "PWR_FLAG" H 3950 9380 30  0000 C CNN
 F 2 "" H 3950 9200 60  0000 C CNN
 F 3 "" H 3950 9200 60  0000 C CNN
@@ -430,36 +279,29 @@ F 3 "" H 3950 9200 60  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L PWR_FLAG #FLG015
+L PWR_FLAG #FLG014
 U 1 1 5721BA55
 P 3950 10000
-F 0 "#FLG015" H 3950 10095 30  0001 C CNN
+F 0 "#FLG014" H 3950 10095 30  0001 C CNN
 F 1 "PWR_FLAG" H 3950 10180 30  0000 C CNN
 F 2 "" H 3950 10000 60  0000 C CNN
 F 3 "" H 3950 10000 60  0000 C CNN
 	1    3950 10000
 	-1   0    0    1   
 $EndComp
-Connection ~ 3950 9900
-Connection ~ 3950 9300
 $Comp
-L VDD #PWR016
+L VDD #PWR015
 U 1 1 5721BB0B
 P 8350 9250
-F 0 "#PWR016" H 8350 9350 30  0001 C CNN
+F 0 "#PWR015" H 8350 9350 30  0001 C CNN
 F 1 "VDD" H 8350 9360 30  0000 C CNN
 F 2 "" H 8350 9250 60  0000 C CNN
 F 3 "" H 8350 9250 60  0000 C CNN
 	1    8350 9250
 	1    0    0    -1  
 $EndComp
-NoConn ~ 5800 2500
-NoConn ~ 5800 2650
 NoConn ~ 5800 3400
-NoConn ~ 8350 2500
-NoConn ~ 8350 2650
 NoConn ~ 8350 3700
-NoConn ~ 8350 3850
 NoConn ~ 8350 5050
 NoConn ~ 5800 5050
 NoConn ~ 5800 4900
@@ -467,8 +309,6 @@ NoConn ~ 5800 4750
 NoConn ~ 5800 4450
 NoConn ~ 5800 4300
 NoConn ~ 5800 4150
-Wire Wire Line
-	7650 1900 7650 1950
 $Comp
 L SW_PUSH SW3
 U 1 1 5721BCA3
@@ -536,16 +376,158 @@ F 3 "~" H 2250 1700 60  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L GND #PWR017
+L GND #PWR016
 U 1 1 5721BD2A
 P 1700 4300
-F 0 "#PWR017" H 1700 4300 30  0001 C CNN
+F 0 "#PWR016" H 1700 4300 30  0001 C CNN
 F 1 "GND" H 1700 4230 30  0001 C CNN
 F 2 "" H 1700 4300 60  0000 C CNN
 F 3 "" H 1700 4300 60  0000 C CNN
 	1    1700 4300
 	1    0    0    -1  
 $EndComp
+Text Label 3250 1700 2    60   ~ 0
+SW_BACK
+Text Label 3250 2600 2    60   ~ 0
+SW_UP
+Text Label 3250 3550 2    60   ~ 0
+SW_LEFT
+Text Label 3250 2150 2    60   ~ 0
+SW_OK
+Text Label 3250 4000 2    60   ~ 0
+SW_RIGHT
+Text Label 3250 3100 2    60   ~ 0
+SW_DOWN
+$Comp
+L STM32F103C8T6_DEV_BOARD U2
+U 1 1 5721AF53
+P 7100 3700
+F 0 "U2" H 6100 5200 60  0000 L CNN
+F 1 "STM32F103C8T6_DEV_BOARD" H 8050 2000 60  0000 C CNN
+F 2 "~" H 7250 4100 60  0000 C CNN
+F 3 "~" H 7250 4100 60  0000 C CNN
+	1    7100 3700
+	1    0    0    -1  
+$EndComp
+Text Label 5150 2500 0    60   ~ 0
+SW_BACK
+Text Label 9150 2950 2    60   ~ 0
+SW_OK
+Text Label 9150 4000 2    60   ~ 0
+SW_UP
+Text Label 5150 2800 0    60   ~ 0
+SW_DOWN
+Text Label 5150 2650 0    60   ~ 0
+SW_LEFT
+Text Label 9150 2800 2    60   ~ 0
+SW_RIGHT
+NoConn ~ 5800 2950
+Wire Wire Line
+	6900 5600 6900 5750
+Wire Wire Line
+	7100 5600 7100 5750
+Wire Wire Line
+	7300 5750 7300 5600
+Wire Wire Line
+	7450 1850 7450 1950
+Wire Wire Line
+	7100 1950 7100 1900
+Wire Wire Line
+	7100 1900 7650 1900
+Connection ~ 7450 1900
+Wire Wire Line
+	6650 1850 6650 1950
+Wire Wire Line
+	13500 2100 13500 2250
+Wire Wire Line
+	13500 4400 13500 4250
+Wire Wire Line
+	13500 6750 13500 6900
+Wire Wire Line
+	13500 8450 13500 8300
+Wire Wire Line
+	12850 7350 12750 7350
+Wire Wire Line
+	12750 7350 12750 6800
+Wire Wire Line
+	12750 6800 13500 6800
+Connection ~ 13500 6800
+Wire Wire Line
+	4150 9300 3950 9300
+Wire Wire Line
+	3950 9200 3950 9500
+Wire Wire Line
+	3950 9500 3800 9500
+Wire Wire Line
+	3800 9700 3950 9700
+Wire Wire Line
+	3950 9700 3950 10000
+Wire Wire Line
+	3950 9900 4150 9900
+Wire Wire Line
+	6750 9300 6950 9300
+Wire Wire Line
+	6950 9300 6950 9500
+Wire Wire Line
+	6950 9500 7150 9500
+Wire Wire Line
+	7150 9700 6950 9700
+Wire Wire Line
+	6950 9700 6950 9900
+Wire Wire Line
+	6950 9900 6750 9900
+Wire Wire Line
+	5800 3250 5150 3250
+Wire Wire Line
+	5150 3550 5800 3550
+Wire Wire Line
+	11450 3550 12200 3550
+Wire Wire Line
+	11450 3350 12200 3350
+Wire Wire Line
+	5150 2800 5800 2800
+Wire Wire Line
+	11450 2750 12200 2750
+Wire Wire Line
+	11450 2950 12200 2950
+Wire Wire Line
+	11450 3150 12200 3150
+Wire Wire Line
+	11450 3750 12200 3750
+Wire Wire Line
+	8600 9500 8600 9450
+Wire Wire Line
+	8200 9500 8600 9500
+Wire Wire Line
+	8350 9250 8350 9500
+Connection ~ 8350 9500
+Wire Wire Line
+	8950 9650 8950 9900
+Connection ~ 8950 9700
+Wire Wire Line
+	8200 9700 8950 9700
+Wire Wire Line
+	9150 4300 8350 4300
+Wire Wire Line
+	9150 4450 8350 4450
+Wire Wire Line
+	9150 4600 8350 4600
+Wire Wire Line
+	12150 7450 12850 7450
+Wire Wire Line
+	12150 7550 12850 7550
+Wire Wire Line
+	12150 7650 12850 7650
+Wire Wire Line
+	12150 7750 12850 7750
+Wire Wire Line
+	12150 7850 12850 7850
+Wire Wire Line
+	9150 4150 8350 4150
+Connection ~ 3950 9900
+Connection ~ 3950 9300
+Wire Wire Line
+	7650 1900 7650 1950
 Wire Wire Line
 	1950 1700 1700 1700
 Wire Wire Line
@@ -559,55 +541,12 @@ Wire Wire Line
 Connection ~ 1700 2150
 Wire Wire Line
 	2550 1700 3250 1700
-Text Label 3250 1700 2    60   ~ 0
-SW_BACK
 Wire Wire Line
 	3250 2150 2550 2150
-Text Label 3250 2600 2    60   ~ 0
-SW_UP
-Text Label 3250 3550 2    60   ~ 0
-SW_LEFT
-Text Label 3250 2150 2    60   ~ 0
-SW_OK
-Text Label 3250 4000 2    60   ~ 0
-SW_RIGHT
-Text Label 3250 3100 2    60   ~ 0
-SW_DOWN
 Wire Wire Line
 	9150 2800 8350 2800
 Wire Wire Line
 	9150 2950 8350 2950
-Wire Wire Line
-	9150 3100 8350 3100
-Wire Wire Line
-	9150 3400 8350 3400
-$Comp
-L STM32F103C8T6_DEV_BOARD U2
-U 1 1 5721AF53
-P 7100 3700
-F 0 "U2" H 6100 5200 60  0000 L CNN
-F 1 "STM32F103C8T6_DEV_BOARD" H 8050 2000 60  0000 C CNN
-F 2 "~" H 7250 4100 60  0000 C CNN
-F 3 "~" H 7250 4100 60  0000 C CNN
-	1    7100 3700
-	1    0    0    -1  
-$EndComp
-Wire Wire Line
-	9150 3250 8350 3250
-Text Label 9150 2800 2    60   ~ 0
-SW_BACK
-Wire Wire Line
-	9150 3550 8350 3550
-Text Label 9150 2950 2    60   ~ 0
-SW_OK
-Text Label 9150 3100 2    60   ~ 0
-SW_UP
-Text Label 9150 3250 2    60   ~ 0
-SW_DOWN
-Text Label 9150 3400 2    60   ~ 0
-SW_LEFT
-Text Label 9150 3550 2    60   ~ 0
-SW_RIGHT
 Wire Wire Line
 	1950 4000 1700 4000
 Connection ~ 1700 4000
@@ -624,4 +563,26 @@ Wire Wire Line
 	3250 3550 2550 3550
 Wire Wire Line
 	3250 4000 2550 4000
+Wire Wire Line
+	9150 2500 8350 2500
+Wire Wire Line
+	9150 2650 8350 2650
+Wire Wire Line
+	9150 3850 8350 3850
+Wire Wire Line
+	5150 3700 5800 3700
+Wire Wire Line
+	5150 3100 5800 3100
+NoConn ~ 5800 3850
+NoConn ~ 5800 4000
+Wire Wire Line
+	5150 2500 5800 2500
+Wire Wire Line
+	5150 2650 5800 2650
+Wire Wire Line
+	8350 4000 9150 4000
+NoConn ~ 8350 3100
+NoConn ~ 8350 3250
+NoConn ~ 8350 3400
+NoConn ~ 8350 3550
 $EndSCHEMATC

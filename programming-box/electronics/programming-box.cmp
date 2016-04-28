@@ -1,0 +1,101 @@
+Cmp-Mod V01 Created by CvPcb (2013-jul-07)-stable date = Thu 28 Apr 2016 03:16:36 PM SGT
+
+BeginCmp
+TimeStamp = /5721B70D;
+Reference = K1;
+ValeurCmp = CONN_3;
+IdModule  = PIN_ARRAY_3X1;
+EndCmp
+
+BeginCmp
+TimeStamp = /5721B0BC;
+Reference = P1;
+ValeurCmp = CONN_2;
+IdModule  = PIN_ARRAY_2X1;
+EndCmp
+
+BeginCmp
+TimeStamp = /5721B0AF;
+Reference = P2;
+ValeurCmp = CONN_2;
+IdModule  = PIN_ARRAY_2X1;
+EndCmp
+
+BeginCmp
+TimeStamp = /5721B3A5;
+Reference = P3;
+ValeurCmp = CONN_2;
+IdModule  = PIN_ARRAY_2X1;
+EndCmp
+
+BeginCmp
+TimeStamp = /5721BCFF;
+Reference = SW1;
+ValeurCmp = BACK;
+IdModule  = SW_PUSH_SMALL;
+EndCmp
+
+BeginCmp
+TimeStamp = /5721BCC2;
+Reference = SW2;
+ValeurCmp = OK;
+IdModule  = SW_PUSH_SMALL;
+EndCmp
+
+BeginCmp
+TimeStamp = /5721BCA3;
+Reference = SW3;
+ValeurCmp = UP;
+IdModule  = SW_PUSH_SMALL;
+EndCmp
+
+BeginCmp
+TimeStamp = /5721BCB6;
+Reference = SW4;
+ValeurCmp = DOWN;
+IdModule  = SW_PUSH_SMALL;
+EndCmp
+
+BeginCmp
+TimeStamp = /5721BCBC;
+Reference = SW5;
+ValeurCmp = LEFT;
+IdModule  = SW_PUSH_SMALL;
+EndCmp
+
+BeginCmp
+TimeStamp = /5721BCB0;
+Reference = SW6;
+ValeurCmp = RIGHT;
+IdModule  = SW_PUSH_SMALL;
+EndCmp
+
+BeginCmp
+TimeStamp = /5721AF71;
+Reference = U1;
+ValeurCmp = LIPO_CHARGER_+_PROTECTION;
+IdModule  = LiPo_charger_and_protection;
+EndCmp
+
+BeginCmp
+TimeStamp = /5721AF53;
+Reference = U2;
+ValeurCmp = STM32F103C8T6_DEV_BOARD;
+IdModule  = DIP-40__600;
+EndCmp
+
+BeginCmp
+TimeStamp = /5721AF44;
+Reference = U3;
+ValeurCmp = TFT-1.8-128X160-SPI;
+IdModule  = TFT-1.8-128x160-SPI;
+EndCmp
+
+BeginCmp
+TimeStamp = /5721AF62;
+Reference = U4;
+ValeurCmp = NRF24L01P;
+IdModule  = NRF24L01P-PA-LNA;
+EndCmp
+
+EndListe
