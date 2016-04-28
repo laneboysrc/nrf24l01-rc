@@ -9,7 +9,7 @@
 
 
 // ****************************************************************************
-void ring_buffer_init(RING_BUFFER_T *ring, uint8_t *buf, RING_SIZE_T size)
+void ring_buffer_init(RING_BUFFER_T *ring, uint8_t *buf, RING_BUFFER_SIZE_T size)
 {
     ring->data = buf;
     ring->size = size;
@@ -19,7 +19,7 @@ void ring_buffer_init(RING_BUFFER_T *ring, uint8_t *buf, RING_SIZE_T size)
 
 
 // ****************************************************************************
-RING_SIZE_T ring_buffer_write_uint8(RING_BUFFER_T *ring, uint8_t value)
+RING_BUFFER_SIZE_T ring_buffer_write_uint8(RING_BUFFER_T *ring, uint8_t value)
 {
     if (((ring->end + 1) % ring->size) != ring->begin) {
         ring->data[ring->end] = value;
@@ -32,9 +32,9 @@ RING_SIZE_T ring_buffer_write_uint8(RING_BUFFER_T *ring, uint8_t value)
 
 
 // ****************************************************************************
-RING_SIZE_T ring_buffer_write(RING_BUFFER_T *ring, uint8_t *data, RING_SIZE_T size)
+RING_BUFFER_SIZE_T ring_buffer_write(RING_BUFFER_T *ring, uint8_t *data, RING_BUFFER_SIZE_T size)
 {
-    RING_SIZE_T i;
+    RING_BUFFER_SIZE_T i;
 
     for (i = 0; i < size; i++) {
         if (ring_buffer_write_uint8(ring, *data) == 0) {
@@ -48,7 +48,7 @@ RING_SIZE_T ring_buffer_write(RING_BUFFER_T *ring, uint8_t *data, RING_SIZE_T si
 
 
 // ****************************************************************************
-RING_SIZE_T ring_buffer_read_uint8(RING_BUFFER_T *ring, uint8_t *data)
+RING_BUFFER_SIZE_T ring_buffer_read_uint8(RING_BUFFER_T *ring, uint8_t *data)
 {
     if (data != NULL) {
         if (ring->begin != ring->end) {
@@ -63,9 +63,9 @@ RING_SIZE_T ring_buffer_read_uint8(RING_BUFFER_T *ring, uint8_t *data)
 
 
 // ****************************************************************************
-RING_SIZE_T ring_buffer_read(RING_BUFFER_T *ring, uint8_t *data, RING_SIZE_T size)
+RING_BUFFER_SIZE_T ring_buffer_read(RING_BUFFER_T *ring, uint8_t *data, RING_BUFFER_SIZE_T size)
 {
-    RING_SIZE_T i;
+    RING_BUFFER_SIZE_T i;
 
     for (i = 0; i < size; i++) {
         if (ring_buffer_read_uint8(ring, data) == 0) {

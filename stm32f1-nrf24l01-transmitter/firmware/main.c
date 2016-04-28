@@ -17,6 +17,8 @@ volatile uint32_t milliseconds;
 static RING_BUFFER_T tx_ring_buffer;
 static uint8_t tx_buffer[BUFFER_SIZE];
 
+int _write(int file, char *ptr, int len);
+
 
 // ****************************************************************************
 static void init_clock(void)
@@ -109,14 +111,34 @@ void usart1_isr(void)
 
         uint8_t data;
 
+        // If there is still data in the transmit buffer send the next byte,
+        // otherwise disable the TXE interrupt as it is no longer needed.
         if (ring_buffer_read_uint8(&tx_ring_buffer, &data) == 0) {
-            // Disable the TXE interrupt, it's no longer needed
-            USART_CR1(USART1) &= ~USART_CR1_TXEIE;
-        } else {
-            // Put data into the transmit register
             usart_send(USART1, data);
         }
+        else {
+            USART_CR1(USART1) &= ~USART_CR1_TXEIE;
+        }
     }
+}
+
+
+// ****************************************************************************
+int _write(int file, char *ptr, int len)
+{
+    RING_BUFFER_SIZE_T written;
+
+    if (file == 1) {
+        written = ring_buffer_write(&tx_ring_buffer, (uint8_t *)ptr, len);
+
+        // Enable the TXE interrupt
+        USART_CR1(USART1) |= USART_CR1_TXEIE;
+
+        return written;
+    }
+
+    errno = EIO;
+    return -1;
 }
 
 
@@ -124,6 +146,7 @@ void usart1_isr(void)
 int main(void)
 {
     int i;
+    int count = 0;
 
     init_clock();
     init_systick();
@@ -135,9 +158,13 @@ int main(void)
     // Blink the LED connected to PC13
     while (1) {
         gpio_toggle(GPIOC, GPIO13);
+
         for (i = 0; i < 800000; i++) {
             __asm__("nop");
         }
+
+        printf("%d\n;", count);
+        ++count;
     }
 
     return 0;
