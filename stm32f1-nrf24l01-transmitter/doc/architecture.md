@@ -2,7 +2,7 @@
 
 * 20 hop channels
 * 5 byte address
-* 3 servo channels
+* 3 servo channels (Be able to extend to more channels; requires protocol change!)
 * Stick data sent every 5 ms
 * Hop frequency changed every 5 ms
 * Failsafe sent
