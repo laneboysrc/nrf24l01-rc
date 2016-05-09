@@ -46,12 +46,14 @@
 * Switch inputs
     * Each input is on or off only
     * Multiple inputs can be combined to form a multi-position switch
+    * Two switches can be combined to form a trim function
     * Have a pull-up programmed
     * May be momentary or latching
     * Momentary buttons can be configured to make a multi-position switch
         * Transmitter beeps the current number
         * Long press support?
 * Toggle switches and trims need to remember their state across power cycles
+
 
 ### Model vs Transmitter hardware configuration
 
@@ -143,3 +145,27 @@
 * LED lights up when powered
 * LED blinks when battery is low
 * Regular beep when battery is low, getting more frequent the lower the battery gets
+
+
+
+
+## RC transmitter modes:
+
+http://www.rc-airplane-world.com/rc-transmitter-modes.html
+
+Mode 1:
+    Left:   Elevator, Rudder
+    Right:  Throttle, Ailerons
+
+Mode 2:
+    Left:   Throttle, Rudder
+    Right:  Elevator, Ailerons
+
+Mode 3:
+    Left:   Elevator, Ailerons
+    Right:  Throttle, Rudder
+
+Mode 3:
+    Left:   Throttle, Ailerons
+    Right:  Elevator, Rudder
+
