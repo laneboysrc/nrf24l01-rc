@@ -23,7 +23,7 @@ $Descr A4 11693 8268
 encoding utf-8
 Sheet 1 1
 Title "STM32F1 NRF24L01 RC transmitter"
-Date "27 apr 2016"
+Date "9 may 2016"
 Rev "1"
 Comp "LANE Boys RC"
 Comment1 ""
@@ -428,8 +428,6 @@ Wire Wire Line
 	9850 950  9850 1150
 Wire Wire Line
 	10550 1050 10550 1150
-Wire Wire Line
-	9100 1050 10550 1050
 Connection ~ 9850 1050
 Wire Wire Line
 	7100 3450 7550 3450
@@ -440,9 +438,7 @@ Wire Wire Line
 Wire Wire Line
 	7100 3900 7550 3900
 Wire Wire Line
-	9200 1600 9100 1600
-Wire Wire Line
-	9100 1600 9100 1050
+	9200 1600 8700 1600
 Wire Wire Line
 	9200 2100 8700 2100
 Wire Wire Line
@@ -753,7 +749,6 @@ F 3 "" H 6750 6450 60  0000 C CNN
 	1    6750 6450
 	1    0    0    -1  
 $EndComp
-NoConn ~ 7100 2100
 NoConn ~ 7100 2250
 NoConn ~ 7100 2400
 NoConn ~ 7100 2550
@@ -856,9 +851,9 @@ Wire Wire Line
 Wire Wire Line
 	2450 5150 1650 5150
 Wire Wire Line
-	1650 5250 1850 5250
+	1850 5250 1650 5250
 Wire Wire Line
-	1850 5250 1850 1000
+	1850 1000 1850 5250
 Wire Wire Line
 	1650 4850 1850 4850
 Connection ~ 1850 4850
@@ -977,4 +972,10 @@ Wire Wire Line
 	5850 1100 6200 1100
 Wire Wire Line
 	6200 1100 6200 1250
+Text Label 8700 1600 0    60   ~ 0
+CE
+Wire Wire Line
+	7100 2100 7550 2100
+Text Label 7550 2100 2    60   ~ 0
+CE
 $EndSCHEMATC
