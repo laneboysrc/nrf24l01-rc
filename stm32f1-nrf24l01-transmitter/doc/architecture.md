@@ -169,3 +169,32 @@ Mode 3:
     Left:   Throttle, Ailerons
     Right:  Elevator, Rudder
 
+
+
+## Mixer
+
+The mixer originates from the DeviationTX project, which in turn comes in part from the ER9x project.
+However, in contrast to DeviationTx and ER9x the UI has always the sources on the left and the channel outputs on the right. I find this more intuitive.
+
+    Src   Mixer     Condition   Mux   Dest
+    --------------------------------------
+    ST    Expo/Dr               =     CH1
+    TH    Simple                =     CH2
+          Custom    TH-hold     =
+
+### Mixer types:
+- Simple: Curve, Scale, Offset
+    - Uses 1 mixer
+- Expo/Dr: Curve, Scale; SW1, Curve (can be linked), Scale; SW2 Curve (can be linked), Scale
+    - Uses 1..3 mixers, depending on whether SW1 and SW2 are set to None
+- Custom:
+    - Uses 1 mixer
+
+### Mux types:
+- = Replace
+- + Add
+- * Multiply
+
+Issue: Expo/Dr uses three mixers internally. They must be calculated using "replace" and then the final result needs to be applied the mux type on the main screen.
+
+UI issue: how to add and delete entries for a destination?
