@@ -232,13 +232,20 @@ The mixer unit is derived from the DeviationTx project. Each unit performs a sim
 Where:
   - Switch: a switch state that, if true, enables the mixer unit. If Switch is <None> then the mixer unit is always enabled.
   - Destination: The destination channel that receives the output of the mixer unit.
-  - op: The operation to perform. Can be = (replace destination channel value with output of the mixer unit), += (add mixer unit output to current destination channel value) or *= (multiply mixer unit output with the current destination channel value).
+  - op: The operation to perform. Can be
+    * = replace destination channel value with output of the mixer unit),
+    * += add mixer unit output to current destination channel value
+    * *= multiply mixer unit output with the current destination channel value
+    * MAX (**?**)
+    * MIN (**?**)
+    * Delay (**?**)
   - f(): One of the curve functions applied to the input source
   - Source: The input source for the mixer unit. Can be
     - Phyiscal transmitter inputs (sticks, pots, switches, push-buttons)
     - Channels (output channels as sent to the receiver)
     - Virtual channels (10 available for user selection, 10 hidden for Expo/Dr)
     - Trainer port inputs (not supported but prepare...)
+    - **Sources may be inverted**
   - Scaler: A scaling factor
   - Offset: An offset value to move the result up or down
   - Trim: **FIXME: trim: what does it do?**
@@ -286,7 +293,7 @@ Expo/Dr:
 Because Expo/Dr can use up to 4 mixer units, we need to figure out how to detect that we run out of mixer units or (hidden) virtual channels. The overflow can occur when we
   - Add a mixer to a destination
   - Change a mixer to Expo/Dr
-DeviationTx allows 10 mixer units per destination (7 channels, 10 virtual), so it does not have to worry about dynamic usage.
+DeviationTx has 88 mixers (12 + 10) * 4. However, in the UI one could assign 170 complex mixers (7 channels + 10 virtual ones, 10 mixer units each)
 A possible solution would be to have the mixer type selection in such a way that when the user would change to Expo/Dr and not enough mixers are available, he would get a dialog and the setting remains. The user could still select the other types that use only one mixer unit.
 Actually, since there are only 10 hidden virtual channels, the user can only add 10 Expo/Dr mixers.
 
