@@ -1,0 +1,2 @@
+- Check if we can move CE pin onto a timer output so that we can create a 10 us pulse automatically.
+  - Alternatively use a timer interrupt in conjunction with a one-shot timer.
