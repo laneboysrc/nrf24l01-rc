@@ -71,12 +71,16 @@
 
 * The nRF24 address can serve as a unique model identifier so that the PB can find the corresponding model in its memory
 
+* Trims have to be assigneable to a specific input. Trims may be either a pair of push-buttons (option: support a separate centering button?) or a potentiometer, or be mechanical (i.e. not existant from a software point-of-view).
+    - Note: output channels can have a trim too?!
+
 
 ## Mixer
 
 * The mixer is derived from Deviation
 * The mixer calculates signed 16 bit servo values
-* Common templates like V-tail, Flaperons, 4-wheel steering
+* Internally the mixer calculates signed 32 bit
+* Support common templates like V-tail, Flaperons, 4-wheel steering
 
 
 ## RF protocol
@@ -248,7 +252,8 @@ Where:
     - **Sources may be inverted**
   - Scaler: A scaling factor
   - Offset: An offset value to move the result up or down
-  - Trim: **FIXME: trim: what does it do?**
+  - Trim: If enabled then the trim value (range +/-100) is added to the mixer unit output, taking source channel inversion into account
+
 
 The mixer unit also receives a *tag* that identifies how it is used in the UI, i.e. as what mixer type the UI it needs to be presented. This tag is only used by the PB and not the Tx. It allows the PB to reconstruct the model setup by reading the Tx without having the model in its own memory.
 
@@ -332,8 +337,8 @@ The PB must align the mixers in the TX so that they can be processed in one loop
 
 - Normal/Reverse
 - Fail-safe on/off and value
-- (Safety None/channel and value; **what does this do?**)
-- Min/max limit (**just hard limits**)
-- Scale -/+ (**end points, but influenced by sub-trim**)
-- Sub-trim
-- Speed (0..250, **what does this do?**)
+- Safety None/switch and value (if switch is defined and on, override channel with value)
+- Scale -/+ (end points)
+- Sub-trim (applied after scale/endpoints; We want this independent of scale)
+- Speed (0..250, speed of output change in degrees per 100ms)
+- Min/max limit (just hard limits, checked last)
