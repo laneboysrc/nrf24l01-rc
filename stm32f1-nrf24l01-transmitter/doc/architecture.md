@@ -75,6 +75,38 @@
     - Note: output channels can have a trim too?!
 
 
+## Overall architecture
+
+    +----------------+    +-----------------------------------+    +------------+   +--------+
+    |                |    |                                   |    |            |   |        |
+    |     INPUTS     |    |              MIXER                |    |  CHANNELS  |   |   RF   |
+    |                |    |                                   |    |            |   | module |
+    |                |    |   +---------------------------+   |    |  +-------+ |   |        |
+    |  sticks,       |    |   |        Mixer unit         |   |    |  |  RF   | |   |        |
+    |  pots,         |    |   +---------------------------+   |    |  |      +------->       |
+    |  push-buttons  |    |   +---------------------------+   |    |  |       | |   |        |
+    |  switches    +------->  |        Mixer unit         |  +------> +-------+ |   |        |
+    |                |    |   +---------------------------+   |    |  +-------+ |   |        |
+    |                |    |   +---------------------------+   |    |  |Virtual| |   |        |
+    |                |    |   |                           |   |    |  |       | |   |        |
+    |                |    |   +---------------------------+   |    |  |       | |   +--------+
+    |                |    |                                   |    |  +-------+ |
+    |                |    |                                   |    |            |
+    +----------------+    |                                   |    +-----+------+
+                          |                ...                |          |
+                          |                                   |          |
+                          |                                   |          |
+                    +------>  +---------------------------+   |          |
+                    |     |   |        Mixer unit         |   |          |
+                    |     |   +---------------------------+   |          |
+                    |     |                                   |          |
+                    |     +-----------------------------------+          |
+                    |                                                    |
+                    |                                                    |
+                    +----------------------------------------------------+
+
+    (Diagram made with the awesome asciiflow.com)
+
 ## Mixer
 
 * The mixer is derived from Deviation
@@ -342,3 +374,5 @@ The PB must align the mixers in the TX so that they can be processed in one loop
 - Sub-trim (applied after scale/endpoints; We want this independent of scale)
 - Speed (0..250, speed of output change in degrees per 100ms)
 - Min/max limit (just hard limits, checked last)
+
+
