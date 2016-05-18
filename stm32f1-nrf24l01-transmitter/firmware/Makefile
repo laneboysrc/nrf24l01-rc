@@ -85,9 +85,9 @@ CFLAGS += -Wmissing-field-initializers -Wdouble-promotion -Wfloat-equal
 CFLAGS += -Wswitch-enum -Wswitch-default -Wuninitialized -Wunknown-pragmas
 CFLAGS += -Wundef
 # keep every function in separate section. This will allow linker to dump unused functions
-CFLAGS += -fno-common -ffunction-sections -fdata-sections -fno-strict-aliasing
+CFLAGS += -ffunction-sections -fdata-sections
 CFLAGS += -fno-builtin
-CFLAGS += --short-enums -fsigned-char -fpack-struct=4
+CFLAGS += -fsigned-char
 CFLAGS += -Os
 
 ###############################################################################
