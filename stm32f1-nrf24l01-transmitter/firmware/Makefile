@@ -76,6 +76,7 @@ ARCH_FLAGS = -DSTM32F1 -mcpu=cortex-m3 -mthumb -msoft-float -mfix-cortex-m3-ldrd
 # C compiler flags
 CFLAGS := $(ARCH_FLAGS)
 CFLAGS += --std=c99
+CFLAGS += -MD
 CFLAGS += -W -Wall -Wextra -Wpedantic
 CFLAGS += -Wstrict-prototypes -Wshadow -Wwrite-strings
 CFLAGS += -Wdeclaration-after-statement -Waddress -Wlogical-op
@@ -88,7 +89,6 @@ CFLAGS += -fno-common -ffunction-sections -fdata-sections -fno-strict-aliasing
 CFLAGS += -fno-builtin
 CFLAGS += --short-enums -fsigned-char -fpack-struct=4
 CFLAGS += -Os
-
 
 ###############################################################################
 # Linker flags
@@ -171,3 +171,10 @@ reset:
 terminal:
 	miniterm.py -p /dev/ttyUSB0 -b 460800
 
+
+.PHONY: clean program flash reset terminal echosize list all
+
+
+###############################################################################
+# Include (optional) dependency files. Needs -MD in CFLAGS
+-include $(OBJECTS:.o=.d)
