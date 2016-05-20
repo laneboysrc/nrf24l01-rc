@@ -115,7 +115,7 @@ void usart1_isr(void)
 
         // If there is still data in the transmit buffer send the next byte,
         // otherwise disable the TXE interrupt as it is no longer needed.
-        if (ring_buffer_read_uint8(&tx_ring_buffer, &data) == 0) {
+        if (ring_buffer_read_uint8(&tx_ring_buffer, &data)) {
             usart_send(USART1, data);
         }
         else {
@@ -156,7 +156,7 @@ int main(void)
     init_spi();
     init_nrf24();
 
-    printf("Hello world!\n;");
+    printf("Hello world!\n");
 
 
     // Blink the LED connected to PC13
@@ -167,7 +167,7 @@ int main(void)
             __asm__("nop");
         }
 
-        printf("%d\n;", count);
+        printf("%d\n", count);
         ++count;
     }
 
