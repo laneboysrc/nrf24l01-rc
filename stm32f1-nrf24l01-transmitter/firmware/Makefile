@@ -1,4 +1,4 @@
-.DEFAULT_GOAL := all
+.DEFAULT_GOAL := program
 
 PROJECT_NAME := tx
 
@@ -161,7 +161,7 @@ clean:
 	$(ECHO)$(RM) $(BUILD_DIRECTORIES)
 
 program: $(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).hex
-	$(OPENOCD) -f interface/$(OPENOCD_INTERFACE).cfg -f target/$(OPENOCD_TARGET).cfg -c "init; reset halt ; nrf51 mass_erase ; sleep 500 ; flash write_image $(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).hex ; reset ; shutdown"
+	$(OPENOCD) -f interface/$(OPENOCD_INTERFACE).cfg -f target/$(OPENOCD_TARGET).cfg -c "init ; reset init ; flash write_image erase $(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).hex ; reset ; shutdown"
 
 flash: program
 

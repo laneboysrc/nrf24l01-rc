@@ -26,7 +26,6 @@ int _write(int file, char *ptr, int len);
 static void init_clock(void)
 {
     rcc_clock_setup_in_hse_8mhz_out_72mhz();
-
 }
 
 
@@ -49,7 +48,8 @@ static void init_systick(void)
 static void init_gpio(void)
 {
     // Enable clocks for GPIO port A (for GPIO_USART1_TX) and C (LED)
-    rcc_periph_clock_enable(RCC_GPIOC | RCC_GPIOA);
+    rcc_periph_clock_enable(RCC_GPIOA);
+    rcc_periph_clock_enable(RCC_GPIOC);
 
     // Configure LED output port
     gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, GPIO13);
@@ -147,7 +147,6 @@ int _write(int file, char *ptr, int len)
 // ****************************************************************************
 int main(void)
 {
-    int i;
     int count = 0;
 
     init_clock();
@@ -159,11 +158,12 @@ int main(void)
 
     printf("Hello world!\n;");
 
+
     // Blink the LED connected to PC13
     while (1) {
         gpio_toggle(GPIOC, GPIO13);
 
-        for (i = 0; i < 800000; i++) {
+        for (int i = 0; i < 10000000; i++) {
             __asm__("nop");
         }
 
