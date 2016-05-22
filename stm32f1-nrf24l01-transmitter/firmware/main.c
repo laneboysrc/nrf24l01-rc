@@ -81,6 +81,7 @@ static void init_gpio(void)
     // Configure LED output port
     gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, GPIO13);
 
+    gpio_set(GPIOC, GPIO13);
 }
 
 
