@@ -5,6 +5,7 @@
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/usart.h>
+#include <libopencm3/stm32/timer.h>
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/cm3/systick.h>
 
@@ -145,6 +146,40 @@ int _write(int file, char *ptr, int len)
 
 
 // ****************************************************************************
+static void init_timer2(void)
+{
+    rcc_periph_clock_enable(RCC_TIM2);
+
+    /* Set timer start value. */
+    TIM_CNT(TIM2) = 1;
+
+    /* Set timer prescaler. 72MHz/1440 => 50000 counts per second. */
+    TIM_PSC(TIM2) = 1440;
+
+    /* End timer value. If this is reached an interrupt is generated. */
+    TIM_ARR(TIM2) = 50000;
+
+    /* Update interrupt enable. */
+    TIM_DIER(TIM2) |= TIM_DIER_UIE;
+
+    /* Start timer. */
+    TIM_CR1(TIM2) |= TIM_CR1_CEN;
+
+    // Without this the timer interrupt routine will never be called
+    nvic_enable_irq(NVIC_TIM2_IRQ);
+    nvic_set_priority(NVIC_TIM2_IRQ, 1);
+}
+
+
+// ****************************************************************************
+void tim2_isr(void)
+{
+    gpio_toggle(GPIOC, GPIO13);
+    TIM_SR(TIM2) &= ~TIM_SR_UIF;    // Clear interrrupt flag
+}
+
+
+// ****************************************************************************
 int main(void)
 {
     int count = 0;
@@ -155,15 +190,16 @@ int main(void)
     init_uart();
     init_spi();
     init_nrf24();
+    init_timer2();
 
     printf("Hello world!\n");
 
 
     // Blink the LED connected to PC13
     while (1) {
-        gpio_toggle(GPIOC, GPIO13);
+        // gpio_toggle(GPIOC, GPIO13);
 
-        for (int i = 0; i < 10000000; i++) {
+        for (int i = 0; i < 5000000; i++) {
             __asm__("nop");
         }
 
