@@ -78,6 +78,8 @@ static void init_gpio(void)
     rcc_periph_clock_enable(RCC_GPIOA);
     rcc_periph_clock_enable(RCC_GPIOC);
 
+    rcc_periph_clock_enable(RCC_AFIO);
+
     // Configure LED output port
     gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, GPIO13);
 
@@ -175,7 +177,11 @@ static void init_timer2(void)
 {
     rcc_periph_clock_enable(RCC_TIM2);
 
-    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO0);
+    // Remap TIM2_CH1 to GPIOA15
+    gpio_primary_remap(AFIO_MAPR_SWJ_CFG_JTAG_OFF_SW_ON, AFIO_MAPR_TIM2_REMAP_PARTIAL_REMAP1);
+
+    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_TIM2_PR1_CH1_ETR);
+    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO0);
 
     timer_reset(TIM2);
     timer_set_mode(TIM2, TIM_CR1_CKD_CK_INT, TIM_CR1_CMS_EDGE, TIM_CR1_DIR_UP);
@@ -246,7 +252,6 @@ int main(void)
     while (1) {
         // Blink the LED connected to PC13
         // gpio_toggle(GPIOC, GPIO13);
-        // gpio_toggle(GPIOA, GPIO0);
 
         for (int i = 0; i < 5000000; i++) {
             __asm__("nop");
