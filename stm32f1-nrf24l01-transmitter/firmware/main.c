@@ -228,7 +228,7 @@ void tim2_isr(void)
         }
 
         /* Toggle LED to indicate compare event. */
-        gpio_toggle(GPIOC, GPIO13);
+        // gpio_toggle(GPIOC, GPIO13);
     }
 }
 
@@ -251,11 +251,13 @@ int main(void)
 
     while (1) {
         // Blink the LED connected to PC13
-        // gpio_toggle(GPIOC, GPIO13);
+        gpio_toggle(GPIOC, GPIO13);
 
         for (int i = 0; i < 5000000; i++) {
             __asm__("nop");
         }
+
+        // __asm__("wfi\n");
 
         printf("%08lu %d\n", milliseconds, count);
         ++count;
