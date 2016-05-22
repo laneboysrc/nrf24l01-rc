@@ -24,6 +24,7 @@ AS               	:= '$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-as'
 AR               	:= '$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-ar' -r
 LD               	:= '$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-ld'
 NM               	:= '$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-nm'
+GDB               	:= '$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-gdb'
 OBJDUMP          	:= '$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-objdump'
 OBJCOPY          	:= '$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-objcopy'
 SIZE             	:= '$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-size'
@@ -76,6 +77,7 @@ ARCH_FLAGS = -DSTM32F1 -mcpu=cortex-m3 -mthumb -msoft-float -mfix-cortex-m3-ldrd
 # C compiler flags
 CFLAGS := $(ARCH_FLAGS)
 CFLAGS += --std=c99
+CFLAGS += -g
 CFLAGS += -MD
 CFLAGS += -W -Wall -Wextra -Wpedantic
 CFLAGS += -Wstrict-prototypes -Wshadow -Wwrite-strings
@@ -168,11 +170,15 @@ flash: program
 reset:
 	$(OPENOCD) -f interface/$(OPENOCD_INTERFACE).cfg -f target/$(OPENOCD_TARGET).cfg -c "init; reset ; shutdown"
 
+# Invoke openocd for a debugging session
+debug: $(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).out
+	$(ECHO)$(GDB) -ex "target extended-remote | $(OPENOCD) -f interface/$(OPENOCD_INTERFACE).cfg -f target/$(OPENOCD_TARGET).cfg -c \"gdb_port pipe; log_output openocd.log\"" $<
+
 terminal:
 	miniterm.py -p /dev/ttyUSB0 -b 115200
 
 
-.PHONY: clean program flash reset terminal echosize list all
+.PHONY: clean program flash reset terminal echosize list all  debug
 
 
 ###############################################################################
