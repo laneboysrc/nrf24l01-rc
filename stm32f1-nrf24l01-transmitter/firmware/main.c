@@ -80,6 +80,7 @@ static void init_gpio(void)
 
     // Configure LED output port
     gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, GPIO13);
+
 }
 
 
@@ -173,20 +174,24 @@ static void init_timer2(void)
 {
     rcc_periph_clock_enable(RCC_TIM2);
 
+    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO0);
+
     timer_reset(TIM2);
     timer_set_mode(TIM2, TIM_CR1_CKD_CK_INT, TIM_CR1_CMS_EDGE, TIM_CR1_DIR_UP);
     timer_continuous_mode(TIM2);
     timer_disable_preload(TIM2);
     timer_set_prescaler(TIM2, 12000);
     timer_set_period(TIM2, 65535);
-    timer_disable_oc_output(TIM2, TIM_OC1);
+    timer_disable_oc_preload(TIM2, TIM_OC1);
+
+    timer_enable_oc_output(TIM2, TIM_OC1);
+
     timer_disable_oc_output(TIM2, TIM_OC2);
     timer_disable_oc_output(TIM2, TIM_OC3);
     timer_disable_oc_output(TIM2, TIM_OC4);
     timer_disable_oc_clear(TIM2, TIM_OC1);
-    timer_disable_oc_preload(TIM2, TIM_OC1);
     timer_set_oc_slow_mode(TIM2, TIM_OC1);
-    timer_set_oc_mode(TIM2, TIM_OC1, TIM_OCM_FROZEN);
+    timer_set_oc_mode(TIM2, TIM_OC1, TIM_OCM_TOGGLE);
     timer_set_oc_value(TIM2, TIM_OC1, 1000);
     timer_enable_counter(TIM2);
 
@@ -237,9 +242,10 @@ int main(void)
     printf("Hello world!\n");
 
 
-    // Blink the LED connected to PC13
     while (1) {
+        // Blink the LED connected to PC13
         // gpio_toggle(GPIOC, GPIO13);
+        // gpio_toggle(GPIOA, GPIO0);
 
         for (int i = 0; i < 5000000; i++) {
             __asm__("nop");
