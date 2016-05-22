@@ -23,22 +23,48 @@ static uint8_t tx_buffer[BUFFER_SIZE];
 int _write(int file, char *ptr, int len);
 
 
+static uint16_t frequency_sequence[18] = {
+    1000,
+    500,
+    1000,
+    500,
+    1000,
+    500,
+    2000,
+    500,
+    2000,
+    500,
+    2000,
+    500,
+    1000,
+    500,
+    1000,
+    500,
+    1000,
+    5000,
+};
+
+
+static int frequency_sel = 0;
+
+
+
 // ****************************************************************************
 static void init_clock(void)
 {
-    rcc_clock_setup_in_hse_8mhz_out_72mhz();
+    rcc_clock_setup_in_hse_8mhz_out_24mhz();
 }
 
 
 // ****************************************************************************
 static void init_systick(void)
 {
-    // 72 MHz / 8 => 9000000 counts per second
+    // 24 MHz / 8 => 3000000 counts per second
     systick_set_clocksource(STK_CSR_CLKSOURCE_AHB_DIV8);
 
-    // 9000000/9000 = 1000 overflows per second - every 1ms one interrupt
+    // 3000000/3000 = 1000 overflows per second - every 1ms one interrupt
     // SysTick interrupt every N clock pulses: set reload to N-1
-    systick_set_reload(8999);
+    systick_set_reload(2999);
 
     systick_interrupt_enable();
     systick_counter_enable();
@@ -61,9 +87,6 @@ static void init_gpio(void)
 static void init_uart(void)
 {
     rcc_periph_clock_enable(RCC_USART1);
-
-    // FIXME: Not sure if this is needed since we don't remap...
-    rcc_periph_clock_enable(RCC_AFIO);
 
     ring_buffer_init(&tx_ring_buffer, tx_buffer, BUFFER_SIZE);
 
@@ -150,32 +173,51 @@ static void init_timer2(void)
 {
     rcc_periph_clock_enable(RCC_TIM2);
 
-    /* Set timer start value. */
-    TIM_CNT(TIM2) = 1;
+    timer_reset(TIM2);
+    timer_set_mode(TIM2, TIM_CR1_CKD_CK_INT, TIM_CR1_CMS_EDGE, TIM_CR1_DIR_UP);
+    timer_continuous_mode(TIM2);
+    timer_disable_preload(TIM2);
+    timer_set_prescaler(TIM2, 12000);
+    timer_set_period(TIM2, 65535);
+    timer_disable_oc_output(TIM2, TIM_OC1);
+    timer_disable_oc_output(TIM2, TIM_OC2);
+    timer_disable_oc_output(TIM2, TIM_OC3);
+    timer_disable_oc_output(TIM2, TIM_OC4);
+    timer_disable_oc_clear(TIM2, TIM_OC1);
+    timer_disable_oc_preload(TIM2, TIM_OC1);
+    timer_set_oc_slow_mode(TIM2, TIM_OC1);
+    timer_set_oc_mode(TIM2, TIM_OC1, TIM_OCM_FROZEN);
+    timer_set_oc_value(TIM2, TIM_OC1, 1000);
+    timer_enable_counter(TIM2);
 
-    /* Set timer prescaler. 72MHz/1440 => 50000 counts per second. */
-    TIM_PSC(TIM2) = 1440;
-
-    /* End timer value. If this is reached an interrupt is generated. */
-    TIM_ARR(TIM2) = 50000;
-
-    /* Update interrupt enable. */
-    TIM_DIER(TIM2) |= TIM_DIER_UIE;
-
-    /* Start timer. */
-    TIM_CR1(TIM2) |= TIM_CR1_CEN;
-
-    // Without this the timer interrupt routine will never be called
+    timer_enable_irq(TIM2, TIM_DIER_CC1IE);
     nvic_enable_irq(NVIC_TIM2_IRQ);
-    nvic_set_priority(NVIC_TIM2_IRQ, 1);
 }
 
 
 // ****************************************************************************
 void tim2_isr(void)
 {
-    gpio_toggle(GPIOC, GPIO13);
-    TIM_SR(TIM2) &= ~TIM_SR_UIF;    // Clear interrrupt flag
+    if (timer_get_flag(TIM2, TIM_SR_CC1IF)) {
+        uint16_t compare_time;
+        uint16_t new_time;
+        uint16_t frequency;
+
+        timer_clear_flag(TIM2, TIM_SR_CC1IF);
+
+        compare_time = timer_get_counter(TIM2);
+        frequency = frequency_sequence[frequency_sel];
+        new_time = compare_time + frequency;
+        timer_set_oc_value(TIM2, TIM_OC1, new_time);
+
+        ++frequency_sel;
+        if (frequency_sel == 18) {
+            frequency_sel = 0;
+        }
+
+        /* Toggle LED to indicate compare event. */
+        gpio_toggle(GPIOC, GPIO13);
+    }
 }
 
 
