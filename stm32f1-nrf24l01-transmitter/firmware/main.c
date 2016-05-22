@@ -23,31 +23,40 @@ static uint8_t tx_buffer[BUFFER_SIZE];
 int _write(int file, char *ptr, int len);
 
 
-static uint16_t frequency_sequence[18] = {
-    1000,
-    500,
-    1000,
-    500,
-    1000,
-    500,
-    2000,
-    500,
-    2000,
-    500,
-    2000,
-    500,
-    1000,
-    500,
-    1000,
-    500,
-    1000,
-    5000,
+// Frequencies for each notes in Hz
+// Source: http://www.phy.mtu.edu/~suits/notefreqs.html
+#define F_C3 130.81
+#define F_D3 146.83
+#define F_E3 164.81
+#define F_F3 174.61
+#define F_G3 196.00
+#define F_A3 220.00
+#define F_B3 246.94
+#define F_C4 261.63
+#define F_D4 293.66
+#define F_E4 329.63
+#define F_F4 349.23
+#define F_G4 392.00
+#define F_A4 440.00
+#define F_B4 493.88
+#define F_C5 523.25
+#define SONG_END 0
+
+
+static const uint16_t song_startup[] = {
+    F_C4, F_C4, F_F4, F_F4, F_A4, F_A4, F_C5, F_C5, F_C5, F_C5, F_A4, F_A4, F_C5, F_C5, F_C5, F_C5, F_C5, F_C5, F_C5, SONG_END
 };
 
+static const uint16_t song_activate[] = {
+    F_C4, F_D4, F_E4, F_F4, F_G4, F_C4, F_D4, F_E4, F_F4, F_G4, F_A4, F_B4, F_C5, F_C5, F_C5, F_C5, SONG_END
+};
 
-static int frequency_sel = 0;
+static const uint16_t song_deactivate[] = {
+    F_C5, F_B4, F_A4, F_G4, F_F4, F_C5, F_B4, F_A4, F_G4, F_F4, F_E4, F_D4, F_C4, F_C4, F_C4, F_C4, SONG_END
+};
 
-
+uint16_t const *song_pointer = NULL;
+static uint8_t current_note = 0;
 
 // ****************************************************************************
 static void init_clock(void)
@@ -115,11 +124,51 @@ static void init_uart(void)
     usart_enable(USART1);
 }
 
+// ****************************************************************************
+static void sound_frequency(uint16_t frequency)
+{
+    timer_set_period(TIM2, 500000/(uint32_t)frequency);
+}
+
+
+// ****************************************************************************
+static void sound_off(void)
+{
+    timer_set_oc_mode(TIM2, TIM_OC1, TIM_OCM_INACTIVE);
+}
+
+
+// ****************************************************************************
+static void sound_on(void)
+{
+    timer_set_oc_mode(TIM2, TIM_OC1, TIM_OCM_TOGGLE);
+}
+
+
+// ****************************************************************************
+static void play_song(uint16_t const *song)
+{
+    current_note = 0;
+    song_pointer = song;
+}
+
 
 // ****************************************************************************
 void sys_tick_handler(void)
 {
     ++milliseconds;
+
+    if (song_pointer  &&  (milliseconds % 50) == 0) {
+        if (song_pointer[current_note] != 0) {
+            sound_frequency(song_pointer[current_note]);
+            ++current_note;
+            sound_on();
+        }
+        else {
+            sound_off();
+            song_pointer = NULL;
+        }
+    }
 }
 
 
@@ -172,6 +221,8 @@ int _write(int file, char *ptr, int len)
 }
 
 
+
+
 // ****************************************************************************
 static void init_timer2(void)
 {
@@ -186,9 +237,8 @@ static void init_timer2(void)
     timer_reset(TIM2);
     timer_set_mode(TIM2, TIM_CR1_CKD_CK_INT, TIM_CR1_CMS_EDGE, TIM_CR1_DIR_UP);
     timer_continuous_mode(TIM2);
-    timer_disable_preload(TIM2);
-    timer_set_prescaler(TIM2, 12000);
-    timer_set_period(TIM2, 65535);
+    timer_enable_preload(TIM2);
+    timer_set_prescaler(TIM2, 12);      // Timer runs at 1 MHz
     timer_disable_oc_preload(TIM2, TIM_OC1);
 
     timer_enable_oc_output(TIM2, TIM_OC1);
@@ -198,45 +248,22 @@ static void init_timer2(void)
     timer_disable_oc_output(TIM2, TIM_OC4);
     timer_disable_oc_clear(TIM2, TIM_OC1);
     timer_set_oc_slow_mode(TIM2, TIM_OC1);
-    timer_set_oc_mode(TIM2, TIM_OC1, TIM_OCM_TOGGLE);
-    timer_set_oc_value(TIM2, TIM_OC1, 1000);
+    timer_set_oc_mode(TIM2, TIM_OC1, TIM_OCM_INACTIVE);
+    timer_set_oc_value(TIM2, TIM_OC1, 1);
+
+    sound_frequency(F_C4);
+    sound_on();
+
     timer_enable_counter(TIM2);
-
-    timer_enable_irq(TIM2, TIM_DIER_CC1IE);
-    nvic_enable_irq(NVIC_TIM2_IRQ);
 }
 
-
-// ****************************************************************************
-void tim2_isr(void)
-{
-    if (timer_get_flag(TIM2, TIM_SR_CC1IF)) {
-        uint16_t compare_time;
-        uint16_t new_time;
-        uint16_t frequency;
-
-        timer_clear_flag(TIM2, TIM_SR_CC1IF);
-
-        compare_time = timer_get_counter(TIM2);
-        frequency = frequency_sequence[frequency_sel];
-        new_time = compare_time + frequency;
-        timer_set_oc_value(TIM2, TIM_OC1, new_time);
-
-        ++frequency_sel;
-        if (frequency_sel == 18) {
-            frequency_sel = 0;
-        }
-
-        /* Toggle LED to indicate compare event. */
-        // gpio_toggle(GPIOC, GPIO13);
-    }
-}
 
 
 // ****************************************************************************
 int main(void)
 {
     int count = 0;
+    bool armed = true;
 
     init_clock();
     init_systick();
@@ -247,9 +274,17 @@ int main(void)
     init_timer2();
 
     printf("Hello world!\n");
+    play_song(song_startup);
 
 
     while (1) {
+        if (armed) {
+            if (milliseconds > 4000) {
+                armed = false;
+                play_song(song_deactivate);
+            }
+        }
+
         // Blink the LED connected to PC13
         gpio_toggle(GPIOC, GPIO13);
 
