@@ -167,7 +167,7 @@ int main(void)
             __asm__("nop");
         }
 
-        printf("%d\n", count);
+        printf("%08lu %d\n", milliseconds, count);
         ++count;
     }
 
