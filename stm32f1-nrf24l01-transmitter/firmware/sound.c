@@ -94,7 +94,7 @@ static void set_timer(unsigned int frequency, uint8_t volume)
     // divided by the frequency we are looking to generate.
     period = SOUND_TIMER_FREQUENCY / frequency;
 
-    // Simple non-linear function to mimic a  perceived liner volume level
+    // Simple non-linear function to mimic a  perceived linear volume level
     duty_cycle = (period >> 1) * (uint32_t)volume / 100 * volume / 100 * volume / 100;
 
     timer_set_period(TIM2, period);
@@ -103,7 +103,7 @@ static void set_timer(unsigned int frequency, uint8_t volume)
 
 
 // ****************************************************************************
-void sound_play(unsigned int frequency, uint8_t volume, uint32_t duration_ms, void(* cb)(void))
+void sound_play(unsigned int frequency, uint32_t duration_ms, uint8_t volume, void(* cb)(void))
 {
     callback = cb;
     set_timer(frequency, volume);

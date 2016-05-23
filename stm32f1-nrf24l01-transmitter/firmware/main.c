@@ -169,8 +169,8 @@ int main(void)
     init_sound();
 
     printf("Hello world!\n");
-    music_play(&song_startup);
-
+    // music_play(&song_startup);
+    sound_play(440, 300, 100, NULL);
 
     while (1) {
         if (armed) {
