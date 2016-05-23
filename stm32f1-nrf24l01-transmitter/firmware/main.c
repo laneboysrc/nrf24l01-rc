@@ -11,6 +11,7 @@
 #include <nrf24l01p.h>
 #include <sound.h>
 #include <music.h>
+#include <protocol_hk310.h>
 
 
 
@@ -167,6 +168,9 @@ int main(void)
     init_spi();
     init_nrf24();
     init_sound();
+
+    init_protocol_hk310();
+
 
     printf("Hello world!\n");
     // music_play(&song_startup);

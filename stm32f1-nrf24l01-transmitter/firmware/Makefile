@@ -50,6 +50,7 @@ C_SOURCE_FILES += $(abspath spi.c)
 C_SOURCE_FILES += $(abspath uart.c)
 C_SOURCE_FILES += $(abspath sound.c)
 C_SOURCE_FILES += $(abspath music.c)
+C_SOURCE_FILES += $(abspath protocol_hk310.c)
 
 LIBS += -lc -lnosys
 LIBS += -l$(OPENCM3_LIBNAME)
