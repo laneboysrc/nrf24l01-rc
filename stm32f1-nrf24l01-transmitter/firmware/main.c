@@ -64,9 +64,10 @@ int main(void)
             }
         }
 
-        // Put the CPU to sleep until an interrupt triggers to save power.
-        // Since the systick runs at 1 millisecond period, the main loop runs
-        // at least once every millisecond.
+        // Put the CPU to sleep until an interrupt triggers. This reduces
+        // power consumption drastically.
+        // Since the systick runs at 1 millisecond period, the main loop sleeps
+        // for at most 1 ms.
         __asm__("wfi\n");
     }
 

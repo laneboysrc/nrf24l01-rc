@@ -1,6 +1,8 @@
 #include <systick.h>
 #include <protocol_hk310.h>
 
+
+// ****************************************************************************
 #define FRAME_TIME 5        // One frame every 5 ms
 
 
@@ -10,6 +12,7 @@ typedef enum {
     SEND_BIND_INFO,
     SEND_PROGRAMBOX
 } frame_state_t;
+
 
 static frame_state_t frame_state;
 
@@ -33,7 +36,6 @@ static void send_programming_box_data(void)
 {
 
 }
-
 
 
 // ****************************************************************************

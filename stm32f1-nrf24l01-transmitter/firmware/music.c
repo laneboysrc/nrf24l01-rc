@@ -5,6 +5,7 @@
 #include <music.h>
 
 
+// ****************************************************************************
 // Frequencies for each note in Hz
 // Source: http://www.phy.mtu.edu/~suits/notefreqs.html
 #define C3 131

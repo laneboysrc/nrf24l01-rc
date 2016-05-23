@@ -7,14 +7,18 @@
 #include <systick.h>
 
 
-volatile uint32_t milliseconds;
+// ****************************************************************************
+#define MAX_SYSTICK_CALLBACKS 2
+
 
 typedef struct {
     systick_callback callback;
     uint32_t trigger_ms;
 } systick_callback_t;
 
-#define MAX_SYSTICK_CALLBACKS 2
+
+volatile uint32_t milliseconds;
+
 static systick_callback_t callbacks[MAX_SYSTICK_CALLBACKS];
 
 
@@ -66,7 +70,7 @@ void systick_set_callback(systick_callback cb, uint32_t duration_ms)
     if (slot == NULL) {
         slot = get_emtpy_callback_slot();
         if (slot == NULL) {
-            // FIXME: output an overflow message here, need to increase MAX_SYSTICK_CALLBACKS
+            printf("ALERT: MAX_SYSTICK_CALLBACKS needs to be increased!\n");
             return;
         }
     }

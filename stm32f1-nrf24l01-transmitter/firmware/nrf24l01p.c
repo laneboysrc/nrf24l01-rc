@@ -5,6 +5,8 @@
 #include <spi.h>
 #include <nrf24l01p.h>
 
+
+// ****************************************************************************
 static uint8_t spi_buffer[NRF24_MAX_PAYLOAD_SIZE + 1];
 static uint8_t rf_setup;
 

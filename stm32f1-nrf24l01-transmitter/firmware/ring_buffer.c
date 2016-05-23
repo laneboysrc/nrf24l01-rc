@@ -4,7 +4,7 @@
 #include <ring_buffer.h>
 
 // Ring buffer implementation from open-bldc's libgovernor
-// https://github.com/open-bldc/open-bldc/tree/master/sou\rce/libgovernor
+// https://github.com/open-bldc/open-bldc/tree/master/source/libgovernor
 //
 // Heavily modified: all functions return the number of bytes read/written
 

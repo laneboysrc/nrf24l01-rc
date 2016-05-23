@@ -25,6 +25,7 @@
 #include <sound.h>
 
 
+// ****************************************************************************
 #define SOUND_TIMER_FREQUENCY 6000000
 
 
@@ -37,19 +38,23 @@ void init_sound(void)
 {
     rcc_periph_clock_enable(RCC_TIM2);
 
-    // Remap TIM2_CH1 to GPIOA15
+    // Remap TIM2_CH1 to GPIOA15.
+    // Note that the default function of the pin A15 is JTAG, so we need to
+    // turn that off to it as normal GPIO!
     gpio_primary_remap(AFIO_MAPR_SWJ_CFG_JTAG_OFF_SW_ON, AFIO_MAPR_TIM2_REMAP_PARTIAL_REMAP1);
     gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_TIM2_PR1_CH1_ETR);
 
     timer_set_mode(TIM2, TIM_CR1_CKD_CK_INT, TIM_CR1_CMS_EDGE, TIM_CR1_DIR_UP);
 
-    timer_set_prescaler(TIM2, 4 - 1);      // Timer runs at 6 MHz
+    // Timer runs at 24 / 4 = 6 MHz
+    timer_set_prescaler(TIM2, 4 - 1);
     timer_enable_preload(TIM2);
 
     timer_set_oc_mode(TIM2, TIM_OC1, TIM_OCM_PWM1);
     timer_enable_oc_preload(TIM2, TIM_OC1);
     timer_disable_oc_output(TIM2, TIM_OC1);
 
+    // Polarity needs to be low to make our volume control algorithm work
     timer_set_oc_polarity_low(TIM2, TIM_OC1);
 
     sound_set_volume(100);
@@ -72,7 +77,7 @@ static void set_timer(unsigned int frequency)
     uint32_t period;
     uint32_t duty_cycle;
 
-    // Frequency 0 is the code for pauses within the songs
+    // Frequency 0 is the code for pause within the songs
     if (frequency == 0) {
         timer_disable_oc_output(TIM2, TIM_OC1);
         return;
@@ -86,6 +91,7 @@ static void set_timer(unsigned int frequency)
     else {
         timer_enable_oc_output(TIM2, TIM_OC1);
     }
+
 
     // The Timer2 runs at 6 MHz, so we need to set the ARR to that figure
     // divided by the frequency we are looking to generate.
@@ -116,8 +122,8 @@ void sound_play(unsigned int frequency, uint32_t duration_ms, void(* cb)(void))
 {
     callback = cb;
     set_timer(frequency);
-    systick_set_callback(end_of_sound_callback, duration_ms);
     timer_enable_counter(TIM2);
+    systick_set_callback(end_of_sound_callback, duration_ms);
 }
 
 
