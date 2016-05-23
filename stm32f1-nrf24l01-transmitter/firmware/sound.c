@@ -23,7 +23,7 @@
 #include <systick.h>
 #include <sound.h>
 
-static uint32_t(* callback)(void);
+static void(* callback)(void);
 
 #define SOUND_TIMER_FREQUENCY 12000000
 
@@ -54,30 +54,27 @@ void init_sound(void)
 
 
 // ****************************************************************************
-static void sound_callback(void)
+static void end_of_sound_callback(void)
 {
-    uint32_t next_callback_ms;
-
-    if (callback == NULL) {  // To allow single tone
-        sound_stop();
-        return;
-    }
-
-    next_callback_ms = callback();
-    if(!next_callback_ms) {
-        sound_stop();
-    }
-    else {
-        systick_set_callback(sound_callback, next_callback_ms);
+    sound_stop();
+    if (callback != NULL) {
+        (*callback)();
     }
 }
 
 
 // ****************************************************************************
-void sound_set_frequency(unsigned int frequency, uint8_t volume)
+static void set_timer(unsigned int frequency, uint8_t volume)
 {
     uint32_t period;
     uint32_t duty_cycle;
+
+    // Frequency 0 is the code for pauses within the songs
+    if (frequency == 0) {
+        timer_set_oc_mode(TIM2, TIM_OC1, TIM_OCM_INACTIVE);
+        return;
+    }
+
 
     if (volume == 0) {
         // Keep the timer running but set the output to "inactive" state
@@ -106,10 +103,11 @@ void sound_set_frequency(unsigned int frequency, uint8_t volume)
 
 
 // ****************************************************************************
-void sound_start(uint32_t duration_ms, uint32_t(* next_note_cb)(void))
+void sound_play(unsigned int frequency, uint8_t volume, uint32_t duration_ms, void(* cb)(void))
 {
-    systick_set_callback(sound_callback, duration_ms);
-    callback = next_note_cb;
+    callback = cb;
+    set_timer(frequency, volume);
+    systick_set_callback(end_of_sound_callback, duration_ms);
     timer_enable_counter(TIM2);
 }
 
@@ -117,8 +115,9 @@ void sound_start(uint32_t duration_ms, uint32_t(* next_note_cb)(void))
 // ****************************************************************************
 void sound_stop(void)
 {
-    systick_clear_callback(sound_callback);
+    systick_clear_callback(end_of_sound_callback);
+    timer_set_oc_mode(TIM2, TIM_OC1, TIM_OCM_INACTIVE);
     timer_disable_counter(TIM2);
-    timer_disable_oc_output(TIM2, TIM_OC1);
+    // timer_disable_oc_output(TIM2, TIM_OC1);
 }
 

@@ -7,52 +7,101 @@
 
 // Frequencies for each notes in Hz
 // Source: http://www.phy.mtu.edu/~suits/notefreqs.html
-#define C3 130.81
-#define D3 146.83
-#define E3 164.81
-#define F3 174.61
-#define G3 196.00
-#define A3 220.00
-#define B3 246.94
-#define C4 261.63
-#define D4 293.66
-#define E4 329.63
-#define F4 349.23
-#define G4 392.00
-#define A4 440.00
-#define B4 493.88
-#define C5 523.25
+#define C3 131
+#define D3 147
+#define E3 165
+#define F3 175
+#define G3 196
+#define A3 220
+#define B3 247
+#define C4 262
+#define D4 294
+#define E4 330
+#define F4 349
+#define G4 392
+#define A4 440
+#define B4 494
+#define C5 523
 
 #define PAUSE 0
 #define SONG_END 0xffff
 
-
-const uint16_t song_startup[] = {
-    C4, C4, F4, F4, A4, A4, C5, C5, C5, C5, A4, A4, C5, C5, C5, C5, C5, C5, C5, SONG_END
+const tone song_startup_tones[] = {
+        {C4, 100},
+        {F4, 100},
+        {A4, 100},
+        {C5, 200},
+        {A4, 100},
+        {C5, 300},
+        {SONG_END, 0}
 };
 
-const uint16_t song_activate[] = {
-    C4, D4, E4, F4, G4, C4, D4, E4, F4, G4, A4, B4, C5, C5, C5, C5, SONG_END
+const song song_startup = {
+    .volume = 100,
+    .tones = song_startup_tones
 };
 
-const uint16_t song_deactivate[] = {
-    C5, B4, A4, G4, F4, C5, B4, A4, G4, F4, E4, D4, C4, C4, C4, C4, SONG_END
+const tone song_activate_tones[] = {
+        {C4, 50},
+        {D4, 50},
+        {E4, 50},
+        {F4, 50},
+        {C4, 50},
+        {D4, 50},
+        {E4, 50},
+        {F4, 50},
+        {G4, 50},
+        {A4, 50},
+        {B4, 50},
+        {C5, 200},
+        {SONG_END, 0}
 };
 
-static uint16_t const *song_pointer = NULL;
+const song song_activate = {
+    .volume = 100,
+    .tones = song_activate_tones
+};
+
+const tone song_deactivate_tones[] = {
+        {C5, 50},
+        {B4, 50},
+        {A4, 50},
+        {G4, 50},
+        {F4, 50},
+        {C5, 50},
+        {B4, 50},
+        {A4, 50},
+        {G4, 50},
+        {F4, 50},
+        {E4, 50},
+        {D4, 50},
+        {C4, 200},
+        {SONG_END, 0}
+};
+
+
+const song song_deactivate = {
+    .volume = 100,
+    .tones = song_deactivate_tones
+};
+
+static const song *song_pointer = NULL;
 static uint8_t current_note = 0;
 
 
 // ****************************************************************************
-static uint32_t music_callback(void)
+static void music_callback(void)
 {
+    const tone *t;
+
     ++current_note;
-    if (song_pointer[current_note] == SONG_END) {
-        return 0;
+    t = &song_pointer->tones[current_note];
+
+    if (t->frequency == SONG_END) {
+        return;
     }
 
-    sound_set_frequency(song_pointer[current_note], 100);
-    return 60;
+    sound_play(t->frequency, t->duration_ms, song_pointer->volume, music_callback);
 }
 
 
@@ -62,6 +111,8 @@ void music_play(song const *s)
     current_note = 0;
     song_pointer = s;
 
-    sound_set_frequency(song_pointer[current_note], 100);
-    sound_start(60, music_callback);
+    sound_play(song_pointer->tones[0].frequency,
+               song_pointer->tones[0].duration_ms,
+               song_pointer->volume,
+               music_callback);
 }

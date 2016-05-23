@@ -169,14 +169,14 @@ int main(void)
     init_sound();
 
     printf("Hello world!\n");
-    music_play(song_startup);
+    music_play(&song_startup);
 
 
     while (1) {
         if (armed) {
             if (milliseconds > 4000) {
                 armed = false;
-                music_play(song_deactivate);
+                music_play(&song_deactivate);
             }
         }
 

@@ -2,10 +2,18 @@
 
 #include <stdint.h>
 
-typedef uint16_t song;
+typedef struct {
+    uint16_t frequency;
+    uint16_t duration_ms;
+} tone;
 
-extern const song song_startup[];
-extern const song song_activate[];
-extern const song song_deactivate[];
+typedef struct {
+    uint8_t volume;
+    const tone *tones;
+} song;
+
+extern const song song_startup;
+extern const song song_activate;
+extern const song song_deactivate;
 
 void music_play(song const *s);

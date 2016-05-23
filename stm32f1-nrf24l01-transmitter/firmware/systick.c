@@ -100,8 +100,9 @@ void sys_tick_handler(void)
         if (callbacks[i].callback != NULL  &&
             callbacks[i].trigger_ms == milliseconds ) {
 
-            (*callbacks[i].callback)();
+            systick_callback cb = callbacks[i].callback;
             callbacks[i].callback = NULL;
+            (*cb)();
         }
     }
 }
