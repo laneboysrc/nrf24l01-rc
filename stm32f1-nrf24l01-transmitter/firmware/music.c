@@ -69,7 +69,7 @@ static const tone song_activate_tones[] = {
         {G4, 80},
         {A4, 80},
         {B4, 80},
-        {C5, 160},
+        {C5, 320},
         {SONG_END, 0}
 };
 
@@ -92,7 +92,7 @@ static const tone song_deactivate_tones[] = {
         {F4, 80},
         {E4, 80},
         {D4, 80},
-        {C4, 160},
+        {C4, 320},
         {SONG_END, 0}
 };
 
@@ -134,5 +134,6 @@ void music_play(song const *s)
     song_pointer = s;
     current_tone_index = 0;
 
+    sound_set_volume(s->volume);
     play_current_tone();
 }

@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 
@@ -13,7 +14,7 @@ typedef struct {
     uint32_t trigger_ms;
 } systick_callback_t;
 
-#define MAX_SYSTICK_CALLBACKS 1
+#define MAX_SYSTICK_CALLBACKS 2
 static systick_callback_t callbacks[MAX_SYSTICK_CALLBACKS];
 
 

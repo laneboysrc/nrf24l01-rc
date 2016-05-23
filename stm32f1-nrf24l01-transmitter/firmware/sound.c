@@ -15,6 +15,7 @@
 
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/rcc.h>
@@ -24,7 +25,7 @@
 #include <sound.h>
 
 
-#define SOUND_TIMER_FREQUENCY 12000000
+#define SOUND_TIMER_FREQUENCY 6000000
 
 
 static void(* callback)(void);
@@ -42,17 +43,14 @@ void init_sound(void)
 
     timer_set_mode(TIM2, TIM_CR1_CKD_CK_INT, TIM_CR1_CMS_EDGE, TIM_CR1_DIR_UP);
 
-    timer_set_prescaler(TIM2, 2);   // 24 Mhz / 2  => SOUND_TIMER_FREQUENCY
-    timer_generate_event(TIM2, TIM_EGR_UG);
+    timer_set_prescaler(TIM2, 4 - 1);      // Timer runs at 6 MHz
     timer_enable_preload(TIM2);
 
     timer_set_oc_mode(TIM2, TIM_OC1, TIM_OCM_PWM1);
     timer_enable_oc_preload(TIM2, TIM_OC1);
-    // timer_set_oc_polarity_low(TIM2, TIM2_OC);
+    timer_disable_oc_output(TIM2, TIM_OC1);
 
-    // Write some default values
-    // timer_set_period(TIM2, 0xffff);
-    // timer_set_oc_value(TIM2, TIM_OC1, 0x8000);
+    timer_set_oc_polarity_low(TIM2, TIM_OC1);
 
     sound_set_volume(100);
 }
@@ -76,25 +74,25 @@ static void set_timer(unsigned int frequency)
 
     // Frequency 0 is the code for pauses within the songs
     if (frequency == 0) {
-        timer_set_oc_mode(TIM2, TIM_OC1, TIM_OCM_INACTIVE);
+        timer_disable_oc_output(TIM2, TIM_OC1);
         return;
     }
 
 
     if (volume_factor == 0) {
-        // Keep the timer running but set the output to "inactive" state
-        timer_set_oc_mode(TIM2, TIM_OC1, TIM_OCM_INACTIVE);
+        // Keep the timer running but turn the output off
+        timer_disable_oc_output(TIM2, TIM_OC1);
     }
     else {
-        timer_set_oc_mode(TIM2, TIM_OC1, TIM_OCM_PWM1);
+        timer_enable_oc_output(TIM2, TIM_OC1);
     }
 
-    // The Timer2 runs at 12 MHz, so we need to set the ARR to that figure
+    // The Timer2 runs at 6 MHz, so we need to set the ARR to that figure
     // divided by the frequency we are looking to generate.
     period = SOUND_TIMER_FREQUENCY / frequency;
 
-    // Simple non-linear function to mimic a  perceived linear volume level
-    duty_cycle = (period >> 1) * volume_factor;
+    // Simple non-linear function to mimic a perceived linear volume level
+    duty_cycle = (period / 2) * volume_factor / 100 * volume_factor / 100 * volume_factor / 100;
 
     timer_set_period(TIM2, period);
     timer_set_oc_value(TIM2, TIM_OC1, duty_cycle);
@@ -109,7 +107,7 @@ void sound_set_volume(uint8_t volume)
         volume = 100;
     }
 
-    volume_factor = ((uint32_t)volume * (uint32_t)volume * (uint32_t)volume) / (100 * 100 * 100);
+    volume_factor = (uint32_t)volume;
 }
 
 
@@ -127,8 +125,7 @@ void sound_play(unsigned int frequency, uint32_t duration_ms, void(* cb)(void))
 void sound_stop(void)
 {
     systick_clear_callback(end_of_sound_callback);
-    timer_set_oc_mode(TIM2, TIM_OC1, TIM_OCM_INACTIVE);
+    timer_disable_oc_output(TIM2, TIM_OC1);
     timer_disable_counter(TIM2);
-    // timer_disable_oc_output(TIM2, TIM_OC1);
 }
 
