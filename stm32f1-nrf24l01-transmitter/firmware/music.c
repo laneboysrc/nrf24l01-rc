@@ -5,7 +5,7 @@
 #include <music.h>
 
 
-// Frequencies for each notes in Hz
+// Frequencies for each note in Hz
 // Source: http://www.phy.mtu.edu/~suits/notefreqs.html
 #define C3 131
 #define D3 147
@@ -22,17 +22,31 @@
 #define A4 440
 #define B4 494
 #define C5 523
+#define D5 587
+#define E5 659
+#define F5 698
+#define G5 784
+#define A5 880
+#define B5 988
+#define C6 1047
 
 #define PAUSE 0
 #define SONG_END 0xffff
 
-const tone song_startup_tones[] = {
-        {C4, 100},
-        {F4, 100},
-        {A4, 100},
-        {C5, 200},
-        {A4, 100},
-        {C5, 300},
+
+// ****************************************************************************
+static const tone song_startup_tones[] = {
+        {C4, 80},
+        {PAUSE, 40},
+        {F4, 80},
+        {PAUSE, 40},
+        {A4, 80},
+        {PAUSE, 40},
+        {C5, 160},
+        {PAUSE, 40},
+        {A4, 80},
+        {PAUSE, 40},
+        {C5, 240},
         {SONG_END, 0}
 };
 
@@ -41,19 +55,21 @@ const song song_startup = {
     .tones = song_startup_tones
 };
 
-const tone song_activate_tones[] = {
-        {C4, 50},
-        {D4, 50},
-        {E4, 50},
-        {F4, 50},
-        {C4, 50},
-        {D4, 50},
-        {E4, 50},
-        {F4, 50},
-        {G4, 50},
-        {A4, 50},
-        {B4, 50},
-        {C5, 200},
+// ****************************************************************************
+static const tone song_activate_tones[] = {
+        {C4, 80},
+        {D4, 80},
+        {E4, 80},
+        {F4, 80},
+        {G4, 80},
+        {C4, 80},
+        {D4, 80},
+        {E4, 80},
+        {F4, 80},
+        {G4, 80},
+        {A4, 80},
+        {B4, 80},
+        {C5, 160},
         {SONG_END, 0}
 };
 
@@ -62,57 +78,61 @@ const song song_activate = {
     .tones = song_activate_tones
 };
 
-const tone song_deactivate_tones[] = {
-        {C5, 50},
-        {B4, 50},
-        {A4, 50},
-        {G4, 50},
-        {F4, 50},
-        {C5, 50},
-        {B4, 50},
-        {A4, 50},
-        {G4, 50},
-        {F4, 50},
-        {E4, 50},
-        {D4, 50},
-        {C4, 200},
+// ****************************************************************************
+static const tone song_deactivate_tones[] = {
+        {C5, 80},
+        {B4, 80},
+        {A4, 80},
+        {G4, 80},
+        {F4, 80},
+        {C5, 80},
+        {B4, 80},
+        {A4, 80},
+        {G4, 80},
+        {F4, 80},
+        {E4, 80},
+        {D4, 80},
+        {C4, 160},
         {SONG_END, 0}
 };
-
 
 const song song_deactivate = {
     .volume = 100,
     .tones = song_deactivate_tones
 };
 
+
 static const song *song_pointer = NULL;
-static uint8_t current_note = 0;
+static uint8_t current_tone_index = 0;
+
+
+static void play_current_tone(void);
 
 
 // ****************************************************************************
 static void music_callback(void)
 {
-    const tone *t;
+    ++current_tone_index;
+    play_current_tone();
+}
 
-    ++current_note;
-    t = &song_pointer->tones[current_note];
 
-    if (t->frequency == SONG_END) {
-        return;
+// ****************************************************************************
+static void play_current_tone(void)
+{
+    const tone *t = &song_pointer->tones[current_tone_index];
+
+    if (t->frequency != SONG_END) {
+        sound_play(t->frequency, t->duration_ms, music_callback);
     }
-
-    sound_play(t->frequency, t->duration_ms, song_pointer->volume, music_callback);
 }
 
 
 // ****************************************************************************
 void music_play(song const *s)
 {
-    current_note = 0;
     song_pointer = s;
+    current_tone_index = 0;
 
-    sound_play(song_pointer->tones[0].frequency,
-               song_pointer->tones[0].duration_ms,
-               song_pointer->volume,
-               music_callback);
+    play_current_tone();
 }

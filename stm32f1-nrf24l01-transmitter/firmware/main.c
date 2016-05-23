@@ -170,7 +170,7 @@ int main(void)
 
     printf("Hello world!\n");
     // music_play(&song_startup);
-    sound_play(440, 300, 100, NULL);
+    sound_play(440, 300, NULL);
 
     while (1) {
         if (armed) {

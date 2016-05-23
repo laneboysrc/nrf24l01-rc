@@ -23,9 +23,12 @@
 #include <systick.h>
 #include <sound.h>
 
-static void(* callback)(void);
 
 #define SOUND_TIMER_FREQUENCY 12000000
+
+
+static void(* callback)(void);
+static uint32_t volume_factor;
 
 
 // ****************************************************************************
@@ -48,8 +51,10 @@ void init_sound(void)
     // timer_set_oc_polarity_low(TIM2, TIM2_OC);
 
     // Write some default values
-    timer_set_period(TIM2, 0xffff);
-    timer_set_oc_value(TIM2, TIM_OC1, 0x8000);
+    // timer_set_period(TIM2, 0xffff);
+    // timer_set_oc_value(TIM2, TIM_OC1, 0x8000);
+
+    sound_set_volume(100);
 }
 
 
@@ -64,7 +69,7 @@ static void end_of_sound_callback(void)
 
 
 // ****************************************************************************
-static void set_timer(unsigned int frequency, uint8_t volume)
+static void set_timer(unsigned int frequency)
 {
     uint32_t period;
     uint32_t duty_cycle;
@@ -76,7 +81,7 @@ static void set_timer(unsigned int frequency, uint8_t volume)
     }
 
 
-    if (volume == 0) {
+    if (volume_factor == 0) {
         // Keep the timer running but set the output to "inactive" state
         timer_set_oc_mode(TIM2, TIM_OC1, TIM_OCM_INACTIVE);
     }
@@ -84,18 +89,12 @@ static void set_timer(unsigned int frequency, uint8_t volume)
         timer_set_oc_mode(TIM2, TIM_OC1, TIM_OCM_PWM1);
     }
 
-
-    // Clamp volume to 0..100
-    if (volume > 100) {
-        volume = 100;
-    }
-
     // The Timer2 runs at 12 MHz, so we need to set the ARR to that figure
     // divided by the frequency we are looking to generate.
     period = SOUND_TIMER_FREQUENCY / frequency;
 
     // Simple non-linear function to mimic a  perceived linear volume level
-    duty_cycle = (period >> 1) * (uint32_t)volume / 100 * volume / 100 * volume / 100;
+    duty_cycle = (period >> 1) * volume_factor;
 
     timer_set_period(TIM2, period);
     timer_set_oc_value(TIM2, TIM_OC1, duty_cycle);
@@ -103,10 +102,22 @@ static void set_timer(unsigned int frequency, uint8_t volume)
 
 
 // ****************************************************************************
-void sound_play(unsigned int frequency, uint32_t duration_ms, uint8_t volume, void(* cb)(void))
+void sound_set_volume(uint8_t volume)
+{
+    // Clamp volume to 0..100
+    if (volume > 100) {
+        volume = 100;
+    }
+
+    volume_factor = ((uint32_t)volume * (uint32_t)volume * (uint32_t)volume) / (100 * 100 * 100);
+}
+
+
+// ****************************************************************************
+void sound_play(unsigned int frequency, uint32_t duration_ms, void(* cb)(void))
 {
     callback = cb;
-    set_timer(frequency, volume);
+    set_timer(frequency);
     systick_set_callback(end_of_sound_callback, duration_ms);
     timer_enable_counter(TIM2);
 }
