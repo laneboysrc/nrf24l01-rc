@@ -51,6 +51,7 @@ C_SOURCE_FILES += $(abspath uart.c)
 C_SOURCE_FILES += $(abspath sound.c)
 C_SOURCE_FILES += $(abspath music.c)
 C_SOURCE_FILES += $(abspath protocol_hk310.c)
+C_SOURCE_FILES += $(abspath mixer.c)
 
 LIBS += -lc -lnosys
 LIBS += -l$(OPENCM3_LIBNAME)
@@ -83,7 +84,7 @@ ARCH_FLAGS = -DSTM32F1 -mcpu=cortex-m3 -mthumb -msoft-float -mfix-cortex-m3-ldrd
 CFLAGS := $(ARCH_FLAGS)
 CFLAGS += --std=c99
 CFLAGS += -g
-CFLAGS += -MD
+# CFLAGS += -MD
 CFLAGS += -W -Wall -Wextra -Wpedantic
 CFLAGS += -Wstrict-prototypes -Wshadow -Wwrite-strings
 CFLAGS += -Wdeclaration-after-statement -Waddress -Wlogical-op
@@ -134,7 +135,7 @@ $(BUILD_DIRECTORIES):
 # Create objects from C source files
 $(OBJECT_DIRECTORY)/%.o: %.c
 	@echo [CC] $(notdir $<)
-	$(ECHO)$(CC) $(CFLAGS) $(INC_PATHS) -c -o $@ $<
+	$(ECHO)$(CC) $(CFLAGS) -MD $(INC_PATHS) -c -o $@ $<
 
 # Create list files
 $(LISTING_DIRECTORY)/%.lst: %.c
