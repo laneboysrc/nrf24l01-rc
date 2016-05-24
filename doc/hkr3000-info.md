@@ -59,7 +59,7 @@ Bytes 6 and 9 are ignored by the receiver
 
 Stick values are sent as direct timer values for an 8051 timer with a 750 ns clock. To calculate milliseconds of servo pulse duration, use the following formula:
 
-    servo_pules_in_ms = (0xffff - stickdata) * 3 / 4;
+    servo_pules_in_us = (0xffff - stickdata) * 3 / 4;
 
 
 ## Binding procedure:
