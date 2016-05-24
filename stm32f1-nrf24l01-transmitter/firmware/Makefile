@@ -42,16 +42,17 @@ OPENCM3_LIBNAME		:= opencm3_stm32f1
 
 ###############################################################################
 # Source files, include paths, library paths and libraries
+C_SOURCE_FILES += $(abspath curves.c)
 C_SOURCE_FILES += $(abspath main.c)
-C_SOURCE_FILES += $(abspath systick.c)
-C_SOURCE_FILES += $(abspath ring_buffer.c)
-C_SOURCE_FILES += $(abspath nrf24l01p.c)
-C_SOURCE_FILES += $(abspath spi.c)
-C_SOURCE_FILES += $(abspath uart.c)
-C_SOURCE_FILES += $(abspath sound.c)
-C_SOURCE_FILES += $(abspath music.c)
-C_SOURCE_FILES += $(abspath protocol_hk310.c)
 C_SOURCE_FILES += $(abspath mixer.c)
+C_SOURCE_FILES += $(abspath music.c)
+C_SOURCE_FILES += $(abspath nrf24l01p.c)
+C_SOURCE_FILES += $(abspath protocol_hk310.c)
+C_SOURCE_FILES += $(abspath ring_buffer.c)
+C_SOURCE_FILES += $(abspath sound.c)
+C_SOURCE_FILES += $(abspath spi.c)
+C_SOURCE_FILES += $(abspath systick.c)
+C_SOURCE_FILES += $(abspath uart.c)
 
 LIBS += -lc -lnosys
 LIBS += -l$(OPENCM3_LIBNAME)
