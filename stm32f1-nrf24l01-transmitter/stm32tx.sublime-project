@@ -1,0 +1,73 @@
+{
+    "build_systems":
+    [
+        {
+            "cmd":
+            [
+                "make",
+                "all"
+            ],
+            "file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$",
+            "name": "make all",
+            "working_dir": "${project_path}/firmware"
+        },
+        {
+            "cmd":
+            [
+                "make",
+                "program"
+            ],
+            "file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$",
+            "name": "make program",
+            "working_dir": "${project_path}/firmware"
+        },
+        {
+            "cmd":
+            [
+                "make",
+                "clean"
+            ],
+            "name": "make clean",
+            "working_dir": "${project_path}/firmware"
+        },
+        {
+            "cmd":
+            [
+                // "x-terminal-emulator",
+                "xfce4-terminal",
+                "-H",
+                "-T", "TERMINAL",
+                "-e", "make terminal"
+            ],
+            "name": "make terminal",
+            "working_dir": "${project_path}/firmware"
+        }
+    ],
+    "folders":
+    [
+        {
+            "path": "firmware",
+            "file_exclude_patterns":
+            [
+                "*.o",
+                "*.a",
+                "*.d",
+                "*.sublime-project",
+                "*.sublime-workspace",
+                "*.swp"
+            ]
+        },
+        {
+            "path": "."
+        }
+    ],
+    "settings":
+    {
+        "rulers":
+        [
+            80
+        ],
+        "tab_size": 4,
+        "translate_tabs_to_spaces": true
+    }
+}

@@ -1,4 +1,4 @@
-.DEFAULT_GOAL := flash
+.DEFAULT_GOAL := all
 
 PROJECT_NAME := tx
 
