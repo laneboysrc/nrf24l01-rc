@@ -144,6 +144,8 @@ static void send_stick_packet(void)
     nrf24_write_register(NRF24_RF_CH, hop_channels[hop_index]);
     nrf24_write_multi_byte_register(NRF24_TX_ADDR, address, ADDRESS_SIZE);
 
+    // FIXME: send FS packet every 10 packets
+
     nrf24_write_payload(stick_packet, PACKET_SIZE);
 }
 
