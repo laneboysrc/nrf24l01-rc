@@ -4,6 +4,7 @@
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/timer.h>
+#include <libopencmsis/core_cm3.h>
 
 #include <systick.h>
 #include <uart.h>
@@ -69,7 +70,7 @@ int main(void)
         // power consumption drastically.
         // Since the systick runs at 1 millisecond period, the main loop sleeps
         // for at most 1 ms.
-        __asm__("wfi\n");
+        __WFI();
     }
 
     return 0;
