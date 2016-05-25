@@ -9,6 +9,7 @@
             ],
             "file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$",
             "name": "make all",
+            "syntax": "Packages/Makefile/Make Output.sublime-syntax",
             "working_dir": "${project_path}/firmware"
         },
         {
@@ -19,6 +20,7 @@
             ],
             "file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$",
             "name": "make program",
+            "syntax": "Packages/Makefile/Make Output.sublime-syntax",
             "working_dir": "${project_path}/firmware"
         },
         {
@@ -28,6 +30,7 @@
                 "clean"
             ],
             "name": "make clean",
+            "syntax": "Packages/Makefile/Make Output.sublime-syntax",
             "working_dir": "${project_path}/firmware"
         },
         {
