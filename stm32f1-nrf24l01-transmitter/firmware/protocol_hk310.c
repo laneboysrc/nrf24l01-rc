@@ -6,6 +6,12 @@
 #include <systick.h>
 #include <mixer.h>
 
+// NOTE: We keep the CE pin constantly high.
+// While StandbyII mode (CE=1) consumes 320uA and StandbyI mode (CE=0) only
+// 26uA, the difference is not important enough in our application to
+// warrant having an additional IO pin in use, and an additional wire to
+// drag around.
+
 
 // ****************************************************************************
 #define FRAME_TIME 5        // One frame every 5 ms
@@ -119,15 +125,15 @@ static void build_bind_packets(void)
 
     // Put the hop channels in bind packets 1..3
     for (int i = 0; i < 7; i++) {
-        bind_packet[0][3+i] = hop_channels[i];
+        bind_packet[1][3+i] = hop_channels[i];
     }
 
     for (int i = 0; i < 7; i++) {
-        bind_packet[0][3+i] = hop_channels[7+i];
+        bind_packet[2][3+i] = hop_channels[7+i];
     }
 
     for (int i = 0; i < 6; i++) {
-        bind_packet[0][3+i] = hop_channels[14+i];
+        bind_packet[3][3+i] = hop_channels[14+i];
     }
 }
 
@@ -244,12 +250,6 @@ void init_protocol_hk310(void)
 
     // TX mode, 2-byte CRC, power-up, Enable TX interrupt
     nrf24_write_register(NRF24_CONFIG, NRF24_EN_CRC | NRF24_CRCO | NRF24_PWR_UP | NRF24_TX_DS);
-
-    // FIXME: set CE pin to constantly high
-    // While StandbyII mode (CE=1) consumes 320uA and StandbyI mode (CE=0) only
-    // 26uA, the difference is not important enough in our application to
-    // warrant having an additional IO pin in use, and an additional wire to
-    // drag around.
 }
 
 

@@ -28,6 +28,7 @@ static void init_gpio(void)
 {
     // Enable clocks for GPIO port A (for GPIO_USART1_TX) and C (LED)
     rcc_periph_clock_enable(RCC_GPIOA);
+    rcc_periph_clock_enable(RCC_GPIOB);
     rcc_periph_clock_enable(RCC_GPIOC);
 
     rcc_periph_clock_enable(RCC_AFIO);
@@ -70,7 +71,7 @@ int main(void)
         // power consumption drastically.
         // Since the systick runs at 1 millisecond period, the main loop sleeps
         // for at most 1 ms.
-        __WFI();
+        // __WFI();
     }
 
     return 0;
