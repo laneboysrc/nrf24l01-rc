@@ -19,7 +19,13 @@
 // ****************************************************************************
 static void init_clock(void)
 {
+    // Enable the Clock Security System
+    rcc_css_enable();
+
     rcc_clock_setup_in_hse_8mhz_out_24mhz();
+
+// FIXME: use rcc_ahb_frequency rcc_apb1_frequency rcc_apb2_frequency
+
 }
 
 
@@ -27,11 +33,7 @@ static void init_clock(void)
 static void init_gpio(void)
 {
     // Enable clocks for GPIO port A (for GPIO_USART1_TX) and C (LED)
-    rcc_periph_clock_enable(RCC_GPIOA);
-    rcc_periph_clock_enable(RCC_GPIOB);
-    rcc_periph_clock_enable(RCC_GPIOC);
-
-    rcc_periph_clock_enable(RCC_AFIO);
+    rcc_periph_clock_enable(RCC_GPIOA | RCC_GPIOB | RCC_GPIOC | RCC_AFIO);
 
     // Configure LED output port
     gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, GPIO13);
