@@ -84,8 +84,8 @@ ARCH_FLAGS = -DSTM32F1 -mcpu=cortex-m3 -mthumb -msoft-float -mfix-cortex-m3-ldrd
 # C compiler flags
 CFLAGS := $(ARCH_FLAGS)
 CFLAGS += --std=c99
-CFLAGS += -g
-# CFLAGS += -MD
+CFLAGS += -ggdb3
+CFLAGS += -MMD -MP
 CFLAGS += -W -Wall -Wextra -Wpedantic
 CFLAGS += -Wstrict-prototypes -Wshadow -Wwrite-strings
 CFLAGS += -Wdeclaration-after-statement -Waddress -Wlogical-op
@@ -136,12 +136,12 @@ $(BUILD_DIRECTORIES):
 # Create objects from C source files
 $(OBJECT_DIRECTORY)/%.o: %.c
 	@echo [CC] $(notdir $<)
-	$(ECHO)$(CC) $(CFLAGS) -MD $(INC_PATHS) -c -o $@ $<
+	$(ECHO)$(CC) $(CFLAGS) $(INC_PATHS) -c -o $@ $<
 
 # Create list files
 $(LISTING_DIRECTORY)/%.lst: %.c
 	@echo [LIST] $<
-	$(ECHO)$(CC) -c -g -Wa,-adlhn $(CFLAGS) $(INC_PATHS) $< -o /dev/null > $@
+	$(ECHO)$(CC) $(CFLAGS) $(INC_PATHS) -c -g -Wa,-adlhn -o $(patsubst %.lst,%.o,$@) $< > $@
 
 # Link
 $(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).out: $(BUILD_DIRECTORIES) $(OBJECTS)
