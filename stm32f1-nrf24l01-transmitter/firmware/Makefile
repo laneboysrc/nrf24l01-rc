@@ -123,13 +123,33 @@ OBJECTS = $(C_OBJECTS)
 
 
 ###############################################################################
+libopencm3:
+	$(ECHO)if [ ! "`ls -A $(OPENCM3_DIR)/lib`" ] ; then \
+		printf "######## ERROR ########\n"; \
+		printf "libopencm3 is not initialized.\n"; \
+		printf "Please run:\n"; \
+		printf "\n"; \
+		printf "  $$ cd ../..\n"; \
+		printf "  $$ git submodule init\n"; \
+		printf "  $$ git submodule update\n"; \
+		printf "\n"; \
+		printf "before running make.\n"; \
+		printf "\n"; \
+		exit 1;\
+		fi
+	$(ECHO)if [ ! "`ls $(OPENCM3_DIR)/lib/lib$(OPENCM3_LIBNAME).a`" ] ; then \
+		$(MAKE) -C $(OPENCM3_DIR) TARGETS=stm32/f1 ; \
+		fi
+
+
+###############################################################################
 # Build rules
 
 # Building all targets
 all: $(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).hex echosize
 
 # Create build directories
-$(BUILD_DIRECTORIES):
+$(BUILD_DIRECTORIES): libopencm3
 	@echo [MKDIR] $@
 	$(ECHO)$(MK) $@
 
@@ -185,7 +205,7 @@ terminal:
 	miniterm.py -p /dev/ttyUSB0 -b 115200
 
 
-.PHONY: clean program flash reset terminal echosize list all  debug
+.PHONY: clean program flash reset terminal echosize list all debug libopencm3
 
 
 ###############################################################################
