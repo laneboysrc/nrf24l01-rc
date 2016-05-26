@@ -87,13 +87,26 @@ CFLAGS += --std=c99
 CFLAGS += -ggdb3
 CFLAGS += -MMD -MP
 CFLAGS += -W -Wall -Wextra -Wpedantic
-CFLAGS += -Wstrict-prototypes -Wshadow -Wwrite-strings
-CFLAGS += -Wdeclaration-after-statement -Waddress -Wlogical-op
-CFLAGS += -Wold-style-definition -Wmissing-prototypes -Wmissing-declarations
-CFLAGS += -Wmissing-field-initializers -Wdouble-promotion -Wfloat-equal
-CFLAGS += -Wswitch-enum -Wswitch-default -Wuninitialized -Wunknown-pragmas
+# Be even more pedantic ...
+CFLAGS += -Waddress
+CFLAGS += -Wbool-compare
+CFLAGS += -Wdeclaration-after-statement
+CFLAGS += -Wdouble-promotion
+CFLAGS += -Wfloat-equal
+CFLAGS += -Wlogical-op
+CFLAGS += -Wmissing-declarations
+CFLAGS += -Wmissing-field-initializers
+CFLAGS += -Wmissing-prototypes
+CFLAGS += -Wold-style-definition
+CFLAGS += -Wpacked
+CFLAGS += -Wparentheses
+CFLAGS += -Wshadow
+CFLAGS += -Wstrict-prototypes
+CFLAGS += -Wswitch-default
+CFLAGS += -Wswitch-enum
 CFLAGS += -Wundef
-# keep every function in separate section. This will allow linker to dump unused functions
+CFLAGS += -Wwrite-strings
+# Keep every function in separate section. This will allow linker to dump unused functions
 CFLAGS += -ffunction-sections -fdata-sections
 CFLAGS += -fno-builtin
 CFLAGS += -fsigned-char
@@ -123,7 +136,7 @@ OBJECTS = $(C_OBJECTS)
 
 
 ###############################################################################
-libopencm3:
+libopencm3 :
 	$(ECHO)if [ ! "`ls -A $(OPENCM3_DIR)/lib`" ] ; then \
 		printf "######## ERROR ########\n"; \
 		printf "libopencm3 is not initialized.\n"; \
@@ -146,66 +159,66 @@ libopencm3:
 # Build rules
 
 # Building all targets
-all: $(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).hex echosize
+all : $(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).hex echosize
 
 # Create build directories
-$(BUILD_DIRECTORIES): libopencm3
+$(BUILD_DIRECTORIES) : libopencm3
 	@echo [MKDIR] $@
 	$(ECHO)$(MK) $@
 
 # Create objects from C source files
-$(OBJECT_DIRECTORY)/%.o: %.c
+$(OBJECT_DIRECTORY)/%.o : %.c
 	@echo [CC] $(notdir $<)
 	$(ECHO)$(CC) $(CFLAGS) $(INC_PATHS) -c -o $@ $<
 
 # Create list files
-$(LISTING_DIRECTORY)/%.lst: %.c
+$(LISTING_DIRECTORY)/%.lst : %.c
 	@echo [LIST] $<
 	$(ECHO)$(CC) $(CFLAGS) $(INC_PATHS) -c -g -Wa,-adlhn -o $(patsubst %.lst,%.o,$@) $< > $@
 
 # Link
-$(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).out: $(BUILD_DIRECTORIES) $(OBJECTS)
+$(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).out : $(BUILD_DIRECTORIES) $(OBJECTS)
 	@echo [LD] $(PROJECT_NAME).out
 	$(ECHO)$(CC) $(LDFLAGS) $(OBJECTS) $(LIBS) -o $(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).out
 
 # Create binary .bin file from the .out file
-$(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).bin: $(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).out
+$(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).bin : $(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).out
 	@echo [OBJCOPY] $(PROJECT_NAME).bin
 	$(ECHO)$(OBJCOPY) -O binary $(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).out $(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).bin
 
 # Create binary .hex file from the .out file
-$(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).hex: $(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).out
+$(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).hex : $(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).out
 	@echo [OBJCOPY] $(PROJECT_NAME).hex
 	$(ECHO)$(OBJCOPY) -O ihex $(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).out $(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).hex
 
 # Create list files that include C code as well as Assembler
-list: $(BUILD_DIRECTORIES) $(OBJECTS:.o=.lst)
+list : $(BUILD_DIRECTORIES) $(OBJECTS:.o=.lst)
 
-echosize:
+echosize :
 	-@echo ''
 	$(ECHO)$(SIZE) $(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).out
 	-@echo ''
 
-clean:
+clean :
 	$(ECHO)$(RM) $(BUILD_DIRECTORIES)
 
-program: $(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).hex
+program : $(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).hex
 	$(OPENOCD) -f interface/$(OPENOCD_INTERFACE).cfg -f target/$(OPENOCD_TARGET).cfg -c "init ; reset init ; flash write_image erase $(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).hex ; reset ; shutdown"
 
-flash: program
+flash : program
 
-reset:
+reset :
 	$(OPENOCD) -f interface/$(OPENOCD_INTERFACE).cfg -f target/$(OPENOCD_TARGET).cfg -c "init; reset ; shutdown"
 
 # Invoke openocd for a debugging session
-debug: $(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).out
+debug : $(OUTPUT_BINARY_DIRECTORY)/$(PROJECT_NAME).out
 	$(ECHO)$(GDB) -ex "target extended-remote | $(OPENOCD) -f interface/$(OPENOCD_INTERFACE).cfg -f target/$(OPENOCD_TARGET).cfg -c \"gdb_port pipe; log_output openocd.log\"" $<
 
-terminal:
+terminal :
 	miniterm.py -p /dev/ttyUSB0 -b 115200
 
 
-.PHONY: clean program flash reset terminal echosize list all debug libopencm3
+.PHONY : clean program flash reset terminal echosize list all debug libopencm3
 
 
 ###############################################################################
