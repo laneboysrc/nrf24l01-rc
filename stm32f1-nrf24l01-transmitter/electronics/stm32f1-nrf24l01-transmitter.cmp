@@ -1,4 +1,4 @@
-Cmp-Mod V01 Created by CvPcb (2013-jul-07)-stable date = Wed 27 Apr 2016 01:34:03 PM SGT
+Cmp-Mod V01 Created by CvPcb (2013-jul-07)-stable date = Fri 27 May 2016 03:34:34 PM SGT
 
 BeginCmp
 TimeStamp = /57202BF9;
@@ -11,6 +11,13 @@ BeginCmp
 TimeStamp = /57202EE1;
 Reference = C1;
 ValeurCmp = 1u;
+IdModule  = SM0805;
+EndCmp
+
+BeginCmp
+TimeStamp = /5747F7DC;
+Reference = C2;
+ValeurCmp = 100nF;
 IdModule  = SM0805;
 EndCmp
 
@@ -92,13 +99,6 @@ IdModule  = PIN_ARRAY_3X1;
 EndCmp
 
 BeginCmp
-TimeStamp = /57204ABA;
-Reference = K12;
-ValeurCmp = CONN_3;
-IdModule  = PIN_ARRAY_3X1;
-EndCmp
-
-BeginCmp
 TimeStamp = /57205598;
 Reference = P1;
 ValeurCmp = Charge;
@@ -124,6 +124,13 @@ TimeStamp = /572059D9;
 Reference = P4;
 ValeurCmp = CONN_2;
 IdModule  = PIN_ARRAY_2X1;
+EndCmp
+
+BeginCmp
+TimeStamp = /5747FB60;
+Reference = P5;
+ValeurCmp = CONN_4;
+IdModule  = PIN_ARRAY_4x1;
 EndCmp
 
 BeginCmp
