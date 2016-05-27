@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdio.h>
 
 #include <libopencm3/stm32/adc.h>
 #include <libopencm3/stm32/dma.h>
@@ -6,6 +7,7 @@
 #include <libopencm3/stm32/rcc.h>
 
 #include <inputs.h>
+#include <systick.h>
 
 
 #define NUMBER_OF_ADC_CHANNELS 10
@@ -15,6 +17,8 @@
 static uint32_t adc_array_oversample[SAMPLE_COUNT];
 static uint32_t adc_array_raw[NUMBER_OF_ADC_CHANNELS];
 static uint8_t adc_channel_selection[NUMBER_OF_ADC_CHANNELS] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+
+#define ADC_LOG_TIME 1000
 
 
 // ****************************************************************************
@@ -32,6 +36,19 @@ static void adc_filter(void)
         result /= WINDOW_SIZE;
         adc_array_raw[i] = result;
     }
+}
+
+
+// ****************************************************************************
+static void dump_adc(void)
+{
+    systick_set_callback(dump_adc, ADC_LOG_TIME);
+    adc_filter();
+
+    for (int i = 0; i < 3; i++) {
+        printf("CH%d: %4lu  ", i, adc_array_raw[i]);
+    }
+    printf("\n");
 }
 
 
@@ -147,7 +164,5 @@ void init_inputs(void)
     gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_ANALOG, GPIO0);
     gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_ANALOG, GPIO1);
 
-
-    // FIXME: just put this here to prevent compiler warning
-    adc_filter();
+    systick_set_callback(dump_adc, ADC_LOG_TIME);
 }

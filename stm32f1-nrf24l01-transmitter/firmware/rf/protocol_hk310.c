@@ -17,7 +17,7 @@
 
 
 // ****************************************************************************
-#define FRAME_TIME 5        // One frame every 5 ms
+#define FRAME_TIME_MS 5        // One frame every 5 ms
 
 #define ADDRESS_SIZE 5
 #define PACKET_SIZE 10
@@ -30,7 +30,8 @@ typedef enum {
     SEND_STICK1 = 0,
     SEND_STICK2,
     SEND_BIND_INFO,
-    SEND_PROGRAMBOX
+    SEND_PROGRAMBOX,
+    FRAME_DONE
 } frame_state_t;
 
 
@@ -150,6 +151,10 @@ static void build_bind_packets(void)
 // ****************************************************************************
 static void send_stick_packet(void)
 {
+    nrf24_set_power(NRF24_POWER_0dBm);
+    nrf24_write_register(NRF24_RF_CH, hop_channels[hop_index]);
+    nrf24_write_multi_byte_register(NRF24_TX_ADDR, address, ADDRESS_SIZE);
+
     // Send failsafe packets instead of stick pacekts every
     // FAILSAFE_PRESCALER_COUNT times.
     if (failsafe_counter == 0) {
@@ -204,12 +209,13 @@ static void nrf_transmit_done_callback(void)
 
         case SEND_PROGRAMBOX:
             send_programming_box_packet();
-            frame_state = SEND_STICK1;
+            frame_state = FRAME_DONE;
 
             hop_index = (hop_index + 1) % NUMBER_OF_HOP_CHANNELS;
             failsafe_counter = (failsafe_counter + 1) % FAILSAFE_PRESCALER_COUNT;
             break;
 
+        case FRAME_DONE:
         default:
             break;
     }
@@ -219,16 +225,9 @@ static void nrf_transmit_done_callback(void)
 // ****************************************************************************
 static void hk310_protocol_frame_callback(void)
 {
-    systick_set_callback(hk310_protocol_frame_callback, FRAME_TIME);
-
     pulse_to_stickdata(channel_to_pulse(channels[CH1]), &stick_packet[0]);
     pulse_to_stickdata(channel_to_pulse(channels[CH2]), &stick_packet[2]);
     pulse_to_stickdata(channel_to_pulse(channels[CH3]), &stick_packet[4]);
-
-    // FIXME: we can do that after sending the programming box packet
-    nrf24_set_power(NRF24_POWER_0dBm);
-    nrf24_write_register(NRF24_RF_CH, hop_channels[hop_index]);
-    nrf24_write_multi_byte_register(NRF24_TX_ADDR, address, ADDRESS_SIZE);
 
     frame_state = SEND_STICK1;
     nrf_transmit_done_callback();
@@ -247,8 +246,6 @@ void exti9_5_isr(void)
 // ****************************************************************************
 void init_protocol_hk310(void)
 {
-    systick_set_callback(hk310_protocol_frame_callback, FRAME_TIME);
-
     stick_packet[7] = 0x55;         // Packet ID for stick data
 
     // Failsafe for steering: 1200 us
@@ -293,6 +290,8 @@ void init_protocol_hk310(void)
     // See nRF24L01+ specification v1.0, section "Register map table", page 57
     nrf24_write_register(NRF24_CONFIG,
         NRF24_EN_CRC | NRF24_CRCO | NRF24_PWR_UP | NRF24_RX_RD | NRF24_MAX_RT);
+
+    systick_set_rf_callback(hk310_protocol_frame_callback, FRAME_TIME_MS);
 }
 
 

@@ -9,7 +9,7 @@
 
 
 // ****************************************************************************
-#define MAX_SYSTICK_CALLBACKS 2
+#define MAX_SYSTICK_CALLBACKS 5
 
 
 typedef struct {
@@ -21,6 +21,8 @@ typedef struct {
 volatile uint32_t milliseconds;
 
 static systick_callback_t callbacks[MAX_SYSTICK_CALLBACKS];
+static systick_callback rf_callback = NULL;
+static uint32_t rf_callback_time_ms;
 
 
 // ****************************************************************************
@@ -100,9 +102,29 @@ void systick_clear_callback(systick_callback cb)
 
 
 // ****************************************************************************
+void systick_set_rf_callback(systick_callback cb, uint32_t repetition_time_ms)
+{
+    rf_callback_time_ms = repetition_time_ms;
+    rf_callback = cb;
+}
+
+
+// ****************************************************************************
 void sys_tick_handler(void)
 {
     ++milliseconds;
+
+    // The RF callback is called every rf_callback_time_ms milliseconds.
+    // One millisecond before we run the mixer to prepare the latest stick
+    // and switch data for output.
+    if (rf_callback) {
+        if ((milliseconds % rf_callback_time_ms) == 0) {
+            // FIXME: run the mixer to prepare for the next RF transmission
+        }
+        else if ((milliseconds % rf_callback_time_ms) == 1) {
+            (*rf_callback)();
+        }
+    }
 
     for (size_t i = 0; i < MAX_SYSTICK_CALLBACKS; i++) {
         if (callbacks[i].callback != NULL  &&
