@@ -30,7 +30,7 @@
 
 static void(* callback)(void);
 static uint32_t volume_factor;
-static uint8_t sound_timer_frequency;
+static uint32_t sound_timer_frequency;
 
 
 // ****************************************************************************
