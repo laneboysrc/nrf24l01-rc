@@ -21,7 +21,7 @@
 static void init_clock(void)
 {
     // Enable the Clock Security System
-    rcc_css_enable();
+    // rcc_css_enable();
 
     rcc_clock_setup_in_hse_8mhz_out_24mhz();
 }
@@ -31,12 +31,16 @@ static void init_clock(void)
 static void init_gpio(void)
 {
     // Enable clocks for GPIO port A (for GPIO_USART1_TX) and C (LED)
-    rcc_periph_clock_enable(RCC_GPIOA | RCC_GPIOB | RCC_GPIOC | RCC_AFIO);
+    // IMPORTANT: you can not 'or' them into one call due to bit-mangling
+    rcc_periph_clock_enable(RCC_GPIOA);
+    rcc_periph_clock_enable(RCC_GPIOB);
+    rcc_periph_clock_enable(RCC_GPIOC);
+    rcc_periph_clock_enable(RCC_AFIO);
 
     // Configure LED output port
     gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, GPIO13);
 
-    gpio_set(GPIOC, GPIO13);
+    gpio_clear(GPIOC, GPIO13);
 }
 
 
@@ -58,7 +62,7 @@ int main(void)
 
     printf("\n\n\n**********\nTransmitter initialized\n");
     // music_play(&song_startup);
-    sound_play(523, 100, NULL);
+    sound_play(523, 50, NULL);
 
     while (1) {
         // bool armed = true;
