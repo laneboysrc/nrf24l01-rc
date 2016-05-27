@@ -42,17 +42,17 @@ OPENCM3_LIBNAME		:= opencm3_stm32f1
 
 ###############################################################################
 # Source files, include paths, library paths and libraries
-C_SOURCE_FILES += $(abspath mixer/curves.c)
 C_SOURCE_FILES += $(abspath main.c)
+C_SOURCE_FILES += $(abspath mixer/curves.c)
 C_SOURCE_FILES += $(abspath mixer/mixer.c)
-C_SOURCE_FILES += $(abspath sound/music.c)
 C_SOURCE_FILES += $(abspath rf/nrf24l01p.c)
 C_SOURCE_FILES += $(abspath rf/protocol_hk310.c)
-C_SOURCE_FILES += $(abspath utils/ring_buffer.c)
+C_SOURCE_FILES += $(abspath sound/music.c)
 C_SOURCE_FILES += $(abspath sound/sound.c)
 C_SOURCE_FILES += $(abspath system/spi.c)
 C_SOURCE_FILES += $(abspath system/systick.c)
 C_SOURCE_FILES += $(abspath system/uart.c)
+C_SOURCE_FILES += $(abspath utils/ring_buffer.c)
 
 LIBS += -lc -lnosys
 LIBS += -l$(OPENCM3_LIBNAME)
@@ -60,9 +60,9 @@ LIBS += -l$(OPENCM3_LIBNAME)
 LINKER_SCRIPT = stm32f103c8t6.ld
 
 INC_PATHS += -I$(abspath .)
-INC_PATHS += -I$(abspath ./sound)
-INC_PATHS += -I$(abspath ./rf)
 INC_PATHS += -I$(abspath ./mixer)
+INC_PATHS += -I$(abspath ./rf)
+INC_PATHS += -I$(abspath ./sound)
 INC_PATHS += -I$(abspath ./system)
 INC_PATHS += -I$(abspath ./utils)
 INC_PATHS += -isystem$(abspath $(OPENCM3_DIR)/include)
