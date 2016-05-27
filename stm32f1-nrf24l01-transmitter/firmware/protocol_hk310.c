@@ -285,9 +285,6 @@ void init_protocol_hk310(void)
     // Set bitrate to 250 kbps
     nrf24_set_bitrate(250);
 
-    // Set transmit power
-    nrf24_set_power(NRF24_POWER_0dBm);
-
     // TX mode, 2-byte CRC, power-up, Enable TX interrupt
     //
     // IMPORTANT: reverse logic: setting one of the "mask interrupt" pins
