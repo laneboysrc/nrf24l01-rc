@@ -1,7 +1,10 @@
 #include <stdint.h>
 
-#include <protocol_hk310.h>
+#include <libopencm3/stm32/gpio.h>
+#include <libopencm3/stm32/exti.h>
+#include <libopencmsis/core_cm3.h>
 
+#include <protocol_hk310.h>
 #include <nrf24l01p.h>
 #include <systick.h>
 #include <mixer.h>
@@ -177,6 +180,9 @@ static void send_programming_box_packet(void)
 // ****************************************************************************
 static void nrf_transmit_done_callback(void)
 {
+    // Clear the TX_DS status flags
+    nrf24_write_register(NRF24_STATUS, NRF24_TX_DS);
+
     switch (frame_state) {
         case SEND_STICK1:
             send_stick_packet();
@@ -207,10 +213,19 @@ static void nrf_transmit_done_callback(void)
 
 
 // ****************************************************************************
-static void protocol_frame_callback(void)
+static void hk310_protocol_frame_callback(void)
 {
-    systick_set_callback(protocol_frame_callback, FRAME_TIME);
+    systick_set_callback(hk310_protocol_frame_callback, FRAME_TIME);
     frame_state = SEND_STICK1;
+    nrf_transmit_done_callback();
+}
+
+
+// ****************************************************************************
+void exti9_5_isr(void)
+{
+    exti_reset_request(EXTI8);
+
     nrf_transmit_done_callback();
 }
 
@@ -218,7 +233,7 @@ static void protocol_frame_callback(void)
 // ****************************************************************************
 void init_protocol_hk310(void)
 {
-    systick_set_callback(protocol_frame_callback, FRAME_TIME);
+    systick_set_callback(hk310_protocol_frame_callback, FRAME_TIME);
 
     stick_packet[7] = 0x55;         // Packet ID for stick data
 
@@ -237,6 +252,17 @@ void init_protocol_hk310(void)
     build_bind_packets();
 
 
+    // GPIO PA8 setup for falling-edge IRQ, with a pull-down
+    gpio_set_mode(GPIOA, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO8);
+    gpio_clear(GPIOA, GPIO8);
+
+    exti_select_source(EXTI8, GPIOA);
+    exti_set_trigger(EXTI8, EXTI_TRIGGER_FALLING);
+    exti_enable_request(EXTI8);
+    nvic_enable_irq(NVIC_EXTI9_5_IRQ);
+
+
+    // nRF24 initialization
     nrf24_write_register(NRF24_SETUP_AW, NRF24_ADDRESS_WIDTH_5_BYTES);
 
     // Disable Auto Acknoledgement on all pipes
@@ -249,7 +275,13 @@ void init_protocol_hk310(void)
     nrf24_set_power(NRF24_POWER_0dBm);
 
     // TX mode, 2-byte CRC, power-up, Enable TX interrupt
-    nrf24_write_register(NRF24_CONFIG, NRF24_EN_CRC | NRF24_CRCO | NRF24_PWR_UP | NRF24_TX_DS);
+    //
+    // IMPORTANT: reverse logic: setting one of the "mask interrupt" pins
+    // disables the IRQ output, while having the bit cleared enables IRQ output!
+    //
+    // See nRF24L01+ specification v1.0, section "Register map table", page 57
+    nrf24_write_register(NRF24_CONFIG,
+        NRF24_EN_CRC | NRF24_CRCO | NRF24_PWR_UP | NRF24_RX_RD | NRF24_MAX_RT);
 }
 
 
