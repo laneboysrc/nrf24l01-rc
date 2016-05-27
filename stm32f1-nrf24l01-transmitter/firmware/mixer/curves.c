@@ -27,6 +27,9 @@
 #define CHAN_MIN_VALUE (-100 * CHAN_MULTIPLIER)
 #define MAX_POINTS 13
 
+#define MMULT 1024
+
+
 typedef enum {
     CURVE_NONE,
     CURVE_FIXED,
@@ -63,7 +66,6 @@ static int32_t compute_tangent(curve_t *curve, int num_points, int i)
 {
     int32_t m;
     int32_t delta = 2 * 100 / (num_points - 1);
-    #define MMULT 1024
 
     if (i == 0) {
         // Linear interpolation between the first two points

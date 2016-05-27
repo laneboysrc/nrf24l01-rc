@@ -56,7 +56,7 @@ int main(void)
     init_mixer();
     init_protocol_hk310();
 
-    printf("Hello world!\n");
+    printf("\n\n\n**********\nTransmitter initialized\n");
     // music_play(&song_startup);
     sound_play(523, 100, NULL);
 
