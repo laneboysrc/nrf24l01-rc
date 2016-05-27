@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <libopencm3/stm32/rcc.h>
 #include <libopencmsis/core_cm3.h>
 
 #include <systick.h>
@@ -45,12 +46,14 @@ static systick_callback_t *get_emtpy_callback_slot(void)
 // ****************************************************************************
 void init_systick(void)
 {
+    uint32_t reload_value;
+
     // 24 MHz / 8 => 3000000 counts per second
     systick_set_clocksource(STK_CSR_CLKSOURCE_AHB_DIV8);
 
-    // 3000000/3000 = 1000 overflows per second - every 1ms one interrupt
-    // SysTick interrupt every N clock pulses: set reload to N-1
-    systick_set_reload(2999);
+    // SysTick interrupt every 1 ms
+    reload_value = (rcc_ahb_frequency / 8 / 1000) - 1;
+    systick_set_reload(reload_value);
 
     systick_interrupt_enable();
     systick_counter_enable();

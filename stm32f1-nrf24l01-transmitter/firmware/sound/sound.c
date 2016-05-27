@@ -26,11 +26,11 @@
 
 
 // ****************************************************************************
-#define SOUND_TIMER_FREQUENCY 6000000
-
+#define SOUND_TIMER_PRESCALER 4
 
 static void(* callback)(void);
 static uint32_t volume_factor;
+static uint8_t sound_timer_frequency;
 
 
 // ****************************************************************************
@@ -47,8 +47,9 @@ void init_sound(void)
     timer_set_mode(TIM2, TIM_CR1_CKD_CK_INT, TIM_CR1_CMS_EDGE, TIM_CR1_DIR_UP);
 
     // Timer runs at 24 / 4 = 6 MHz
-    timer_set_prescaler(TIM2, 4 - 1);
     timer_enable_preload(TIM2);
+    timer_set_prescaler(TIM2, SOUND_TIMER_PRESCALER - 1);
+    sound_timer_frequency = rcc_apb1_frequency / SOUND_TIMER_PRESCALER;
 
     timer_set_oc_mode(TIM2, TIM_OC1, TIM_OCM_PWM1);
     timer_enable_oc_preload(TIM2, TIM_OC1);
@@ -95,7 +96,7 @@ static void set_timer(unsigned int frequency)
 
     // The Timer2 runs at 6 MHz, so we need to set the ARR to that figure
     // divided by the frequency we are looking to generate.
-    period = SOUND_TIMER_FREQUENCY / frequency;
+    period = sound_timer_frequency / frequency;
 
     // Simple non-linear function to mimic a perceived linear volume level
     duty_cycle = (period / 2) * volume_factor / 100 * volume_factor / 100 * volume_factor / 100;

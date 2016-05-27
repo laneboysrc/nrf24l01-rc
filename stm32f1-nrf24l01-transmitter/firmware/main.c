@@ -24,9 +24,6 @@ static void init_clock(void)
     rcc_css_enable();
 
     rcc_clock_setup_in_hse_8mhz_out_24mhz();
-
-// FIXME: use rcc_ahb_frequency rcc_apb1_frequency rcc_apb2_frequency
-
 }
 
 
