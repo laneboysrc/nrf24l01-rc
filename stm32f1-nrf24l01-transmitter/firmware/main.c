@@ -43,7 +43,6 @@ static void init_gpio(void)
 // ****************************************************************************
 int main(void)
 {
-    bool armed = true;
 
     init_clock();
     init_systick();
@@ -58,15 +57,17 @@ int main(void)
     init_protocol_hk310();
 
     printf("Hello world!\n");
-    music_play(&song_startup);
+    // music_play(&song_startup);
+    sound_play(523, 100, NULL);
 
     while (1) {
-        if (armed) {
-            if (milliseconds > 1800) {
-                armed = false;
-                music_play(&song_deactivate);
-            }
-        }
+        // bool armed = true;
+        // if (armed) {
+        //     if (milliseconds > 1800) {
+        //         armed = false;
+        //         music_play(&song_deactivate);
+        //     }
+        // }
 
         // Put the CPU to sleep until an interrupt triggers. This reduces
         // power consumption drastically.
