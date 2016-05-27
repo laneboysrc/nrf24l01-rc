@@ -42,9 +42,9 @@ OPENCM3_LIBNAME		:= opencm3_stm32f1
 
 ###############################################################################
 # Source files, include paths, library paths and libraries
-C_SOURCE_FILES += $(abspath curves.c)
+C_SOURCE_FILES += $(abspath mixer/curves.c)
 C_SOURCE_FILES += $(abspath main.c)
-C_SOURCE_FILES += $(abspath mixer.c)
+C_SOURCE_FILES += $(abspath mixer/mixer.c)
 C_SOURCE_FILES += $(abspath sound/music.c)
 C_SOURCE_FILES += $(abspath rf/nrf24l01p.c)
 C_SOURCE_FILES += $(abspath rf/protocol_hk310.c)
@@ -62,6 +62,7 @@ LINKER_SCRIPT = stm32f103c8t6.ld
 INC_PATHS += -I$(abspath .)
 INC_PATHS += -I$(abspath ./sound)
 INC_PATHS += -I$(abspath ./rf)
+INC_PATHS += -I$(abspath ./mixer)
 INC_PATHS += -isystem$(abspath $(OPENCM3_DIR)/include)
 
 LIB_PATHS += -L$(abspath $(OPENCM3_DIR)/lib)
