@@ -36,7 +36,7 @@ OPENOCD_TARGET      := stm32f1x
 MK 				 	:= mkdir -p
 RM 					:= rm -rf
 
-OPENCM3_DIR 		:= ./libopencm3
+OPENCM3_DIR 		:= ./libs/libopencm3
 OPENCM3_LIBNAME		:= opencm3_stm32f1
 
 
