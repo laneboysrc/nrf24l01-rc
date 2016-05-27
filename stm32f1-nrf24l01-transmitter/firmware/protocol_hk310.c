@@ -24,7 +24,7 @@
 #define NUMBER_OF_BIND_PACKETS 4
 #define NUMBER_OF_HOP_CHANNELS 20
 #define BIND_CHANNEL 81
-
+#define FAILSAFE_PRESCALER_COUNT 17
 
 typedef enum {
     SEND_STICK1 = 0,
@@ -49,6 +49,12 @@ static uint8_t hop_channels[NUMBER_OF_HOP_CHANNELS] = {48, 49, 50, 51, 52, 53, 5
 static uint8_t address[ADDRESS_SIZE] = {0xc3, 0xda, 0x63, 0xc6, 0x56};
 
 static const uint8_t bind_address[ADDRESS_SIZE] = {0x12, 0x23, 0x23, 0x45, 0x78};
+
+// This counter determines how often failsafe packets are sent in relation to
+// stick packets. The failsafe packets are sent every FAILSAFE_PRESCALER_COUNT.
+// Ideally FAILSAFE_PRESCALER_COUNT should be a prime number so that the
+// failsafe packet is sent on all hop channels over time.
+static uint8_t failsafe_counter = 0;
 
 
 // ****************************************************************************
@@ -144,18 +150,15 @@ static void build_bind_packets(void)
 // ****************************************************************************
 static void send_stick_packet(void)
 {
-    pulse_to_stickdata(channel_to_pulse(channels[CH1]), &stick_packet[0]);
-    pulse_to_stickdata(channel_to_pulse(channels[CH2]), &stick_packet[2]);
-    pulse_to_stickdata(channel_to_pulse(channels[CH3]), &stick_packet[4]);
+    // Send failsafe packets instead of stick pacekts every
+    // FAILSAFE_PRESCALER_COUNT times.
+    if (failsafe_counter == 0) {
+        nrf24_write_payload(failsafe_packet, PACKET_SIZE);
+    }
+    else {
+        nrf24_write_payload(stick_packet, PACKET_SIZE);
+    }
 
-    // FIXME: we can do that after sending the programming box packet
-    nrf24_set_power(NRF24_POWER_0dBm);
-    nrf24_write_register(NRF24_RF_CH, hop_channels[hop_index]);
-    nrf24_write_multi_byte_register(NRF24_TX_ADDR, address, ADDRESS_SIZE);
-
-    // FIXME: send FS packet every 10 packets
-
-    nrf24_write_payload(stick_packet, PACKET_SIZE);
 }
 
 
@@ -204,6 +207,7 @@ static void nrf_transmit_done_callback(void)
             frame_state = SEND_STICK1;
 
             hop_index = (hop_index + 1) % NUMBER_OF_HOP_CHANNELS;
+            failsafe_counter = (failsafe_counter + 1) % FAILSAFE_PRESCALER_COUNT;
             break;
 
         default:
@@ -216,16 +220,26 @@ static void nrf_transmit_done_callback(void)
 static void hk310_protocol_frame_callback(void)
 {
     systick_set_callback(hk310_protocol_frame_callback, FRAME_TIME);
+
+    pulse_to_stickdata(channel_to_pulse(channels[CH1]), &stick_packet[0]);
+    pulse_to_stickdata(channel_to_pulse(channels[CH2]), &stick_packet[2]);
+    pulse_to_stickdata(channel_to_pulse(channels[CH3]), &stick_packet[4]);
+
+    // FIXME: we can do that after sending the programming box packet
+    nrf24_set_power(NRF24_POWER_0dBm);
+    nrf24_write_register(NRF24_RF_CH, hop_channels[hop_index]);
+    nrf24_write_multi_byte_register(NRF24_TX_ADDR, address, ADDRESS_SIZE);
+
     frame_state = SEND_STICK1;
     nrf_transmit_done_callback();
 }
 
 
 // ****************************************************************************
+// Interrupt handler for EXTI8 (our nRF IRQ goes to PA8, hence EXTI8)
 void exti9_5_isr(void)
 {
     exti_reset_request(EXTI8);
-
     nrf_transmit_done_callback();
 }
 
