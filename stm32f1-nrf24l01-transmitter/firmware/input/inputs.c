@@ -8,25 +8,25 @@
 #include <inputs.h>
 
 
-#define NUM_ADC_CHANNELS 10
+#define NUMBER_OF_ADC_CHANNELS 10
 #define WINDOW_SIZE 10
-#define SAMPLE_COUNT NUM_ADC_CHANNELS * WINDOW_SIZE
+#define SAMPLE_COUNT NUMBER_OF_ADC_CHANNELS * WINDOW_SIZE
 
 static uint32_t adc_array_oversample[SAMPLE_COUNT];
-static uint32_t adc_array_raw[NUM_ADC_CHANNELS];
-static uint8_t adc_chan_sel[NUM_ADC_CHANNELS] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+static uint32_t adc_array_raw[NUMBER_OF_ADC_CHANNELS];
+static uint8_t adc_channel_selection[NUMBER_OF_ADC_CHANNELS] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 
 
 // ****************************************************************************
 static void adc_filter(void)
 {
-    for (int i = 0; i < NUM_ADC_CHANNELS; i++) {
+    for (int i = 0; i < NUMBER_OF_ADC_CHANNELS; i++) {
         uint32_t result = 0;
         int idx = i;
 
         for (int j = 0; j < WINDOW_SIZE; j++) {
             result += adc_array_oversample[idx];
-            idx += NUM_ADC_CHANNELS;
+            idx += NUMBER_OF_ADC_CHANNELS;
         }
 
         result /= WINDOW_SIZE;
@@ -59,7 +59,7 @@ static void adc_filter(void)
 // ****************************************************************************
 static void adc_set_conversion_sequence(void)
 {
-    adc_set_regular_sequence(ADC1, NUM_ADC_CHANNELS, (uint8_t *)adc_chan_sel);
+    adc_set_regular_sequence(ADC1, NUMBER_OF_ADC_CHANNELS, (uint8_t *)adc_channel_selection);
     adc_set_continuous_conversion_mode(ADC1);
     adc_start_conversion_direct(ADC1);
 }
