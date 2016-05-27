@@ -1,19 +1,20 @@
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 
-#include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
+#include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/timer.h>
 #include <libopencmsis/core_cm3.h>
 
+#include <inputs.h>
+#include <mixer.h>
+#include <music.h>
+#include <nrf24l01p.h>
+#include <protocol_hk310.h>
+#include <sound.h>
+#include <spi.h>
 #include <systick.h>
 #include <uart.h>
-#include <spi.h>
-#include <nrf24l01p.h>
-#include <sound.h>
-#include <music.h>
-#include <protocol_hk310.h>
-#include <mixer.h>
 
 
 // ****************************************************************************
@@ -55,6 +56,7 @@ int main(void)
     init_sound();
     init_nrf24();
 
+    init_inputs();
     init_mixer();
     init_protocol_hk310();
 
