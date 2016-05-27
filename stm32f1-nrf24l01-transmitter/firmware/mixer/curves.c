@@ -64,33 +64,42 @@ static int32_t compute_tangent(curve_t *curve, int num_points, int i)
     int32_t m;
     int32_t delta = 2 * 100 / (num_points - 1);
     #define MMULT 1024
+
     if (i == 0) {
-        //linear interpolation between 1st 2 points
-        //keep 3 decimal-places for m
-        m = (MMULT * (curve->points[i+1] - curve->points[i])) / delta;
-    } else if (i == num_points - 1) {
-        //linear interpolation between last 2 points
-        //keep 3 decimal-places for m
-        m = (MMULT * (curve->points[i] - curve->points[i-1])) / delta;
-    } else {
-        //apply monotone rules from
-        //http://en.wikipedia.org/wiki/Monotone_cubic_interpolation
-        //1) compute slopes of secant lines
-        int32_t d0 = (MMULT * (curve->points[i] - curve->points[i-1])) / (delta);
-        int32_t d1 = (MMULT * (curve->points[i+1] - curve->points[i])) / (delta);
-        //2) compute initial average tangent
+        // Linear interpolation between the first two points
+        // Keep 3 decimal-places for m
+        m = (MMULT * (curve->points[i + 1] - curve->points[i])) / delta;
+    }
+    else if (i == num_points - 1) {
+        // Linear interpolation between the last two points
+        // Keep 3 decimal-places for m
+        m = (MMULT * (curve->points[i] - curve->points[i - 1])) / delta;
+    }
+    else {
+        // Apply monotone rules from
+        // http://en.wikipedia.org/wiki/Monotone_cubic_interpolation
+
+        // 1) Compute slopes of secant lines
+        int32_t d0 = (MMULT * (curve->points[i] - curve->points[i - 1])) / delta;
+        int32_t d1 = (MMULT * (curve->points[i + 1] - curve->points[i])) / delta;
+
+        // 2) Compute initial average tangent
         m = (d0 + d1) / 2;
-        //3 check for horizontal lines
+
+        // 3) Check for horizontal lines
         if (d0 == 0 || d1 == 0 || (d0 > 0 && d1 < 0) || (d0 < 0 && d1 > 0)) {
             m = 0;
-        } else {
+        }
+        else {
             if (MMULT * m / d0 >  3 * MMULT) {
                 m = 3 * d0;
-            } else if (MMULT * m / d1 > 3 * MMULT) {
+            }
+            else if (MMULT * m / d1 > 3 * MMULT) {
                 m = 3 * d1;
             }
         }
     }
+
     return m;
 }
 
@@ -105,22 +114,28 @@ static int32_t hermite_spline(curve_t *curve, int32_t value)
 {
     int num_points = (CURVE_TYPE(curve) - CURVE_3POINT) * 2 + 3;
     int32_t step = PCT_TO_RANGE(2 * 100) / (num_points - 1) ;
+
     if (value < PCT_TO_RANGE(-100)) {
         value = PCT_TO_RANGE(-100);
-    } else if(value > PCT_TO_RANGE(100)) {
+    }
+    else if(value > PCT_TO_RANGE(100)) {
         value = PCT_TO_RANGE(100);
     }
+
     for (int i = 0; i < num_points -1; i++) {
         int32_t x = PCT_TO_RANGE(-100) + i * step;
         int32_t p0x = x;
         int32_t p3x;
+
         //If there are rounding errors, we need to deal with them here
         if (i == num_points - 2) {
             p3x = PCT_TO_RANGE(100);
-        } else {
+        }
+        else {
             p3x = x + step;
         }
-        if(value >= p0x && value <= p3x) {
+
+        if (value >= p0x  &&  value <= p3x) {
             int32_t p0y = PCT_TO_RANGE(curve->points[i]);
             int32_t p3y = PCT_TO_RANGE(curve->points[i+1]);
             int32_t m0 = compute_tangent(curve, num_points, i);
@@ -213,11 +228,15 @@ static int32_t deadband(curve_t *curve, int32_t value)
     int32_t k = neg ? (uint8_t)curve->points[1] : (uint8_t)curve->points[0];
     int32_t max = CHAN_MAX_VALUE;
 
-    if (k == 0)
+    if (k == 0) {
         return CHAN_MAX_VALUE;
+    }
+
     value = abs(value);
-    if (value < k * CHAN_MULTIPLIER / 10)
+    if (value < k * CHAN_MULTIPLIER / 10) {
         return 0;
+    }
+
     return max * ((1000 * (value - max) + (1000 - k) * max) / (1000 - k)) / value;
 }
 
@@ -227,12 +246,13 @@ int32_t CURVE_Evaluate(int32_t xval, curve_t *curve)
 {
     int32_t divisor;
 
-    //We let CURVE_NONE get a pass to allow creating a pre-scaler to chain mixers together
+    // We let CURVE_NONE get a pass to allow creating a pre-scaler to chain
+    // mixers together
     if (CURVE_TYPE(curve) == CURVE_NONE) {
         return xval;
     }
 
-    //interpolation doesn't work if theinput is out of bounds, so bound it here
+    // Interpolation doesn't work if the input is out of bounds, so bound it here
     if (xval > CHAN_MAX_VALUE) {
         xval = CHAN_MAX_VALUE;
     }
