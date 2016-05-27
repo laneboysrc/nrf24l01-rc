@@ -67,7 +67,7 @@ LIB_PATHS += -L$(abspath $(OPENCM3_DIR)/lib)
 
 ###############################################################################
 # Build directory, where all the intermediate files go
-OBJECT_DIRECTORY = build
+OBJECT_DIRECTORY = _build
 LISTING_DIRECTORY = $(OBJECT_DIRECTORY)
 OUTPUT_BINARY_DIRECTORY = $(OBJECT_DIRECTORY)
 
