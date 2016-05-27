@@ -1,8 +1,8 @@
 #pragma once
 
-#include <stdlib.h>
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
 
 #define NRF24_MAX_PAYLOAD_SIZE 32
 

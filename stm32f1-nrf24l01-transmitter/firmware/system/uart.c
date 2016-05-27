@@ -1,8 +1,8 @@
-#include <stdint.h>
 #include <errno.h>
+#include <stdint.h>
 
-#include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
+#include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/usart.h>
 #include <libopencmsis/core_cm3.h>
 

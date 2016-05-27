@@ -1,9 +1,9 @@
-#include <stdlib.h>
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
 
-#include <spi.h>
 #include <nrf24l01p.h>
+#include <spi.h>
 
 
 // ****************************************************************************

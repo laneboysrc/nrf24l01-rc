@@ -1,8 +1,8 @@
-#include <stdlib.h>
 #include <stdint.h>
+#include <stdlib.h>
 
-#include <sound.h>
 #include <music.h>
+#include <sound.h>
 
 
 // ****************************************************************************
