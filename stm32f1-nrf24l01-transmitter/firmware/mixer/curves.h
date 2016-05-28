@@ -34,5 +34,5 @@ typedef struct {
 } curve_t;
 
 
-int32_t CURVE_evaluate(int32_t xval, curve_t *curve);
+int32_t CURVE_evaluate(curve_t *curve, int32_t value);
 unsigned CURVE_get_number_of_points(curve_t *curve);

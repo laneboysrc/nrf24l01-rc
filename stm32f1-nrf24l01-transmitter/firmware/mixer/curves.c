@@ -266,7 +266,7 @@ static int32_t zero_max(curve_t *curve, int32_t value)
 
 
 // ****************************************************************************
-int32_t CURVE_evaluate(int32_t value, curve_t *curve)
+int32_t CURVE_evaluate(curve_t *curve, int32_t value)
 {
     // Interpolation doesn't work if the input is out of bounds, so we clamp
     // it here.

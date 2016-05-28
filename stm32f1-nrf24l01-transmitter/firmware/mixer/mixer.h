@@ -2,6 +2,9 @@
 
 #include <stdint.h>
 
+#include <curves.h>
+
+
 // A "channel" has a value range from -10000..0..10000, corresponding to
 // -100%..0..100%. This range is the same used in Deviation. It provides
 // good resolution and it is human readable.
@@ -18,6 +21,8 @@
 
 #define CHANNEL_TO_PERCENT(x) ((x) / 100)
 #define PERCENT_TO_CHANNEL(x) ((x) * 100)
+
+#define NUMBER_OF_MIXER_UNITS 20
 
 
 typedef enum {
@@ -38,7 +43,20 @@ typedef enum {
     NUMBER_OF_VIRTUAL_CHANNELS = LAST_VIRTUAL_CHANNEL - FIRST_VIRTUAL_CHANNEL + 1,
 } ch_t;
 
+
+typedef struct  {
+    curve_t curve;
+    uint8_t src;
+    uint8_t dest;
+    uint8_t sw;
+    int8_t scalar;
+    int8_t offset;
+    unsigned invert_source : 1;
+} mixer_unit_t;
+
+
 extern int32_t channels[NUMBER_OF_CHANNELS];
+
 
 void MIXER_init(void);
 void MIXER_evaluate(void);
