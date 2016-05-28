@@ -5,6 +5,7 @@
 #include <libopencm3/stm32/rcc.h>
 #include <libopencmsis/core_cm3.h>
 
+#include <limits.h>
 #include <mixer.h>
 #include <systick.h>
 
@@ -120,8 +121,10 @@ void sys_tick_handler(void)
     // and switch data for output.
     if (rf_callback) {
         if ((milliseconds % rf_callback_time_ms) == 0) {
-            // run the mixer to prepare for the next RF transmission
+            // Run the mixer and apply limits to prepare for the next RF
+            // transmission
             MIXER_evaluate();
+            LIMITS_apply();
         }
         else if ((milliseconds % rf_callback_time_ms) == 1) {
             (*rf_callback)();
