@@ -8,8 +8,8 @@
 int32_t channels[NUMBER_OF_CHANNELS];
 
 static curve_t test_curve = {
-    CURVE_EXPO,
-    {90, -90}
+    CURVE_DEADBAND, 0,
+    {-20, 50, -100}
 };
 
 // ****************************************************************************

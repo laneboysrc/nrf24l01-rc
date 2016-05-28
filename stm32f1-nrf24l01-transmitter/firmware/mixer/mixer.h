@@ -16,8 +16,8 @@
 #define CHANNEL_CENTER 0
 #define CHANNEL_N100_PERCENT -10000
 
-#define CHANNEL_TO_PERCENT(x) (x / 100)
-#define PERCENT_TO_CHANNEL(x) (x * 100)
+#define CHANNEL_TO_PERCENT(x) ((x) / 100)
+#define PERCENT_TO_CHANNEL(x) ((x) * 100)
 
 
 typedef enum {

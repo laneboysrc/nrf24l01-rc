@@ -19,12 +19,12 @@ typedef enum {
     CURVE_7POINT,
     CURVE_9POINT,
     CURVE_11POINT,
-    CURVE_13POINT,
-    LAST_CURVE = CURVE_13POINT
+    CURVE_13POINT
 } curve_type_t;
 
 typedef struct {
-    curve_type_t type;
+    curve_type_t type : 7;
+    unsigned smoothing : 1;
     int8_t points[CURVE_MAX_POINTS];
 } curve_t;
 
