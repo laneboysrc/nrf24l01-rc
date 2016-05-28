@@ -1,13 +1,15 @@
 #include <stdint.h>
+#include <stdio.h>
 
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/exti.h>
 #include <libopencmsis/core_cm3.h>
 
-#include <protocol_hk310.h>
-#include <nrf24l01p.h>
-#include <systick.h>
+#include <inputs.h>
 #include <mixer.h>
+#include <nrf24l01p.h>
+#include <protocol_hk310.h>
+#include <systick.h>
 
 // NOTE: We keep the CE pin constantly high.
 // While StandbyII mode (CE=1) consumes 320uA and StandbyI mode (CE=0) only
@@ -82,7 +84,8 @@ static unsigned int channel_to_pulse(int32_t ch)
 {
     int32_t pulse_ns;
 
-    pulse_ns = (1500 * 1000) + (ch * 500 * 1000 / 0x7fff);
+    pulse_ns = ch * 1000 / 0x8000 * 500;
+    pulse_ns += (1500 * 1000);
 
     if (pulse_ns < 0) {
         return 0;
@@ -225,9 +228,19 @@ static void nrf_transmit_done_callback(void)
 // ****************************************************************************
 static void hk310_protocol_frame_callback(void)
 {
-    pulse_to_stickdata(channel_to_pulse(channels[CH1]), &stick_packet[0]);
-    pulse_to_stickdata(channel_to_pulse(channels[CH2]), &stick_packet[2]);
-    pulse_to_stickdata(channel_to_pulse(channels[CH3]), &stick_packet[4]);
+    uint32_t ch1;
+    // static uint32_t old_ch1 = 0xffffffff;
+
+    ch1 = channel_to_pulse(input_get_channel(1));
+
+    // if (abs(old_ch1-ch1) > 1000) {
+    //     printf("ch1=%lu\n", ch1);
+    // }
+    // old_ch1 = ch1;
+
+    pulse_to_stickdata(ch1, &stick_packet[0]);
+    pulse_to_stickdata(channel_to_pulse(input_get_channel(2)), &stick_packet[2]);
+    pulse_to_stickdata(channel_to_pulse(input_get_channel(3)), &stick_packet[4]);
 
     frame_state = SEND_STICK1;
     nrf_transmit_done_callback();

@@ -46,7 +46,6 @@ static void init_gpio(void)
 // ****************************************************************************
 int main(void)
 {
-
     init_clock();
     init_systick();
     init_gpio();
@@ -61,7 +60,7 @@ int main(void)
 
     printf("\n\n\n**********\nTransmitter initialized\n");
     // music_play(&song_startup);
-    sound_play(523, 50, NULL);
+    sound_play(523, 100, NULL);
 
     while (1) {
         // bool armed = true;
