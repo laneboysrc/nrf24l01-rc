@@ -10,7 +10,6 @@
 #include <systick.h>
 
 
-#define NUMBER_OF_ADC_CHANNELS 10
 #define WINDOW_SIZE 10
 #define SAMPLE_COUNT NUMBER_OF_ADC_CHANNELS * WINDOW_SIZE
 

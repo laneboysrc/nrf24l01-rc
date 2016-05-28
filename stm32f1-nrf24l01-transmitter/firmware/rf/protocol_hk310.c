@@ -5,7 +5,6 @@
 #include <libopencm3/stm32/exti.h>
 #include <libopencmsis/core_cm3.h>
 
-#include <inputs.h>
 #include <mixer.h>
 #include <nrf24l01p.h>
 #include <protocol_hk310.h>
@@ -231,7 +230,7 @@ static void hk310_protocol_frame_callback(void)
     uint32_t ch1;
     // static uint32_t old_ch1 = 0xffffffff;
 
-    ch1 = channel_to_pulse(input_get_channel(1));
+    ch1 = channel_to_pulse(channels[0]);
 
     // if (abs(old_ch1-ch1) > 1000) {
     //     printf("ch1=%lu\n", ch1);
@@ -239,8 +238,8 @@ static void hk310_protocol_frame_callback(void)
     // old_ch1 = ch1;
 
     pulse_to_stickdata(ch1, &stick_packet[0]);
-    pulse_to_stickdata(channel_to_pulse(input_get_channel(2)), &stick_packet[2]);
-    pulse_to_stickdata(channel_to_pulse(input_get_channel(3)), &stick_packet[4]);
+    pulse_to_stickdata(channel_to_pulse(channels[1]), &stick_packet[2]);
+    pulse_to_stickdata(channel_to_pulse(channels[2]), &stick_packet[4]);
 
     frame_state = SEND_STICK1;
     nrf_transmit_done_callback();

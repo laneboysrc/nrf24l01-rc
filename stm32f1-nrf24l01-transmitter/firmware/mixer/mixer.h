@@ -23,3 +23,4 @@ typedef enum {
 extern int32_t channels[NUMBER_OF_CHANNELS];
 
 void init_mixer(void);
+void mixer_evaluate(void);
