@@ -124,17 +124,17 @@ static void play_current_tone(void)
     const tone *t = &song_pointer->tones[current_tone_index];
 
     if (t->frequency != SONG_END) {
-        sound_play(t->frequency, t->duration_ms, music_callback);
+        SOUND_play(t->frequency, t->duration_ms, music_callback);
     }
 }
 
 
 // ****************************************************************************
-void music_play(song const *s)
+void MUSIC_play(song const *s)
 {
     song_pointer = s;
     current_tone_index = 0;
 
-    sound_set_volume(s->volume);
+    SOUND_set_volume(s->volume);
     play_current_tone();
 }

@@ -47,7 +47,7 @@ static systick_callback_t *get_emtpy_callback_slot(void)
 
 
 // ****************************************************************************
-void init_systick(void)
+void SYSTICK_init(void)
 {
     uint32_t reload_value;
 
@@ -64,7 +64,7 @@ void init_systick(void)
 
 
 // ****************************************************************************
-void systick_set_callback(systick_callback cb, uint32_t duration_ms)
+void SYSTICK_set_callback(systick_callback cb, uint32_t duration_ms)
 {
     systick_callback_t *slot;
 
@@ -89,7 +89,7 @@ void systick_set_callback(systick_callback cb, uint32_t duration_ms)
 
 
 // ****************************************************************************
-void systick_clear_callback(systick_callback cb)
+void SYSTICK_clear_callback(systick_callback cb)
 {
     systick_callback_t *slot;
 
@@ -103,7 +103,7 @@ void systick_clear_callback(systick_callback cb)
 
 
 // ****************************************************************************
-void systick_set_rf_callback(systick_callback cb, uint32_t repetition_time_ms)
+void SYSTICK_set_rf_callback(systick_callback cb, uint32_t repetition_time_ms)
 {
     rf_callback_time_ms = repetition_time_ms;
     rf_callback = cb;
@@ -121,7 +121,7 @@ void sys_tick_handler(void)
     if (rf_callback) {
         if ((milliseconds % rf_callback_time_ms) == 0) {
             // run the mixer to prepare for the next RF transmission
-            mixer_evaluate();
+            MIXER_evaluate();
         }
         else if ((milliseconds % rf_callback_time_ms) == 1) {
             (*rf_callback)();

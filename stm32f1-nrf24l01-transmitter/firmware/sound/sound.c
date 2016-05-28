@@ -34,7 +34,7 @@ static uint32_t sound_timer_frequency;
 
 
 // ****************************************************************************
-void init_sound(void)
+void SOUND_init(void)
 {
     rcc_periph_clock_enable(RCC_TIM2);
 
@@ -58,14 +58,14 @@ void init_sound(void)
     // Polarity needs to be low to make our volume control algorithm work
     timer_set_oc_polarity_low(TIM2, TIM_OC1);
 
-    sound_set_volume(100);
+    SOUND_set_volume(100);
 }
 
 
 // ****************************************************************************
 static void end_of_sound_callback(void)
 {
-    sound_stop();
+    SOUND_stop();
     if (callback != NULL) {
         (*callback)();
     }
@@ -107,7 +107,7 @@ static void set_timer(unsigned int frequency)
 
 
 // ****************************************************************************
-void sound_set_volume(uint8_t volume)
+void SOUND_set_volume(uint8_t volume)
 {
     // Clamp volume to 0..100
     if (volume > 100) {
@@ -119,19 +119,19 @@ void sound_set_volume(uint8_t volume)
 
 
 // ****************************************************************************
-void sound_play(unsigned int frequency, uint32_t duration_ms, void(* cb)(void))
+void SOUND_play(unsigned int frequency, uint32_t duration_ms, void(* cb)(void))
 {
     callback = cb;
     set_timer(frequency);
     timer_enable_counter(TIM2);
-    systick_set_callback(end_of_sound_callback, duration_ms);
+    SYSTICK_set_callback(end_of_sound_callback, duration_ms);
 }
 
 
 // ****************************************************************************
-void sound_stop(void)
+void SOUND_stop(void)
 {
-    systick_clear_callback(end_of_sound_callback);
+    SYSTICK_clear_callback(end_of_sound_callback);
     timer_disable_oc_output(TIM2, TIM_OC1);
     timer_disable_counter(TIM2);
 }

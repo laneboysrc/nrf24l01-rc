@@ -18,7 +18,7 @@
 
 
 // ****************************************************************************
-static void init_clock(void)
+static void clock_init(void)
 {
     // Enable the Clock Security System
     rcc_css_enable();
@@ -28,7 +28,7 @@ static void init_clock(void)
 
 
 // ****************************************************************************
-static void init_gpio(void)
+static void gpio_init(void)
 {
     // Enable clocks for GPIO port A (for GPIO_USART1_TX) and C (LED)
     // IMPORTANT: you can not 'or' them into one call due to bit-mangling
@@ -46,21 +46,21 @@ static void init_gpio(void)
 // ****************************************************************************
 int main(void)
 {
-    init_clock();
-    init_systick();
-    init_gpio();
-    init_uart();
-    init_spi();
-    init_sound();
-    init_nrf24();
+    clock_init();
+    gpio_init();
+    SYSTICK_init();
+    UART_init();
+    SPI_init();
+    SOUND_init();
+    NRF24_init();
 
-    init_inputs();
-    init_mixer();
-    init_protocol_hk310();
+    INPUTS_init();
+    MIXER_init();
+    PROTOCOL_HK310_init();
 
     printf("\n\n\n**********\nTransmitter initialized\n");
-    // music_play(&song_startup);
-    sound_play(523, 100, NULL);
+    // MUSIC_play(&song_startup);
+    SOUND_play(523, 100, NULL);
 
     // FIXME: use watchdog
 

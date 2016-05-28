@@ -22,11 +22,11 @@ int _write(int file, char *ptr, int len);
 
 
 // ****************************************************************************
-void init_uart(void)
+void UART_init(void)
 {
     rcc_periph_clock_enable(RCC_USART1);
 
-    ring_buffer_init(&tx_ring_buffer, tx_buffer, BUFFER_SIZE);
+    RING_BUFFER_init(&tx_ring_buffer, tx_buffer, BUFFER_SIZE);
 
     // Setup GPIO pins GPIO_USART1_RE_TX on PA9 and GPIO_USART1_RE_RX on PA10
     gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ,
@@ -70,7 +70,7 @@ void usart1_isr(void)
 
         // If there is still data in the transmit buffer send the next byte,
         // otherwise disable the TXE interrupt as it is no longer needed.
-        if (ring_buffer_read_uint8(&tx_ring_buffer, &data)) {
+        if (RING_BUFFER_read_uint8(&tx_ring_buffer, &data)) {
             usart_send(USART1, data);
         }
         else {
@@ -86,7 +86,7 @@ int _write(int file, char *ptr, int len)
     RING_BUFFER_SIZE_T written;
 
     if (file == 1) {
-        written = ring_buffer_write(&tx_ring_buffer, (uint8_t *)ptr, len);
+        written = RING_BUFFER_write(&tx_ring_buffer, (uint8_t *)ptr, len);
 
         // Enable the TXE interrupt
         USART_CR1(USART1) |= USART_CR1_TXEIE;

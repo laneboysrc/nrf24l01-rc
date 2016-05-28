@@ -1,3 +1,3 @@
 #pragma once
 
-void init_protocol_hk310(void);
+void PROTOCOL_HK310_init(void);

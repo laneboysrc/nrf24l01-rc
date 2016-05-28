@@ -9,7 +9,7 @@
 
 
 // ****************************************************************************
-void init_spi(void)
+void SPI_init(void)
 {
     rcc_periph_clock_enable(RCC_SPI2);
 
@@ -39,7 +39,7 @@ void init_spi(void)
 
 
 // ****************************************************************************
-uint8_t spi_transaction(unsigned int count, uint8_t *buffer)
+uint8_t SPI_transaction(unsigned int count, uint8_t *buffer)
 {
     spi_enable(SPI2);
 

@@ -18,7 +18,7 @@ static uint8_t rf_setup;
 static uint8_t write_command(uint8_t cmd)
 {
     spi_buffer[0] = cmd;
-    return spi_transaction(1, spi_buffer);
+    return SPI_transaction(1, spi_buffer);
 }
 
 
@@ -39,7 +39,7 @@ static uint8_t write_command_buffer(uint8_t cmd, const uint8_t *buffer, uint8_t 
         spi_buffer[i + 1] = buffer[i];
     }
 
-    return spi_transaction(count + 1, spi_buffer);
+    return SPI_transaction(count + 1, spi_buffer);
 }
 
 
@@ -57,7 +57,7 @@ static uint8_t read_command_buffer(uint8_t cmd, uint8_t *buffer, uint8_t count)
 
     spi_buffer[0] = cmd;
 
-    spi_transaction(count + 1, spi_buffer);
+    SPI_transaction(count + 1, spi_buffer);
 
     for (i = 0; i < count; i++) {
         buffer[i] = spi_buffer[i + 1];
@@ -68,19 +68,19 @@ static uint8_t read_command_buffer(uint8_t cmd, uint8_t *buffer, uint8_t count)
 
 
 // ****************************************************************************
-uint8_t nrf24_read_register(uint8_t reg)
+uint8_t NRF24_read_register(uint8_t reg)
 {
     spi_buffer[0] = NRF24_R_REGISTER | reg;
     spi_buffer[1] = 0;
 
-    spi_transaction(2, spi_buffer);
+    SPI_transaction(2, spi_buffer);
 
     return spi_buffer[1];
 }
 
 
 // ****************************************************************************
-void nrf24_write_register(uint8_t reg, uint8_t value)
+void NRF24_write_register(uint8_t reg, uint8_t value)
 {
     // Data sheet page 52: The nRF24L01+ must be in a standby or power down mode
     // before writing to the configuration registers.
@@ -96,7 +96,7 @@ void nrf24_write_register(uint8_t reg, uint8_t value)
     spi_buffer[0] = NRF24_W_REGISTER | reg;
     spi_buffer[1] = value;
 
-    spi_transaction(2, spi_buffer);
+    SPI_transaction(2, spi_buffer);
 }
 
 
@@ -105,7 +105,7 @@ void nrf24_write_register(uint8_t reg, uint8_t value)
 // Example: TX_ADDR register has up to 5 bytes of data
 // Returns the STATUS register
 // ****************************************************************************
-uint8_t nrf24_write_multi_byte_register(uint8_t reg, const uint8_t *buffer, uint8_t count)
+uint8_t NRF24_write_multi_byte_register(uint8_t reg, const uint8_t *buffer, uint8_t count)
 {
     return write_command_buffer(NRF24_W_REGISTER | reg, buffer, count);
 }
@@ -114,52 +114,52 @@ uint8_t nrf24_write_multi_byte_register(uint8_t reg, const uint8_t *buffer, uint
 // ****************************************************************************
 // Return the contents of the STATUS register by issuing a NOP command
 // ****************************************************************************
-uint8_t nrf24_get_status(void)
+uint8_t NRF24_get_status(void)
 {
     return write_command(NRF24_NOP);
 }
 
 
 // ****************************************************************************
-void nrf24_flush_rx_fifo(void)
+void NRF24_flush_rx_fifo(void)
 {
     write_command(NRF24_FLUSH_RX);
 }
 
 
 // ****************************************************************************
-void nrf24_flush_tx_fifo(void)
+void NRF24_flush_tx_fifo(void)
 {
     write_command(NRF24_FLUSH_TX);
 }
 
 
 // ****************************************************************************
-void nrf24_write_payload(const uint8_t payload[], uint8_t payload_size)
+void NRF24_write_payload(const uint8_t payload[], uint8_t payload_size)
 {
     write_command_buffer(NRF24_W_TX_PAYLOAD, payload, payload_size);
 }
 
 
 // ****************************************************************************
-void nrf24_read_payload(uint8_t *payload, uint8_t payload_size)
+void NRF24_read_payload(uint8_t *payload, uint8_t payload_size)
 {
     read_command_buffer(NRF24_R_RX_PAYLOAD, payload, payload_size);
 }
 
 
 // ****************************************************************************
-void nrf24_activate(uint8_t code)
+void NRF24_activate(uint8_t code)
 {
     spi_buffer[0] = NRF24_ACTIVATE;
     spi_buffer[1] = code;
 
-    spi_transaction(2, spi_buffer);
+    SPI_transaction(2, spi_buffer);
 }
 
 
 // ****************************************************************************
-void nrf24_set_bitrate(uint8_t bitrate)
+void NRF24_set_bitrate(uint8_t bitrate)
 {
     rf_setup = (rf_setup & 0xd7);   // Preset 1 mbps
 
@@ -170,20 +170,20 @@ void nrf24_set_bitrate(uint8_t bitrate)
         rf_setup |= NRF24_RF_DR_HIGH;     // Default to 2 Mbps
     }
 
-    nrf24_write_register(NRF24_RF_SETUP, rf_setup);
+    NRF24_write_register(NRF24_RF_SETUP, rf_setup);
 }
 
 
 // ****************************************************************************
-void nrf24_set_power(uint8_t power)
+void NRF24_set_power(uint8_t power)
 {
     rf_setup = (rf_setup & 0xf9) | ((power & 0x03) << 1);
-    nrf24_write_register(NRF24_RF_SETUP, rf_setup);
+    NRF24_write_register(NRF24_RF_SETUP, rf_setup);
 }
 
 
 // ****************************************************************************
-void init_nrf24(void)
+void NRF24_init(void)
 {
     rf_setup = 0x0f;
 }

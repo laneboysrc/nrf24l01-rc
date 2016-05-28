@@ -2,6 +2,6 @@
 
 #include <stdint.h>
 
-void init_spi(void);
-uint8_t spi_transaction(unsigned int count, uint8_t *buffer);
+void SPI_init(void);
+uint8_t SPI_transaction(unsigned int count, uint8_t *buffer);
 

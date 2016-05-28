@@ -72,22 +72,22 @@
 #define NRF24_POWER_0dBm     3
 
 //******************************************************************************
-void init_nrf24(void);
+void NRF24_init(void);
 
-uint8_t nrf24_read_register(uint8_t reg);
-void nrf24_write_register(uint8_t reg, uint8_t value);
-uint8_t nrf24_write_multi_byte_register(uint8_t reg, const uint8_t *buffer, uint8_t count);
+uint8_t NRF24_read_register(uint8_t reg);
+void NRF24_write_register(uint8_t reg, uint8_t value);
+uint8_t NRF24_write_multi_byte_register(uint8_t reg, const uint8_t *buffer, uint8_t count);
 
-void nrf24_activate(uint8_t code);
+void NRF24_activate(uint8_t code);
 
 
-uint8_t nrf24_get_status(void);
+uint8_t NRF24_get_status(void);
 
-void nrf24_flush_rx_fifo(void);
-void nrf24_flush_tx_fifo(void);
+void NRF24_flush_rx_fifo(void);
+void NRF24_flush_tx_fifo(void);
 
-void nrf24_write_payload(const uint8_t payload[], uint8_t payload_size);
-void nrf24_read_payload(uint8_t *payload, uint8_t payload_size);
+void NRF24_write_payload(const uint8_t payload[], uint8_t payload_size);
+void NRF24_read_payload(uint8_t *payload, uint8_t payload_size);
 
-void nrf24_set_bitrate(uint8_t bitrate);
-void nrf24_set_power(uint8_t power);
+void NRF24_set_bitrate(uint8_t bitrate);
+void NRF24_set_power(uint8_t power);

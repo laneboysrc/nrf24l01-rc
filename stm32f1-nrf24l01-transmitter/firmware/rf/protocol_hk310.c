@@ -153,17 +153,17 @@ static void build_bind_packets(void)
 // ****************************************************************************
 static void send_stick_packet(void)
 {
-    nrf24_set_power(NRF24_POWER_0dBm);
-    nrf24_write_register(NRF24_RF_CH, hop_channels[hop_index]);
-    nrf24_write_multi_byte_register(NRF24_TX_ADDR, address, ADDRESS_SIZE);
+    NRF24_set_power(NRF24_POWER_0dBm);
+    NRF24_write_register(NRF24_RF_CH, hop_channels[hop_index]);
+    NRF24_write_multi_byte_register(NRF24_TX_ADDR, address, ADDRESS_SIZE);
 
     // Send failsafe packets instead of stick pacekts every
     // FAILSAFE_PRESCALER_COUNT times.
     if (failsafe_counter == 0) {
-        nrf24_write_payload(failsafe_packet, PACKET_SIZE);
+        NRF24_write_payload(failsafe_packet, PACKET_SIZE);
     }
     else {
-        nrf24_write_payload(stick_packet, PACKET_SIZE);
+        NRF24_write_payload(stick_packet, PACKET_SIZE);
     }
 
 }
@@ -172,10 +172,10 @@ static void send_stick_packet(void)
 // ****************************************************************************
 static void send_bind_packet(void)
 {
-    nrf24_set_power(NRF24_POWER_n18dBm);
-    nrf24_write_register(NRF24_RF_CH, BIND_CHANNEL);
-    nrf24_write_multi_byte_register(NRF24_TX_ADDR, bind_address, ADDRESS_SIZE);
-    nrf24_write_payload(bind_packet[bind_packet_index], PACKET_SIZE);
+    NRF24_set_power(NRF24_POWER_n18dBm);
+    NRF24_write_register(NRF24_RF_CH, BIND_CHANNEL);
+    NRF24_write_multi_byte_register(NRF24_TX_ADDR, bind_address, ADDRESS_SIZE);
+    NRF24_write_payload(bind_packet[bind_packet_index], PACKET_SIZE);
 
     bind_packet_index = (bind_packet_index + 1) % NUMBER_OF_BIND_PACKETS;
 }
@@ -191,7 +191,7 @@ static void send_programming_box_packet(void)
 static void nrf_transmit_done_callback(void)
 {
     // Clear the TX_DS status flags
-    nrf24_write_register(NRF24_STATUS, NRF24_TX_DS);
+    NRF24_write_register(NRF24_STATUS, NRF24_TX_DS);
 
     switch (frame_state) {
         case SEND_STICK1:
@@ -256,12 +256,12 @@ void exti9_5_isr(void)
 
 
 // ****************************************************************************
-void init_protocol_hk310(void)
+void PROTOCOL_HK310_init(void)
 {
     stick_packet[7] = 0x55;         // Packet ID for stick data
 
     // Failsafe for steering: 1200 us
-    pulse_to_stickdata(1200*1000, &failsafe_packet[0]);
+    pulse_to_stickdata(1000*1000, &failsafe_packet[0]);
 
     // Failsafe for throttle: 1500 us (center!)
     pulse_to_stickdata(1500*1000, &failsafe_packet[2]);
@@ -286,13 +286,13 @@ void init_protocol_hk310(void)
 
 
     // nRF24 initialization
-    nrf24_write_register(NRF24_SETUP_AW, NRF24_ADDRESS_WIDTH_5_BYTES);
+    NRF24_write_register(NRF24_SETUP_AW, NRF24_ADDRESS_WIDTH_5_BYTES);
 
     // Disable Auto Acknoledgement on all pipes
-    nrf24_write_register(NRF24_EN_AA, 0x00);
+    NRF24_write_register(NRF24_EN_AA, 0x00);
 
     // Set bitrate to 250 kbps
-    nrf24_set_bitrate(250);
+    NRF24_set_bitrate(250);
 
     // TX mode, 2-byte CRC, power-up, Enable TX interrupt
     //
@@ -300,10 +300,10 @@ void init_protocol_hk310(void)
     // disables the IRQ output, while having the bit cleared enables IRQ output!
     //
     // See nRF24L01+ specification v1.0, section "Register map table", page 57
-    nrf24_write_register(NRF24_CONFIG,
+    NRF24_write_register(NRF24_CONFIG,
         NRF24_EN_CRC | NRF24_CRCO | NRF24_PWR_UP | NRF24_RX_RD | NRF24_MAX_RT);
 
-    systick_set_rf_callback(hk310_protocol_frame_callback, FRAME_TIME_MS);
+    SYSTICK_set_rf_callback(hk310_protocol_frame_callback, FRAME_TIME_MS);
 }
 
 

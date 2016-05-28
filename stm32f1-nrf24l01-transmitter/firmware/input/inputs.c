@@ -21,7 +21,7 @@ static uint8_t adc_channel_selection[NUMBER_OF_ADC_CHANNELS] = {0, 1, 2, 3, 4, 5
 
 
 // ****************************************************************************
-void adc_filter(void)
+void INPUTS_adc_filter(void)
 {
     for (int i = 0; i < NUMBER_OF_ADC_CHANNELS; i++) {
         uint32_t result = 0;
@@ -42,8 +42,7 @@ void adc_filter(void)
 // ****************************************************************************
 static void dump_adc(void)
 {
-    systick_set_callback(dump_adc, ADC_LOG_TIME);
-    adc_filter();
+    SYSTICK_set_callback(dump_adc, ADC_LOG_TIME);
 
     for (int i = 0; i < 3; i++) {
         printf("CH%d: %6ld%%  ", i, adc_array_raw[i] / (0x8000 / 100));
@@ -147,7 +146,7 @@ static void adc_init(void)
 
 
 // ****************************************************************************
-void init_inputs(void)
+void INPUTS_init(void)
 {
     adc_init();
 
@@ -164,12 +163,12 @@ void init_inputs(void)
     gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_ANALOG, GPIO0);
     gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_ANALOG, GPIO1);
 
-    systick_set_callback(dump_adc, ADC_LOG_TIME);
+    SYSTICK_set_callback(dump_adc, ADC_LOG_TIME);
 }
 
 
 // ****************************************************************************
-int32_t input_get_channel(uint8_t ch)
+int32_t INPUTS_get_channel(uint8_t ch)
 {
     if (ch >= NUMBER_OF_ADC_CHANNELS) {
         return 0;

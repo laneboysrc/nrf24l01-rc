@@ -5,7 +5,7 @@
 #define NUMBER_OF_ADC_CHANNELS 10
 
 
-void init_inputs(void);
-int32_t input_get_channel(uint8_t ch);
-void adc_filter(void);
+void INPUTS_init(void);
+int32_t INPUTS_get_channel(uint8_t ch);
+void INPUTS_adc_filter(void);
 
