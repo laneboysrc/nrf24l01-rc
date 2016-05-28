@@ -7,6 +7,7 @@
 #include <libopencm3/stm32/rcc.h>
 
 #include <inputs.h>
+#include <mixer.h>
 #include <systick.h>
 
 
@@ -14,27 +15,32 @@
 #define SAMPLE_COUNT NUMBER_OF_ADC_CHANNELS * WINDOW_SIZE
 
 static uint16_t adc_array_oversample[SAMPLE_COUNT];
-static int32_t adc_array_raw[NUMBER_OF_ADC_CHANNELS];
+static uint16_t adc_array_raw[NUMBER_OF_ADC_CHANNELS];
 static uint8_t adc_channel_selection[NUMBER_OF_ADC_CHANNELS] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+
+static int32_t normalized_inputs[NUMBER_OF_ADC_CHANNELS];
 
 #define ADC_LOG_TIME 1000
 
 
 // ****************************************************************************
-void INPUTS_adc_filter(void)
+void INPUTS_filter_and_normalize(void)
 {
     for (int i = 0; i < NUMBER_OF_ADC_CHANNELS; i++) {
-        uint32_t result = 0;
+        uint16_t filtered_result = 0;
+        int32_t normalized_result = 0;
         int idx = i;
 
         for (int j = 0; j < WINDOW_SIZE; j++) {
-            result += adc_array_oversample[idx];
+            filtered_result += adc_array_oversample[idx];
             idx += NUMBER_OF_ADC_CHANNELS;
         }
 
-        result /= WINDOW_SIZE;
-        result = (result << 4) - 0x8000;
-        adc_array_raw[i] = result;
+        filtered_result /= WINDOW_SIZE;
+        adc_array_raw[i] = filtered_result;
+
+        normalized_result = (filtered_result - 0x800) * CHANNEL_100_PERCENT / 0x800;
+        normalized_inputs[i] = normalized_result;
     }
 }
 
@@ -45,7 +51,7 @@ static void dump_adc(void)
     SYSTICK_set_callback(dump_adc, ADC_LOG_TIME);
 
     for (int i = 0; i < 3; i++) {
-        printf("CH%d: %6ld%%  ", i, adc_array_raw[i] / (0x8000 / 100));
+        printf("CH%d: %6ld%%  ", i, CHANNEL_TO_PERCENT(normalized_inputs[i]));
     }
     printf("\n");
 }
@@ -168,11 +174,11 @@ void INPUTS_init(void)
 
 
 // ****************************************************************************
-int32_t INPUTS_get_channel(uint8_t ch)
+int32_t INPUTS_get_input(inputs_t input)
 {
-    if (ch >= NUMBER_OF_ADC_CHANNELS) {
+    if (input >= NUMBER_OF_ADC_CHANNELS) {
         return 0;
     }
 
-    return adc_array_raw[ch];
+    return normalized_inputs[input];
 }

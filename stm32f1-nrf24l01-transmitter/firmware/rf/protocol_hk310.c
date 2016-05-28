@@ -79,12 +79,12 @@ static void pulse_to_stickdata(unsigned int pulse_ns, uint8_t *packet_ptr)
 
 
 // ****************************************************************************
-static unsigned int channel_to_pulse(int32_t ch)
+static unsigned int channel_to_pulse_ns(int32_t ch)
 {
     int32_t pulse_ns;
 
-    pulse_ns = ch * 1000 / 0x8000 * 500;
-    pulse_ns += (1500 * 1000);
+    pulse_ns = ch * 500 * 1000 / CHANNEL_100_PERCENT;
+    pulse_ns += 1500 * 1000;
 
     if (pulse_ns < 0) {
         return 0;
@@ -230,7 +230,7 @@ static void hk310_protocol_frame_callback(void)
     uint32_t ch1;
     // static uint32_t old_ch1 = 0xffffffff;
 
-    ch1 = channel_to_pulse(channels[0]);
+    ch1 = channel_to_pulse_ns(channels[0]);
 
     // if (abs(old_ch1-ch1) > 1000) {
     //     printf("ch1=%lu\n", ch1);
@@ -238,8 +238,8 @@ static void hk310_protocol_frame_callback(void)
     // old_ch1 = ch1;
 
     pulse_to_stickdata(ch1, &stick_packet[0]);
-    pulse_to_stickdata(channel_to_pulse(channels[1]), &stick_packet[2]);
-    pulse_to_stickdata(channel_to_pulse(channels[2]), &stick_packet[4]);
+    pulse_to_stickdata(channel_to_pulse_ns(channels[1]), &stick_packet[2]);
+    pulse_to_stickdata(channel_to_pulse_ns(channels[2]), &stick_packet[4]);
 
     frame_state = SEND_STICK1;
     nrf_transmit_done_callback();
