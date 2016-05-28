@@ -14,7 +14,7 @@
 #define WINDOW_SIZE 10
 #define SAMPLE_COUNT NUMBER_OF_ADC_CHANNELS * WINDOW_SIZE
 
-static uint32_t adc_array_oversample[SAMPLE_COUNT];
+static uint16_t adc_array_oversample[SAMPLE_COUNT];
 static uint32_t adc_array_raw[NUMBER_OF_ADC_CHANNELS];
 static uint8_t adc_channel_selection[NUMBER_OF_ADC_CHANNELS] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 
