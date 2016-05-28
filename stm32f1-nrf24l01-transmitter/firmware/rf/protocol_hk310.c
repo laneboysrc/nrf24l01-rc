@@ -173,8 +173,8 @@ static void send_stick_packet(void)
 // ****************************************************************************
 static void send_bind_packet(void)
 {
-    nrf24_write_register(NRF24_RF_CH, BIND_CHANNEL);
     nrf24_set_power(NRF24_POWER_n18dBm);
+    nrf24_write_register(NRF24_RF_CH, BIND_CHANNEL);
     nrf24_write_multi_byte_register(NRF24_TX_ADDR, bind_address, ADDRESS_SIZE);
     nrf24_write_payload(bind_packet[bind_packet_index], PACKET_SIZE);
 
