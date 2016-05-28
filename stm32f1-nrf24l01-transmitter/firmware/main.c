@@ -21,7 +21,7 @@
 static void init_clock(void)
 {
     // Enable the Clock Security System
-    // rcc_css_enable();
+    rcc_css_enable();
 
     rcc_clock_setup_in_hse_8mhz_out_24mhz();
 }
@@ -62,6 +62,8 @@ int main(void)
     // music_play(&song_startup);
     sound_play(523, 100, NULL);
 
+    // FIXME: use watchdog
+
     while (1) {
         // bool armed = true;
         // if (armed) {
@@ -75,7 +77,7 @@ int main(void)
         // power consumption drastically.
         // Since the systick runs at 1 millisecond period, the main loop sleeps
         // for at most 1 ms.
-        // __WFI();
+        __WFI();
     }
 
     return 0;
