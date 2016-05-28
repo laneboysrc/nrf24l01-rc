@@ -22,6 +22,18 @@ static int32_t normalized_inputs[NUMBER_OF_ADC_CHANNELS];
 
 #define ADC_LOG_TIME 1000
 
+const hw_input_t hw_inputs[] = {
+    {.type = ANALOG_DIGITAL, .index = 1},
+    {.type = ANALOG_DIGITAL, .index = 2},
+    {.type = ANALOG_DIGITAL, .index = 3},
+    {.type = ANALOG_DIGITAL, .index = 4},
+    {.type = ANALOG_DIGITAL, .index = 5},
+    {.type = ANALOG_DIGITAL, .index = 6},
+    {.type = ANALOG_DIGITAL, .index = 7},
+    {.type = ANALOG_DIGITAL, .index = 8},
+    {.type = ANALOG_DIGITAL, .index = 9},
+};
+
 
 // ****************************************************************************
 void INPUTS_filter_and_normalize(void)
