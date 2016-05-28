@@ -1,10 +1,10 @@
-
 // This file has been ported from Deviation.
 
 
 #include <stdint.h>
 #include <stdlib.h>
 
+#include <curves.h>
 
 /*
     {-100, 0, 100},
@@ -25,40 +25,8 @@
 #define RANGE_TO_PCT(x) ((x) / CHAN_MULTIPLIER)
 #define CHAN_MAX_VALUE (100 * CHAN_MULTIPLIER)
 #define CHAN_MIN_VALUE (-100 * CHAN_MULTIPLIER)
-#define MAX_POINTS 13
 
 #define MMULT 1024
-
-
-typedef enum {
-    CURVE_NONE,
-    CURVE_FIXED,
-    CURVE_MIN_MAX,
-    CURVE_ZERO_MAX,
-    CURVE_GT_ZERO,
-    CURVE_LT_ZERO,
-    CURVE_ABSVAL,
-    CURVE_EXPO,
-    CURVE_DEADBAND,
-    CURVE_3POINT,
-    CURVE_5POINT,
-    CURVE_7POINT,
-    CURVE_9POINT,
-    CURVE_11POINT,
-    CURVE_13POINT,
-    LAST_CURVE = CURVE_13POINT
-} curve_type_t;
-
-typedef struct {
-    curve_type_t type;
-    int8_t points[MAX_POINTS];
-} curve_t;
-
-
-int32_t CURVE_Evaluate(int32_t xval, curve_t *curve);
-// const char *CURVE_GetName(char *str, curve_t *curve);
-unsigned CURVE_NumPoints(curve_t *curve);
-
 
 
 // ****************************************************************************
@@ -244,7 +212,7 @@ static int32_t deadband(curve_t *curve, int32_t value)
 
 
 // ****************************************************************************
-int32_t CURVE_Evaluate(int32_t xval, curve_t *curve)
+int32_t CURVE_evaluate(int32_t xval, curve_t *curve)
 {
     int32_t divisor;
 
@@ -350,7 +318,7 @@ int32_t CURVE_Evaluate(int32_t xval, curve_t *curve)
 
 
 // ****************************************************************************
-unsigned CURVE_NumPoints(curve_t *curve)
+unsigned CURVE_get_number_of_points(curve_t *curve)
 {
     switch (CURVE_TYPE(curve)) {
         case CURVE_NONE:
