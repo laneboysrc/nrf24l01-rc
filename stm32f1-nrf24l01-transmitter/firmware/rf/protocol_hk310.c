@@ -194,7 +194,7 @@ static void nrf_transmit_done_callback(void)
     switch (frame_state) {
         case SEND_STICK1:
             send_stick_packet();
-            frame_state = SEND_BIND_INFO;
+            frame_state = SEND_STICK2;
             break;
 
         case SEND_STICK2:
