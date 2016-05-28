@@ -2,19 +2,11 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include <curves.h>
 #include <mixer.h>
-
-/*
-    {-100, 0, 100},
-    {-100, -50, 0, 50, 100},
-    {-100, -67, -33, 0, 33, 67, 100},
-    {-100, -75, -50, -25, 0 25, 50, 75, 100},
-    {-100, -80, -60, -40, -20, 0, 20, 40, 60, 80, 100},
-    {-100, -83, -67, -50, -33, -17, 0, 17, 33, 50, 67, 83, 100}
-*/
 
 
 #define MMULT 1024
@@ -66,31 +58,24 @@ static int32_t compute_tangent(curve_t *curve, int num_points, int i)
 
 
 // ****************************************************************************
-/* The following is a hermite cubic spline.
-   The basis functions can be found here:
-   http://en.wikipedia.org/wiki/Cubic_Hermite_spline
-   The tangents are computed via the 'cubic monotone' rules (allowing for local-maxima)
-*/
+// The following is a hermite cubic spline.
+// The basis functions can be found here:
+// http://en.wikipedia.org/wiki/Cubic_Hermite_spline
+// The tangents are computed via the 'cubic monotone' rules (allowing for local-maxima)
+//
 static int32_t hermite_spline(curve_t *curve, int32_t value)
 {
     int num_points = (curve->type - CURVE_3POINT) * 2 + 3;
     int32_t step = PERCENT_TO_CHANNEL(2 * 100) / (num_points - 1) ;
 
-    if (value < PERCENT_TO_CHANNEL(-100)) {
-        value = PERCENT_TO_CHANNEL(-100);
-    }
-    else if(value > PERCENT_TO_CHANNEL(100)) {
-        value = PERCENT_TO_CHANNEL(100);
-    }
-
     for (int i = 0; i < num_points -1; i++) {
-        int32_t x = PERCENT_TO_CHANNEL(-100) + i * step;
+        int32_t x = CHANNEL_N100_PERCENT + i * step;
         int32_t p0x = x;
         int32_t p3x;
 
         //If there are rounding errors, we need to deal with them here
         if (i == num_points - 2) {
-            p3x = PERCENT_TO_CHANNEL(100);
+            p3x = CHANNEL_100_PERCENT;
         }
         else {
             p3x = x + step;
@@ -123,10 +108,10 @@ static int32_t hermite_spline(curve_t *curve, int32_t value)
 static int32_t interpolate(curve_t *curve, int32_t value)
 {
     int i;
-    int num_points = (curve->type - CURVE_3POINT) * 2 + 3;
-    int32_t step = 2 * 10000 / (num_points - 1) ;
+    int num_points = CURVE_get_number_of_points(curve);
+    int32_t step = 2 * CHANNEL_100_PERCENT / (num_points - 1) ;
     for (i = 0; i < num_points - 1; i++) {
-        int32_t x = -10000 + i * step;
+        int32_t x = CHANNEL_N100_PERCENT + i * step;
         int32_t pos1 = PERCENT_TO_CHANNEL(x / 100);
         int32_t pos2 = PERCENT_TO_CHANNEL((x + step) / 100);
         if(value >= pos1 && value <= pos2) {
@@ -137,16 +122,17 @@ static int32_t interpolate(curve_t *curve, int32_t value)
     return PERCENT_TO_CHANNEL(curve->points[num_points - 1]);
 }
 
+
 // ****************************************************************************
-/* This came from er9x/th9x
- * expo-function:
- * ---------------
- * kmplot
- * f(x,k)=exp(ln(x)*k/10) ;P[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
- * f(x,k)=x*x*x*k/10 + x*(1-k/10) ;P[0,1,2,3,4,5,6,7,8,9,10]
- * f(x,k)=x*x*k/10 + x*(1-k/10) ;P[0,1,2,3,4,5,6,7,8,9,10]
- * f(x,k)=1+(x-1)*(x-1)*(x-1)*k/10 + (x-1)*(1-k/10) ;P[0,1,2,3,4,5,6,7,8,9,10]
- */
+// This came from er9x/th9x
+// expo-function:
+// ---------------
+// kmplot
+// f(x,k)=exp(ln(x)*k/10) ;P[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
+// f(x,k)=x*x*x*k/10 + x*(1-k/10) ;P[0,1,2,3,4,5,6,7,8,9,10]
+// f(x,k)=x*x*k/10 + x*(1-k/10) ;P[0,1,2,3,4,5,6,7,8,9,10]
+// f(x,k)=1+(x-1)*(x-1)*(x-1)*k/10 + (x-1)*(1-k/10) ;P[0,1,2,3,4,5,6,7,8,9,10]
+//
 static int32_t expou(uint32_t x, uint16_t k)
 {
     // k*x*x*x + (1-k)*x
@@ -220,22 +206,16 @@ static int32_t lt_zero(curve_t *curve, int32_t value)
 // ****************************************************************************
 static int32_t deadband(curve_t *curve, int32_t value)
 {
-    bool neg = value < 0;
-    int32_t k = neg ? curve->points[1] : curve->points[0];
-    int32_t max = CHANNEL_100_PERCENT;
+    curve_t temp_curve;
 
-    if (k == 0) {
-        return CHANNEL_100_PERCENT;
+    if (value < 0) {
+        temp_curve.points[0] = curve->points[0];
+        return lt_zero(&temp_curve, value);
     }
-
-    // FIXME: this algo does not seem to work as expected
-
-    value = abs(value);
-    if (value < PERCENT_TO_CHANNEL(k) / 10) {
-        return 0;
+    else {
+        temp_curve.points[0] = curve->points[1];
+        return gt_zero(&temp_curve, value);
     }
-
-    return max * ((1000 * (value - max) + (1000 - k) * max) / (1000 - k)) / value;
 }
 
 
@@ -337,7 +317,7 @@ int32_t CURVE_evaluate(int32_t value, curve_t *curve)
         case CURVE_11POINT:
         case CURVE_13POINT:
         default:
-            if (curve->smoothing) {
+            if (curve->smoothing == INTERPOLATION_SMOOTHING) {
                 return hermite_spline(curve, value);
             }
             else {

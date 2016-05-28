@@ -22,9 +22,14 @@ typedef enum {
     CURVE_13POINT
 } curve_type_t;
 
+typedef enum {
+    INTERPOLATION_LINEAR,
+    INTERPOLATION_SMOOTHING
+} interpolation_type_t;
+
 typedef struct {
     curve_type_t type : 7;
-    unsigned smoothing : 1;
+    interpolation_type_t smoothing : 1;
     int8_t points[CURVE_MAX_POINTS];
 } curve_t;
 
