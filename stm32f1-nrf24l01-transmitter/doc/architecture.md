@@ -45,7 +45,7 @@
     * UART
         * To PC running Chrome app
 
-## RC
+## RC inputs
 
 * Up to 9 analog inputs
     * Analog inputs can be used as switch inputs too
@@ -58,10 +58,25 @@
     * Two switches can be combined to form a trim function
     * Have a pull-up programmed
     * May be momentary or latching
-    * Momentary buttons can be configured to make a multi-position switch
+        * Momentary buttons can be configured to make a multi-position switch
         * Transmitter beeps the current number
-        * Long press support?
 * **Toggle switches and trims need to remember their state across power cycles**
+
+So we have the following logical input types:
+* Analog with center
+* Analog without center
+* Switch on/off (1 digital input)
+* Switch 3-position (2 digital inputs)
+* Switch n-positions (n digital inputs)
+    * In theory we could do with n-1 digital inputs, using the state when
+      all inputs are open as first position. However, this may cause issues that the first position is triggered when switching between
+      the other positions, as contacts may temporarily open.
+    * Therefore it is better to use n inputs and treat "all inputs open"
+      as well as "more than one input closed" as error condition.
+
+Having logical inputs allows us to setup multiple logical inputs for the same
+hardware input.
+
 
 
 ### Model vs Transmitter hardware configuration
@@ -86,37 +101,35 @@
 
 ## Overall architecture
 
-```
-+----------------+    +-----------------------------------+    +------------+   +--------+
-|                |    |                                   |    |            |   |        |
-|     INPUTS     |    |              MIXER                |    |  CHANNELS  |   |   RF   |
-|                |    |                                   |    |            |   | module |
-|                |    |   +---------------------------+   |    |  +-------+ |   |        |
-|  sticks,       |    |   |        Mixer unit         |   |    |  |  RF   | |   |        |
-|  pots,         |    |   +---------------------------+   |    |  |      +------->       |
-|  push-buttons  |    |   +---------------------------+   |    |  |       | |   |        |
-|  switches    +------->  |        Mixer unit         |  +------> +-------+ |   |        |
-|                |    |   +---------------------------+   |    |  +-------+ |   |        |
-|                |    |   +---------------------------+   |    |  |Virtual| |   |        |
-|                |    |   |                           |   |    |  |       | |   |        |
-|                |    |   +---------------------------+   |    |  |       | |   +--------+
-|                |    |                                   |    |  +-------+ |
-|                |    |                                   |    |            |
-+----------------+    |                                   |    +-----+------+
-                      |                ...                |          |
-                      |                                   |          |
-                      |                                   |          |
-                +------>  +---------------------------+   |          |
-                |     |   |        Mixer unit         |   |          |
-                |     |   +---------------------------+   |          |
-                |     |                                   |          |
-                |     +-----------------------------------+          |
-                |                                                    |
-                |                                                    |
-                +----------------------------------------------------+
+    +----------------+    +-----------------------------------+    +------------+   +--------+
+    |                |    |                                   |    |            |   |        |
+    |     INPUTS     |    |              MIXER                |    |  CHANNELS  |   |   RF   |
+    |                |    |                                   |    |            |   | module |
+    |                |    |   +---------------------------+   |    |  +-------+ |   |        |
+    |  sticks,       |    |   |        Mixer unit         |   |    |  |  RF   | |   |        |
+    |  pots,         |    |   +---------------------------+   |    |  |      +------->       |
+    |  push-buttons  |    |   +---------------------------+   |    |  |       | |   |        |
+    |  switches    +------->  |        Mixer unit         |  +------> +-------+ |   |        |
+    |                |    |   +---------------------------+   |    |  +-------+ |   |        |
+    |                |    |   +---------------------------+   |    |  |Virtual| |   |        |
+    |                |    |   |                           |   |    |  |       | |   |        |
+    |                |    |   +---------------------------+   |    |  |       | |   +--------+
+    |                |    |                                   |    |  +-------+ |
+    |                |    |                                   |    |            |
+    +----------------+    |                                   |    +-----+------+
+                          |                ...                |          |
+                          |                                   |          |
+                          |                                   |          |
+                    +------>  +---------------------------+   |          |
+                    |     |   |        Mixer unit         |   |          |
+                    |     |   +---------------------------+   |          |
+                    |     |                                   |          |
+                    |     +-----------------------------------+          |
+                    |                                                    |
+                    |                                                    |
+                    +----------------------------------------------------+
 
-(Diagram made with the awesome asciiflow.com)
-```
+    (Diagram made with the awesome asciiflow.com)
 
 ## Mixer
 

@@ -7,9 +7,9 @@
 
 int32_t channels[NUMBER_OF_CHANNELS];
 
-static mixer_unit_t mixer_units[NUMBER_OF_MIXER_UNITS] = {
+static mixer_unit_t mixer_units[MAX_MIXER_UNITS] = {
     {
-        .src = 1,
+        .src = AIL,
         .invert_source = 0,
         .dest = CH1,
         .curve = {
@@ -20,7 +20,7 @@ static mixer_unit_t mixer_units[NUMBER_OF_MIXER_UNITS] = {
         .offset = 1
     },
     {
-        .src = 2,
+        .src = ELE,
         .dest = CH2,
         .curve = {
             .type = CURVE_NONE,
@@ -28,7 +28,7 @@ static mixer_unit_t mixer_units[NUMBER_OF_MIXER_UNITS] = {
         .scalar = 100
     },
     {
-        .src = 3,
+        .src = THR,
         .dest = CH3,
         .curve = {
             .type = CURVE_NONE,
@@ -36,7 +36,7 @@ static mixer_unit_t mixer_units[NUMBER_OF_MIXER_UNITS] = {
         .scalar = 100
     },
     {
-        .src = 4,
+        .src = RUD,
         .dest = CH4,
         .curve = {
             .type = CURVE_NONE,
@@ -71,7 +71,7 @@ static void apply_mixer_unit(mixer_unit_t *m)
     // 3rd: apply scalar and offset
      value = value * m->scalar / 100 + PERCENT_TO_CHANNEL(m->offset);
 
-     channels[m->dest] = value;
+     channels[m->dest - CH1] = value;
 }
 
 
@@ -80,13 +80,13 @@ void MIXER_evaluate(void)
 {
     INPUTS_filter_and_normalize();
 
-    for (ch_t i = FIRST_HARDWARE_CHANNEL; i <= LAST_HARDWARE_CHANNEL; i++) {
+    for (uint8_t i = FIRST_HARDWARE_CHANNEL; i <= LAST_HARDWARE_CHANNEL; i++) {
         channels[i] = 0;
     }
 
-    for (unsigned i = 0; i < NUMBER_OF_MIXER_UNITS; i++) {
+    for (unsigned i = 0; i < MAX_MIXER_UNITS; i++) {
         mixer_unit_t *m = &mixer_units[i];
-        if (m->src == 0) {
+        if (m->src == NONE) {
             break;
         }
 

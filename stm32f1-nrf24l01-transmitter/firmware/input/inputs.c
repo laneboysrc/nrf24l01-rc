@@ -7,8 +7,13 @@
 #include <libopencm3/stm32/rcc.h>
 
 #include <inputs.h>
+#include <inputs_stm32f103c8t6.h>
 #include <mixer.h>
 #include <systick.h>
+
+#define ADC_VALUE_MIN 0
+#define ADC_VALUE_HALF 0x800
+#define ADC_VALUE_MAX 0xfff
 
 
 #define WINDOW_SIZE 10
@@ -16,45 +21,34 @@
 
 static uint16_t adc_array_oversample[SAMPLE_COUNT];
 static uint16_t adc_array_raw[NUMBER_OF_ADC_CHANNELS];
+static uint16_t adc_array_calibrated[NUMBER_OF_ADC_CHANNELS];
 static uint8_t adc_channel_selection[NUMBER_OF_ADC_CHANNELS] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 
 static int32_t normalized_inputs[NUMBER_OF_ADC_CHANNELS];
 
 #define ADC_LOG_TIME 1000
 
-const hw_input_t hw_inputs[] = {
-    {.type = ANALOG_DIGITAL, .index = 1},
-    {.type = ANALOG_DIGITAL, .index = 2},
-    {.type = ANALOG_DIGITAL, .index = 3},
-    {.type = ANALOG_DIGITAL, .index = 4},
-    {.type = ANALOG_DIGITAL, .index = 5},
-    {.type = ANALOG_DIGITAL, .index = 6},
-    {.type = ANALOG_DIGITAL, .index = 7},
-    {.type = ANALOG_DIGITAL, .index = 8},
-    {.type = ANALOG_DIGITAL, .index = 9},
+static transmitter_input_t transmitter_inputs[MAX_TRANSMITTER_INPUTS] = {
+    {.input = 1, .type = ANALOG_WITH_CENTER,        // Ailerons
+     .calibration = {0, 2152, 4093}},
+
+    {.input = 2, .type = ANALOG_WITH_CENTER,        // Elevator
+     .calibration = {ADC_VALUE_MIN, ADC_VALUE_HALF, ADC_VALUE_MAX}},
+
+    {.input = 3, .type = ANALOG_WITH_CENTER,        // Rudder
+     .calibration = {ADC_VALUE_MIN, ADC_VALUE_HALF, ADC_VALUE_MAX}},
+
+    {.input = 4, .type = ANALOG_NO_CENTER,          // Throttle
+     .calibration = {ADC_VALUE_MIN, ADC_VALUE_HALF, ADC_VALUE_MAX}},
 };
 
 
-// ****************************************************************************
-void INPUTS_filter_and_normalize(void)
-{
-    for (int i = 0; i < NUMBER_OF_ADC_CHANNELS; i++) {
-        uint16_t filtered_result = 0;
-        int32_t normalized_result = 0;
-        int idx = i;
-
-        for (int j = 0; j < WINDOW_SIZE; j++) {
-            filtered_result += adc_array_oversample[idx];
-            idx += NUMBER_OF_ADC_CHANNELS;
-        }
-
-        filtered_result /= WINDOW_SIZE;
-        adc_array_raw[i] = filtered_result;
-
-        normalized_result = (filtered_result - 0x800) * CHANNEL_100_PERCENT / 0x800;
-        normalized_inputs[i] = normalized_result;
-    }
-}
+static logical_input_t logical_inputs[MAX_LOGICAL_INPUTS] = {
+    {.type = ANALOG, .inputs = {1}, .labels = {AIL}},
+    {.type = ANALOG, .inputs = {2}, .labels = {ELE}},
+    {.type = ANALOG, .inputs = {3}, .labels = {RUD, ST}},
+    {.type = ANALOG, .inputs = {4}, .labels = {THR, TH}}
+};
 
 
 // ****************************************************************************
@@ -62,8 +56,8 @@ static void dump_adc(void)
 {
     SYSTICK_set_callback(dump_adc, ADC_LOG_TIME);
 
-    for (int i = 0; i < 3; i++) {
-        printf("CH%d: %6ld%%  ", i, CHANNEL_TO_PERCENT(normalized_inputs[i]));
+    for (int i = 1; i <= 4; i++) {
+        printf("CH%d: %4ld%% (%4u -> %4u)  ", i, CHANNEL_TO_PERCENT(normalized_inputs[i]), adc_array_raw[i], adc_array_calibrated[i]);
     }
     printf("\n");
 }
@@ -186,11 +180,71 @@ void INPUTS_init(void)
 
 
 // ****************************************************************************
-int32_t INPUTS_get_input(inputs_t input)
+void INPUTS_filter_and_normalize(void)
 {
-    if (input >= NUMBER_OF_ADC_CHANNELS) {
-        return 0;
+    for (int i = 0; i < NUMBER_OF_ADC_CHANNELS; i++) {
+        uint16_t filtered_result = 0;
+        int idx = i;
+
+        for (int j = 0; j < WINDOW_SIZE; j++) {
+            filtered_result += adc_array_oversample[idx];
+            idx += NUMBER_OF_ADC_CHANNELS;
+        }
+
+        filtered_result /= WINDOW_SIZE;
+        adc_array_raw[i] = filtered_result;
     }
 
-    return normalized_inputs[input];
+    for (int i = 0; i < MAX_TRANSMITTER_INPUTS; i++) {
+        uint32_t raw;
+
+        transmitter_input_t *t = &transmitter_inputs[i];
+        switch (t->type) {
+            case ANALOG_WITH_CENTER:
+            case ANALOG_NO_CENTER:
+            case ANALOG_NO_CENTER_POSITIVE_ONLY:
+                raw = adc_array_raw[t->input];
+                if (raw < t->calibration[0]) {
+                    adc_array_calibrated[t->input] = 0;
+                }
+                else if (raw > t->calibration[2]) {
+                    adc_array_calibrated[t->input] = 0xfff;
+                }
+                else if (raw == t->calibration[1]) {
+                    adc_array_calibrated[t->input] = 0x800;
+                }
+                else if (raw > t->calibration[1]) {
+                    adc_array_calibrated[t->input] = 0x800 + (raw - t->calibration[1]) * 0x800 / (t->calibration[2] - t->calibration[1]);
+                }
+                else {
+                    adc_array_calibrated[t->input] = (raw - t->calibration[0]) * 0x800 / (t->calibration[1] - t->calibration[0]);
+                }
+
+                normalized_inputs[t->input] = (adc_array_calibrated[t->input] - 0x800) * CHANNEL_100_PERCENT / 0x800;
+                break;
+
+            case TRANSMITTER_INPUT_NOT_USED:
+            case DIGITAL_ACTIVE_LOW:
+            case DIGITAL_ACTIVE_HIGH:
+            default:
+                break;
+        }
+    }
+}
+
+
+// ****************************************************************************
+int32_t INPUTS_get_input(label_t input)
+{
+    for (unsigned i = 0; i < MAX_LOGICAL_INPUTS; i++) {
+        logical_input_t *li = &logical_inputs[i];
+
+        for (unsigned j = 0; j < MAX_LABELS; j++) {
+            if (li->labels[j] == input) {
+                return normalized_inputs[li->inputs[0]];
+            }
+        }
+    }
+
+    return 0;
 }
