@@ -6,10 +6,6 @@
 #include <mixer.h>
 
 
-int32_t channels[NUMBER_OF_CHANNELS];
-
-
-
 // ****************************************************************************
 // if (Switch) then
 //     Destination  op  f(Curve, Source) * Scalar + Offset
@@ -41,7 +37,7 @@ void MIXER_evaluate(void)
 {
     INPUTS_filter_and_normalize();
 
-    for (uint8_t i = FIRST_HARDWARE_CHANNEL; i <= LAST_HARDWARE_CHANNEL; i++) {
+    for (uint8_t i = 0; i < NUMBER_OF_CHANNELS; i++) {
         channels[i] = 0;
     }
 

@@ -10,25 +10,26 @@
 
 void LIMITS_apply(void)
 {
-    for (int i = 0; i < NUMBER_OF_HARDWARE_CHANNELS; i++) {
+    for (int i = 0; i < NUMBER_OF_OUTPUT_CHANNELS; i++) {
         limits_t *l = &config.model.limits[i];
+        int32_t value = channels[FIRST_OUTPUT_CHANNEL_INDEX + i];
 
         // Map the channel CHANNEL_100_NPERCENT .. 0 .. CHANNEL_100_PERCENT to
         // ep_l .. subtrim .. ep_h. This way the subtrim does not influence
         // the end points and vice versa.
-        if (channels[i] >= 0) {
-            channels[i] = l->subtrim + (l->ep_h - l->subtrim) * channels[i] / CHANNEL_100_PERCENT;
+        if (value >= 0) {
+            output_channels[i] = l->subtrim + (l->ep_h - l->subtrim) * value / CHANNEL_100_PERCENT;
         }
         else {
-            channels[i] = l->subtrim + (l->ep_l - l->subtrim) * channels[i] / CHANNEL_N100_PERCENT;
+            output_channels[i] = l->subtrim + (l->ep_l - l->subtrim) * value / CHANNEL_N100_PERCENT;
         }
 
         // Clamp to the configurable limits
-        channels[i] = MAX(channels[i], l->limit_l);
-        channels[i] = MIN(channels[i], l->limit_h);
+        output_channels[i] = MAX(output_channels[i], l->limit_l);
+        output_channels[i] = MIN(output_channels[i], l->limit_h);
 
         // Clamp to hard-coded limits of +/-180% to ensure valid servo pulses
-        channels[i] = MAX(channels[i], HARD_LIMIT_L);
-        channels[i] = MIN(channels[i], HARD_LIMIT_H);
+        output_channels[i] = MAX(output_channels[i], HARD_LIMIT_L);
+        output_channels[i] = MIN(output_channels[i], HARD_LIMIT_H);
     }
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <channels.h>
 #include <inputs.h>
 #include <limits.h>
 #include <mixer.h>

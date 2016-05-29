@@ -5,8 +5,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <channels.h>
 #include <curves.h>
-#include <mixer.h>
 
 
 #define MMULT 1024
