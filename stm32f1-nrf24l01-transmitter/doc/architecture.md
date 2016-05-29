@@ -36,6 +36,14 @@
 * The PB can display the live stick position and channel outputs
 * The PB shows the battery state of the Tx
 
+* Options:
+    * nRF24 based protocol
+        * requires custom programming box hardware
+    * Bluetooth SPP using the serial port
+        * To PC running Chrome app
+        * To Smartphone or tablet running custom app
+    * UART
+        * To PC running Chrome app
 
 ## RC
 
@@ -46,6 +54,7 @@
 * Switch inputs
     * Each input is on or off only
     * Multiple inputs can be combined to form a multi-position switch
+        * A sub-type of this could be a BCD or binary encoded switch
     * Two switches can be combined to form a trim function
     * Have a pull-up programmed
     * May be momentary or latching
@@ -77,40 +86,42 @@
 
 ## Overall architecture
 
-    +----------------+    +-----------------------------------+    +------------+   +--------+
-    |                |    |                                   |    |            |   |        |
-    |     INPUTS     |    |              MIXER                |    |  CHANNELS  |   |   RF   |
-    |                |    |                                   |    |            |   | module |
-    |                |    |   +---------------------------+   |    |  +-------+ |   |        |
-    |  sticks,       |    |   |        Mixer unit         |   |    |  |  RF   | |   |        |
-    |  pots,         |    |   +---------------------------+   |    |  |      +------->       |
-    |  push-buttons  |    |   +---------------------------+   |    |  |       | |   |        |
-    |  switches    +------->  |        Mixer unit         |  +------> +-------+ |   |        |
-    |                |    |   +---------------------------+   |    |  +-------+ |   |        |
-    |                |    |   +---------------------------+   |    |  |Virtual| |   |        |
-    |                |    |   |                           |   |    |  |       | |   |        |
-    |                |    |   +---------------------------+   |    |  |       | |   +--------+
-    |                |    |                                   |    |  +-------+ |
-    |                |    |                                   |    |            |
-    +----------------+    |                                   |    +-----+------+
-                          |                ...                |          |
-                          |                                   |          |
-                          |                                   |          |
-                    +------>  +---------------------------+   |          |
-                    |     |   |        Mixer unit         |   |          |
-                    |     |   +---------------------------+   |          |
-                    |     |                                   |          |
-                    |     +-----------------------------------+          |
-                    |                                                    |
-                    |                                                    |
-                    +----------------------------------------------------+
+```
++----------------+    +-----------------------------------+    +------------+   +--------+
+|                |    |                                   |    |            |   |        |
+|     INPUTS     |    |              MIXER                |    |  CHANNELS  |   |   RF   |
+|                |    |                                   |    |            |   | module |
+|                |    |   +---------------------------+   |    |  +-------+ |   |        |
+|  sticks,       |    |   |        Mixer unit         |   |    |  |  RF   | |   |        |
+|  pots,         |    |   +---------------------------+   |    |  |      +------->       |
+|  push-buttons  |    |   +---------------------------+   |    |  |       | |   |        |
+|  switches    +------->  |        Mixer unit         |  +------> +-------+ |   |        |
+|                |    |   +---------------------------+   |    |  +-------+ |   |        |
+|                |    |   +---------------------------+   |    |  |Virtual| |   |        |
+|                |    |   |                           |   |    |  |       | |   |        |
+|                |    |   +---------------------------+   |    |  |       | |   +--------+
+|                |    |                                   |    |  +-------+ |
+|                |    |                                   |    |            |
++----------------+    |                                   |    +-----+------+
+                      |                ...                |          |
+                      |                                   |          |
+                      |                                   |          |
+                +------>  +---------------------------+   |          |
+                |     |   |        Mixer unit         |   |          |
+                |     |   +---------------------------+   |          |
+                |     |                                   |          |
+                |     +-----------------------------------+          |
+                |                                                    |
+                |                                                    |
+                +----------------------------------------------------+
 
-    (Diagram made with the awesome asciiflow.com)
+(Diagram made with the awesome asciiflow.com)
+```
 
 ## Mixer
 
 * The mixer is derived from Deviation
-* The mixer calculates signed 16 bit servo values
+* The mixer calculates signed values with 100 corresponding to 10000
 * Internally the mixer calculates signed 32 bit
 * Support common templates like V-tail, Flaperons, 4-wheel steering
 

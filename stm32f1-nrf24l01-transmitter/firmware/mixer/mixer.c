@@ -50,11 +50,14 @@ static mixer_unit_t mixer_units[NUMBER_OF_MIXER_UNITS] = {
 
 
 // ****************************************************************************
+// if (Switch) then
+//     Destination  op  f(Curve, Source) * Scalar + Offset
+// endif
 static void apply_mixer_unit(mixer_unit_t *m)
 {
     int32_t value;
 
-    // 1st: Get source value with trim
+    // 1st: Get source value
     value = INPUTS_get_input(m->src);
 
     // Invert if necessary
