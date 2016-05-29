@@ -208,19 +208,19 @@ void INPUTS_filter_and_normalize(void)
                     adc_array_calibrated[t->input] = 0;
                 }
                 else if (raw > t->calibration[2]) {
-                    adc_array_calibrated[t->input] = 0xfff;
+                    adc_array_calibrated[t->input] = ADC_VALUE_MAX;
                 }
                 else if (raw == t->calibration[1]) {
-                    adc_array_calibrated[t->input] = 0x800;
+                    adc_array_calibrated[t->input] = ADC_VALUE_HALF;
                 }
                 else if (raw > t->calibration[1]) {
-                    adc_array_calibrated[t->input] = 0x800 + (raw - t->calibration[1]) * 0x800 / (t->calibration[2] - t->calibration[1]);
+                    adc_array_calibrated[t->input] = ADC_VALUE_HALF + (raw - t->calibration[1]) * ADC_VALUE_HALF / (t->calibration[2] - t->calibration[1]);
                 }
                 else {
-                    adc_array_calibrated[t->input] = (raw - t->calibration[0]) * 0x800 / (t->calibration[1] - t->calibration[0]);
+                    adc_array_calibrated[t->input] = (raw - t->calibration[0]) * ADC_VALUE_HALF / (t->calibration[1] - t->calibration[0]);
                 }
 
-                normalized_inputs[t->input] = (adc_array_calibrated[t->input] - 0x800) * CHANNEL_100_PERCENT / 0x800;
+                normalized_inputs[t->input] = (adc_array_calibrated[t->input] - ADC_VALUE_HALF) * CHANNEL_100_PERCENT / ADC_VALUE_HALF;
                 break;
 
             case TRANSMITTER_INPUT_NOT_USED:
