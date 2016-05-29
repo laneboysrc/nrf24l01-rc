@@ -5,6 +5,7 @@
 #include <libopencm3/stm32/exti.h>
 #include <libopencmsis/core_cm3.h>
 
+#include <config.h>
 #include <mixer.h>
 #include <nrf24l01p.h>
 #include <protocol_hk310.h>
@@ -20,10 +21,8 @@
 // ****************************************************************************
 #define FRAME_TIME_MS 5        // One frame every 5 ms
 
-#define ADDRESS_SIZE 5
 #define PACKET_SIZE 10
 #define NUMBER_OF_BIND_PACKETS 4
-#define NUMBER_OF_HOP_CHANNELS 20
 #define BIND_CHANNEL 81
 #define FAILSAFE_PRESCALER_COUNT 17
 
@@ -47,8 +46,6 @@ static uint8_t hop_index = 0;
 // TT01:
 // c3da63c656
 // 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67
-static uint8_t hop_channels[NUMBER_OF_HOP_CHANNELS] = {48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67};
-static uint8_t address[ADDRESS_SIZE] = {0xc3, 0xda, 0x63, 0xc6, 0x56};
 
 static const uint8_t bind_address[ADDRESS_SIZE] = {0x12, 0x23, 0x23, 0x45, 0x78};
 
@@ -57,6 +54,8 @@ static const uint8_t bind_address[ADDRESS_SIZE] = {0x12, 0x23, 0x23, 0x45, 0x78}
 // Ideally FAILSAFE_PRESCALER_COUNT should be a prime number so that the
 // failsafe packet is sent on all hop channels over time.
 static uint8_t failsafe_counter = 0;
+
+static const protocol_hk310_t *cfg = &config.model.protocol_hk310;
 
 
 // ****************************************************************************
@@ -119,7 +118,7 @@ static void build_bind_packets(void)
     // sum of the five address bytes.
     cc = 0;
     for (int i = 0; i < 5; i++) {
-        cc += (uint16_t)address[i];
+        cc += (uint16_t)cfg->address[i];
     }
 
     bind_packet[1][0] = cc & 0xff;
@@ -132,20 +131,20 @@ static void build_bind_packets(void)
 
     // Put the address in bind packet 0
     for (int i = 0; i < 5; i++) {
-        bind_packet[0][3+i] = address[i];
+        bind_packet[0][3+i] = cfg->address[i];
     }
 
     // Put the hop channels in bind packets 1..3
     for (int i = 0; i < 7; i++) {
-        bind_packet[1][3+i] = hop_channels[i];
+        bind_packet[1][3+i] =cfg->hop_channels[i];
     }
 
     for (int i = 0; i < 7; i++) {
-        bind_packet[2][3+i] = hop_channels[7+i];
+        bind_packet[2][3+i] = cfg->hop_channels[7+i];
     }
 
     for (int i = 0; i < 6; i++) {
-        bind_packet[3][3+i] = hop_channels[14+i];
+        bind_packet[3][3+i] = cfg->hop_channels[14+i];
     }
 }
 
@@ -154,8 +153,8 @@ static void build_bind_packets(void)
 static void send_stick_packet(void)
 {
     NRF24_set_power(NRF24_POWER_0dBm);
-    NRF24_write_register(NRF24_RF_CH, hop_channels[hop_index]);
-    NRF24_write_multi_byte_register(NRF24_TX_ADDR, address, ADDRESS_SIZE);
+    NRF24_write_register(NRF24_RF_CH, cfg->hop_channels[hop_index]);
+    NRF24_write_multi_byte_register(NRF24_TX_ADDR, cfg->address, ADDRESS_SIZE);
 
     // Send failsafe packets instead of stick pacekts every
     // FAILSAFE_PRESCALER_COUNT times.

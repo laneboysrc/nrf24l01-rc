@@ -6,14 +6,13 @@
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/rcc.h>
 
+#include <config.h>
 #include <inputs.h>
 #include <inputs_stm32f103c8t6.h>
 #include <mixer.h>
 #include <systick.h>
 
-#define ADC_VALUE_MIN 0
-#define ADC_VALUE_HALF 0x800
-#define ADC_VALUE_MAX 0xfff
+
 
 
 #define WINDOW_SIZE 10
@@ -28,27 +27,10 @@ static int32_t normalized_inputs[NUMBER_OF_ADC_CHANNELS];
 
 #define ADC_LOG_TIME 1000
 
-static transmitter_input_t transmitter_inputs[MAX_TRANSMITTER_INPUTS] = {
-    {.input = 1, .type = ANALOG_WITH_CENTER,        // Ailerons
-     .calibration = {0, 2152, 4093}},
-
-    {.input = 2, .type = ANALOG_WITH_CENTER,        // Elevator
-     .calibration = {ADC_VALUE_MIN, ADC_VALUE_HALF, ADC_VALUE_MAX}},
-
-    {.input = 3, .type = ANALOG_WITH_CENTER,        // Rudder
-     .calibration = {ADC_VALUE_MIN, ADC_VALUE_HALF, ADC_VALUE_MAX}},
-
-    {.input = 4, .type = ANALOG_NO_CENTER,          // Throttle
-     .calibration = {ADC_VALUE_MIN, ADC_VALUE_HALF, ADC_VALUE_MAX}},
-};
 
 
-static logical_input_t logical_inputs[MAX_LOGICAL_INPUTS] = {
-    {.type = ANALOG, .inputs = {1}, .labels = {AIL}},
-    {.type = ANALOG, .inputs = {2}, .labels = {ELE}},
-    {.type = ANALOG, .inputs = {3}, .labels = {RUD, ST}},
-    {.type = ANALOG, .inputs = {4}, .labels = {THR, TH}}
-};
+
+
 
 
 // ****************************************************************************
@@ -198,7 +180,7 @@ void INPUTS_filter_and_normalize(void)
     for (int i = 0; i < MAX_TRANSMITTER_INPUTS; i++) {
         uint32_t raw;
 
-        transmitter_input_t *t = &transmitter_inputs[i];
+        transmitter_input_t *t = &config.tx.transmitter_inputs[i];
         switch (t->type) {
             case ANALOG_WITH_CENTER:
             case ANALOG_NO_CENTER:
@@ -237,7 +219,7 @@ void INPUTS_filter_and_normalize(void)
 int32_t INPUTS_get_input(label_t input)
 {
     for (unsigned i = 0; i < MAX_LOGICAL_INPUTS; i++) {
-        logical_input_t *li = &logical_inputs[i];
+        logical_input_t *li = &config.tx.logical_inputs[i];
 
         for (unsigned j = 0; j < MAX_LABELS; j++) {
             if (li->labels[j] == input) {

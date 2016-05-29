@@ -7,9 +7,14 @@
 #define MAX_TRANSMITTER_INPUTS 20
 #define MAX_LOGICAL_INPUTS 20
 
-typedef enum {
-    I_ST = 1
-} inputs_t;
+#define ADC_VALUE_MIN 0
+#define ADC_VALUE_HALF 0x800
+#define ADC_VALUE_MAX 0xfff
+
+
+// typedef enum {
+//     I_ST = 1
+// } inputs_t;
 
 typedef uint8_t port_t;
 

@@ -1,5 +1,6 @@
 #include <stdint.h>
 
+#include <config.h>
 #include <curves.h>
 #include <inputs.h>
 #include <mixer.h>
@@ -7,46 +8,6 @@
 
 int32_t channels[NUMBER_OF_CHANNELS];
 
-static mixer_unit_t mixer_units[MAX_MIXER_UNITS] = {
-    {
-        .src = AIL,
-        .invert_source = 0,
-        .dest = CH1,
-        .curve = {
-            .type = CURVE_EXPO,
-            .points = {50, 50}
-        },
-        .scalar = 100,
-        .offset = 1
-    },
-    {
-        .src = ELE,
-        .dest = CH2,
-        .curve = {
-            .type = CURVE_NONE,
-        },
-        .scalar = 100
-    },
-    {
-        .src = THR,
-        .dest = CH3,
-        .curve = {
-            .type = CURVE_NONE,
-        },
-        .scalar = 100
-    },
-    {
-        .src = RUD,
-        .dest = CH4,
-        .curve = {
-            .type = CURVE_NONE,
-        },
-        .scalar = 100
-    },
-    {
-        .src = 0
-    }
-};
 
 
 // ****************************************************************************
@@ -85,7 +46,7 @@ void MIXER_evaluate(void)
     }
 
     for (unsigned i = 0; i < MAX_MIXER_UNITS; i++) {
-        mixer_unit_t *m = &mixer_units[i];
+        mixer_unit_t *m = &config.model.mixer_units[i];
         if (m->src == NONE) {
             break;
         }

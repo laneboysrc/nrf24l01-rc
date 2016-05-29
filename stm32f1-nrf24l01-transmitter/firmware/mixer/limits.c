@@ -1,50 +1,17 @@
 
+#include <config.h>
 #include <limits.h>
 #include <mixer.h>
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
 
-static limits_t limits[NUMBER_OF_CHANNELS] = {
-    {
-        .ep_l = CHANNEL_N100_PERCENT, .ep_h = CHANNEL_100_PERCENT, .subtrim = 0,
-        .limit_l = -150000, .limit_h = 150000
-    },
-    {
-        .ep_l = CHANNEL_N100_PERCENT, .ep_h = CHANNEL_100_PERCENT, .subtrim = 0,
-        .limit_l = -150000, .limit_h = 150000
-    },
-    {
-        .ep_l = CHANNEL_N100_PERCENT, .ep_h = CHANNEL_100_PERCENT, .subtrim = 0,
-        .limit_l = -150000, .limit_h = 150000
-    },
-    {
-        .ep_l = CHANNEL_N100_PERCENT, .ep_h = CHANNEL_100_PERCENT, .subtrim = 0,
-        .limit_l = -150000, .limit_h = 150000
-    },
-    {
-        .ep_l = CHANNEL_N100_PERCENT, .ep_h = CHANNEL_100_PERCENT, .subtrim = 0,
-        .limit_l = -150000, .limit_h = 150000
-    },
-    {
-        .ep_l = CHANNEL_N100_PERCENT, .ep_h = CHANNEL_100_PERCENT, .subtrim = 0,
-        .limit_l = -150000, .limit_h = 150000
-    },
-    {
-        .ep_l = CHANNEL_N100_PERCENT, .ep_h = CHANNEL_100_PERCENT, .subtrim = 0,
-        .limit_l = -150000, .limit_h = 150000
-    },
-    {
-        .ep_l = CHANNEL_N100_PERCENT, .ep_h = CHANNEL_100_PERCENT, .subtrim = 0,
-        .limit_l = -150000, .limit_h = 150000
-    },
-};
 
 
 void LIMITS_apply(void)
 {
     for (int i = 0; i < NUMBER_OF_HARDWARE_CHANNELS; i++) {
-        limits_t *l = &limits[i];
+        limits_t *l = &config.model.limits[i];
 
         // Map the channel CHANNEL_100_NPERCENT .. 0 .. CHANNEL_100_PERCENT to
         // ep_l .. subtrim .. ep_h. This way the subtrim does not influence
