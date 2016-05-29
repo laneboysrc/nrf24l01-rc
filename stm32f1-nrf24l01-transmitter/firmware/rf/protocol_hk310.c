@@ -5,8 +5,8 @@
 #include <libopencm3/stm32/exti.h>
 #include <libopencmsis/core_cm3.h>
 
+#include <channels.h>
 #include <config.h>
-#include <mixer.h>
 #include <nrf24l01p.h>
 #include <protocol_hk310.h>
 #include <systick.h>

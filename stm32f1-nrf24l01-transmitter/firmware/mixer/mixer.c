@@ -1,5 +1,6 @@
 #include <stdint.h>
 
+#include <channels.h>
 #include <config.h>
 #include <curves.h>
 #include <inputs.h>
