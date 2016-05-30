@@ -15,6 +15,7 @@
 #include <spi.h>
 #include <systick.h>
 #include <uart.h>
+#include <watchdog.h>
 
 
 // ****************************************************************************
@@ -54,24 +55,18 @@ int main(void)
     SOUND_init();
     NRF24_init();
 
+    WATCHDOG_start();
+
     INPUTS_init();
     MIXER_init();
     PROTOCOL_HK310_init();
 
     printf("\n\n\n**********\nTransmitter initialized\n");
     // MUSIC_play(&song_startup);
-    SOUND_play(523, 100, NULL);
-
-    // FIXME: use watchdog
+    SOUND_play(523, 100,    NULL);
 
     while (1) {
-        // bool armed = true;
-        // if (armed) {
-        //     if (milliseconds > 1800) {
-        //         armed = false;
-        //         music_play(&song_deactivate);
-        //     }
-        // }
+        WATCHDOG_reset();
 
         // Put the CPU to sleep until an interrupt triggers. This reduces
         // power consumption drastically.

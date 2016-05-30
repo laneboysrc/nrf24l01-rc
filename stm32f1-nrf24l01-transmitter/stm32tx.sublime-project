@@ -61,7 +61,7 @@
             ]
         },
         {
-            "path": "doc"
+            "path": "."
         }
     ],
     "settings":

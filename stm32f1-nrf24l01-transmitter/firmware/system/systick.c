@@ -59,6 +59,7 @@ void SYSTICK_init(void)
     reload_value = (rcc_ahb_frequency / 8 / 1000) - 1;
     systick_set_reload(reload_value);
 
+    nvic_set_priority(NVIC_SYSTICK_IRQ, 0x0);
     systick_interrupt_enable();
     systick_counter_enable();
 }
