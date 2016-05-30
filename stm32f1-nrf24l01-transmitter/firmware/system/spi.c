@@ -41,10 +41,8 @@ void SPI_init(void)
 // ****************************************************************************
 uint8_t SPI_transaction(unsigned int count, uint8_t *buffer)
 {
-    spi_enable(SPI2);
-
     gpio_clear(GPIOB, GPIO12);
-
+    // spi_set_nss_low(SPI2);
 
     for (unsigned int i = 0; i < count; i++) {
          uint8_t rx = (uint8_t)spi_xfer(SPI2, buffer[i]);
@@ -58,6 +56,7 @@ uint8_t SPI_transaction(unsigned int count, uint8_t *buffer)
     // spi_disable(SPI2);
 
     gpio_set(GPIOB, GPIO12);
+    // spi_set_nss_high(SPI2);
 
     return *buffer;
 }

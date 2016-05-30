@@ -1,19 +1,15 @@
 // This file has been ported from Deviation.
 
-/* This code will write a stack-trace to disk should a fault happen
- * Since when it runs, memory may be corrupted, we want to use as
- * few functions or static memory addresses as possible.
- * The code bypasses the entire file I/O system, and writes directly
- * to the disk address.
- */
+// This code will write a stack-trace to disk should a fault happen
+// Since when it runs, memory may be corrupted, we want to use as
+// few functions or static memory addresses as possible.
 
 
 #include <stdint.h>
 
+#include <libopencm3/stm32/iwdg.h>
 #include <libopencm3/stm32/usart.h>
 #include <libopencmsis/core_cm3.h>
-// #include <libopencm3/cm3/scb.h>
-#include <libopencm3/stm32/iwdg.h>
 
 
 #define NONE      0
@@ -95,7 +91,7 @@ static void fault_println(const char *str, unsigned int val)
 
 // ****************************************************************************
 #if MEMORY_DUMP == BACKTRACE
-static void backtrace(unsigned int * hardfault_args)
+static void backtrace(unsigned int *hardfault_args)
 {
     int count = 0;
     unsigned int *ptr = hardfault_args;
@@ -104,7 +100,7 @@ static void backtrace(unsigned int * hardfault_args)
         if ((*ptr & 0xFFF00001) == 0x08000001) {
             // This looks like it may be a return address
             write_long((unsigned int)ptr);
-            fault_println(" : ", *ptr);
+            fault_println(": ", *ptr);
             count++;
         }
         ptr = (unsigned int *)((unsigned int)ptr + 1);
