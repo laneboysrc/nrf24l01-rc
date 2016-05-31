@@ -20,6 +20,9 @@
 
 // ****************************************************************************
 void nmi_handler(void) {
+    // The NMI is triggered by the Clock Security System. We clear the CSS
+    // interrupt and switch back to the internal RC oscillator
+
     rcc_css_int_clear();
     rcc_clock_setup_in_hsi_out_24mhz();
     SOUND_play(220, 1000, NULL);
@@ -30,10 +33,10 @@ void nmi_handler(void) {
 static void clock_init(void)
 {
     // Enable the Clock Security System
-    // NOTE: the transmitter will not boot when the crystal is not working as
-    // there is no timeout waiting for the HSE in rcc_clock_setup_in_hse_8mhz_out_24mhz().
     rcc_css_enable();
 
+    // NOTE: the transmitter will not boot when the crystal is not working as
+    // there is no timeout waiting for the HSE in rcc_clock_setup_in_hse_8mhz_out_24mhz().
     rcc_clock_setup_in_hse_8mhz_out_24mhz();
 }
 
