@@ -20,7 +20,7 @@
 static uint16_t adc_array_oversample[SAMPLE_COUNT];
 static uint16_t adc_array_raw[NUMBER_OF_ADC_CHANNELS];
 static uint16_t adc_array_calibrated[NUMBER_OF_ADC_CHANNELS];
-static uint8_t adc_channel_selection[NUMBER_OF_ADC_CHANNELS] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+static uint8_t adc_channel_selection[NUMBER_OF_ADC_CHANNELS] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 17};
 
 static int32_t normalized_inputs[NUMBER_OF_ADC_CHANNELS];
 
@@ -44,6 +44,25 @@ static int32_t normalized_inputs[NUMBER_OF_ADC_CHANNELS];
 
 //     return adc_read_regular(ADC1);
 // }
+
+
+// ****************************************************************************
+// Returns the battery voltage in millivolts
+// Since the ADC uses VDD (3.3V) as reference, we measure the internal 1.2V
+// reference (ADC17) of the STM32 to determine how much voltage one bit
+// represents without having to rely on the 3.3V accuracy.
+//
+// We then multiply the measured battery voltage on ADC0 by this value and
+// scale the result by the resistor divider (2k2 over 3.3).
+// The calulation is carried out in uV to get maximum resolution
+//
+// one_bit_voltage = 1.2V / ADC(17)
+// battery_voltage = ADC(0) * one_bit_voltage * ((2200 + 3300) / 3300)
+//
+static uint32_t get_battery_voltage(void)
+{
+    return adc_array_raw[0] * (33 + 22) * 1200000 / adc_array_raw[10] / 33000;
+}
 
 
 // ****************************************************************************
@@ -92,10 +111,8 @@ static void adc_init(void)
     // }
     // // printf("RNG Seed: %08x\n", (int)rand32());
 
-    //This is important.  We're using the temp value as a buffer because otherwise the channel data
-    //Can bleed into the voltage-sense data.
-    //By disabling the temperature, we always read a consistent value
-    // adc_disable_temperature_sensor(ADC1);
+    // Enable the voltage reference and temperature sensor inputs
+    adc_enable_temperature_sensor(ADC1);
 
     adc_set_conversion_sequence();
 
@@ -213,7 +230,7 @@ int32_t INPUTS_get_input(label_t input)
 // ****************************************************************************
 void INPUTS_dump_adc(void)
 {
-    printf("BAT: %u  ", adc_array_raw[0]);
+    printf("BAT: %lumV  ", get_battery_voltage());
     for (int i = 1; i <= 4; i++) {
         printf("CH%d:%4ld%% (%4u->%4u)  ", i, CHANNEL_TO_PERCENT(normalized_inputs[i]), adc_array_raw[i], adc_array_calibrated[i]);
     }

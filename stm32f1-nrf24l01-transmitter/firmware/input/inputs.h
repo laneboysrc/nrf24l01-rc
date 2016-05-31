@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-#define NUMBER_OF_ADC_CHANNELS 10
+#define NUMBER_OF_ADC_CHANNELS 11
 #define MAX_LABELS 5
 #define MAX_TRANSMITTER_INPUTS 20
 #define MAX_LOGICAL_INPUTS 20
