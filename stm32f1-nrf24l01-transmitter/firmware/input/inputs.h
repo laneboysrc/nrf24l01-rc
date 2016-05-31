@@ -99,4 +99,4 @@ void INPUTS_init(void);
 int32_t INPUTS_get_input(label_t input);
 void INPUTS_filter_and_normalize(void);
 void INPUTS_dump_adc(void);
-
+uint32_t INPUTS_get_battery_voltage(void);

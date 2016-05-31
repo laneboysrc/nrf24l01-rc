@@ -17,7 +17,7 @@ extern const song song_activate;
 extern const song song_deactivate;
 extern const song song_shutdown;
 extern const song song_alarm1;
-extern const song song_alarm2;
-extern const song song_battery_alarm;
+extern const song song_alarm_battery_low;
+extern const song song_alarm_battery_very_low;
 
 void MUSIC_play(song const *s);

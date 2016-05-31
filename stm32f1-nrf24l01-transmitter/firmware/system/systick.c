@@ -13,7 +13,7 @@
 
 
 // ****************************************************************************
-#define MAX_SYSTICK_CALLBACKS 3
+#define MAX_SYSTICK_CALLBACKS 5
 
 
 typedef struct {

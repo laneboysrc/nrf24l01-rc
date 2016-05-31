@@ -95,6 +95,7 @@ const song song_shutdown = {
 
 // ****************************************************************************
 static const tone song_alarm1_tones[] = {
+        {F7, 100},
         {D6, 100},
         {D7, 100},
         {SONG_END, 0}
@@ -107,21 +108,20 @@ const song song_alarm1 = {
 
 
 // ****************************************************************************
-static const tone song_alarm2_tones[] = {
-        {F7, 100},
+static const tone song_alarm_battery_low_tones[] = {
         {D6, 100},
         {D7, 100},
         {SONG_END, 0}
 };
 
-const song song_alarm2 = {
+const song song_alarm_battery_low = {
     .volume = 100,
-    .tones = song_alarm2_tones
+    .tones = song_alarm_battery_low_tones
 };
 
 
 // ****************************************************************************
-static const tone song_battery_alarm_tones[] = {
+static const tone song_alarm_battery_very_low_tones[] = {
         {C7, 50},
         {PAUSE, 50},
         {F6, 50},
@@ -130,11 +130,10 @@ static const tone song_battery_alarm_tones[] = {
         {SONG_END, 0}
 };
 
-const song song_battery_alarm = {
+const song song_alarm_battery_very_low = {
     .volume = 70,
-    .tones = song_battery_alarm_tones
+    .tones = song_alarm_battery_very_low_tones
 };
-
 
 
 static const song *song_pointer = NULL;

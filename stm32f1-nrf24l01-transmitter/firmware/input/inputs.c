@@ -46,24 +46,6 @@ static int32_t normalized_inputs[NUMBER_OF_ADC_CHANNELS];
 // }
 
 
-// ****************************************************************************
-// Returns the battery voltage in millivolts
-// Since the ADC uses VDD (3.3V) as reference, we measure the internal 1.2V
-// reference (ADC17) of the STM32 to determine how much voltage one bit
-// represents without having to rely on the 3.3V accuracy.
-//
-// We then multiply the measured battery voltage on ADC0 by this value and
-// scale the result by the resistor divider (2k2 over 3.3).
-// The calulation is carried out in uV to get maximum resolution
-//
-// one_bit_voltage = 1.2V / ADC(17)
-// battery_voltage = ADC(0) * one_bit_voltage * ((2200 + 3300) / 3300)
-//
-static uint32_t get_battery_voltage(void)
-{
-    return adc_array_raw[0] * (33 + 22) * 1200000 / adc_array_raw[10] / 33000;
-}
-
 
 // ****************************************************************************
 static void adc_set_conversion_sequence(void)
@@ -157,6 +139,25 @@ void INPUTS_init(void)
 
 
 // ****************************************************************************
+// Returns the battery voltage in millivolts
+// Since the ADC uses VDD (3.3V) as reference, we measure the internal 1.2V
+// reference (ADC17) of the STM32 to determine how much voltage one bit
+// represents without having to rely on the 3.3V accuracy.
+//
+// We then multiply the measured battery voltage on ADC0 by this value and
+// scale the result by the resistor divider (2k2 over 3.3).
+// The calulation is carried out in uV to get maximum resolution
+//
+// one_bit_voltage = 1.2V / ADC(17)
+// battery_voltage = ADC(0) * one_bit_voltage * ((2200 + 3300) / 3300)
+//
+uint32_t INPUTS_get_battery_voltage(void)
+{
+    return adc_array_raw[0] * (33 + 22) * 1200000 / adc_array_raw[10] / 33000;
+}
+
+
+// ****************************************************************************
 void INPUTS_filter_and_normalize(void)
 {
     for (int i = 0; i < NUMBER_OF_ADC_CHANNELS; i++) {
@@ -230,7 +231,7 @@ int32_t INPUTS_get_input(label_t input)
 // ****************************************************************************
 void INPUTS_dump_adc(void)
 {
-    printf("BAT: %lumV  ", get_battery_voltage());
+    printf("BAT: %lumV  ", INPUTS_get_battery_voltage());
     for (int i = 1; i <= 4; i++) {
         printf("CH%d:%4ld%% (%4u->%4u)  ", i, CHANNEL_TO_PERCENT(normalized_inputs[i]), adc_array_raw[i], adc_array_calibrated[i]);
     }

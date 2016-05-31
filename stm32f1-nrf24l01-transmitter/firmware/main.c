@@ -20,6 +20,15 @@
 #include <watchdog.h>
 
 
+typedef enum {
+    BATTERY_OK,
+    BATTERY_LOW,
+    BATTERY_VERY_LOW
+} battery_state_t;
+
+static battery_state_t battery_state = BATTERY_OK;
+
+
 // ****************************************************************************
 void nmi_handler(void) {
     // The NMI is triggered by the Clock Security System. We clear the CSS
@@ -59,8 +68,55 @@ static void disable_binding(void)
 
 
 // ****************************************************************************
+static void battery_alarm_callback(void)
+{
+    // Repeat the alarm in 1 minute
+    SYSTICK_set_callback(battery_alarm_callback, 60 * 1000);
+
+    if (battery_state == BATTERY_LOW) {
+        MUSIC_play(&song_alarm_battery_low);
+
+    }
+    else {
+        MUSIC_play(&song_alarm_battery_very_low);
+    }
+}
+
+
+// ****************************************************************************
+static void check_battery_level(void)
+{
+    uint32_t battery_voltage;
+
+    battery_voltage = INPUTS_get_battery_voltage();
+
+    switch (battery_state) {
+        case BATTERY_OK:
+            if (battery_voltage < 3600) {
+                battery_state = BATTERY_LOW;
+                LED_flashing();
+                SYSTICK_set_callback(battery_alarm_callback, 1);
+            }
+            break;
+
+        case BATTERY_LOW:
+            if (battery_voltage < 3500) {
+                battery_state = BATTERY_VERY_LOW;
+            }
+            break;
+
+        case BATTERY_VERY_LOW:
+        default:
+            break;
+    }
+}
+
+
+// ****************************************************************************
 int main(void)
 {
+    uint32_t last_ms = 0;
+
     clock_init();
     LED_init();
     SYSTICK_init();
@@ -90,13 +146,12 @@ int main(void)
     while (1) {
         WATCHDOG_reset();
 
-        do {
-            static uint32_t last_ms = 0;
-            if ((milliseconds - last_ms) > 1000) {
-                last_ms = milliseconds;
-                INPUTS_dump_adc();
-            }
-        } while (0);
+        if ((milliseconds - last_ms) > 1000) {
+            last_ms = milliseconds;
+
+            INPUTS_dump_adc();
+            check_battery_level();
+        }
 
         // Put the CPU to sleep until an interrupt triggers. This reduces
         // power consumption drastically.
