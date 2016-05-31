@@ -12,10 +12,6 @@
 #define ADC_VALUE_MAX 0xfff
 
 
-// typedef enum {
-//     I_ST = 1
-// } inputs_t;
-
 typedef uint8_t port_t;
 
 
@@ -102,4 +98,5 @@ typedef struct {
 void INPUTS_init(void);
 int32_t INPUTS_get_input(label_t input);
 void INPUTS_filter_and_normalize(void);
+void INPUTS_dump_adc(void);
 

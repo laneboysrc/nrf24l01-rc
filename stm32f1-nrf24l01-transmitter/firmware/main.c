@@ -81,6 +81,14 @@ int main(void)
     while (1) {
         WATCHDOG_reset();
 
+        do {
+            static uint32_t last_ms = 0;
+            if ((milliseconds - last_ms) > 1000) {
+                last_ms = milliseconds;
+                INPUTS_dump_adc();
+            }
+        } while (0);
+
         // Put the CPU to sleep until an interrupt triggers. This reduces
         // power consumption drastically.
         // Since the systick runs at 1 millisecond period, the main loop sleeps

@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencmsis/core_cm3.h>
 
@@ -11,7 +12,7 @@
 
 
 // ****************************************************************************
-#define MAX_SYSTICK_CALLBACKS 5
+#define MAX_SYSTICK_CALLBACKS 3
 
 
 typedef struct {
@@ -140,5 +141,12 @@ void sys_tick_handler(void)
             callbacks[i].callback = NULL;
             (*cb)();
         }
+    }
+
+    if ((milliseconds % 10) >= 8) {
+        gpio_clear(GPIOC, GPIO13);
+    }
+    else {
+        gpio_set(GPIOC, GPIO13);
     }
 }

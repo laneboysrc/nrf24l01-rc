@@ -24,25 +24,6 @@ static uint8_t adc_channel_selection[NUMBER_OF_ADC_CHANNELS] = {0, 1, 2, 3, 4, 5
 
 static int32_t normalized_inputs[NUMBER_OF_ADC_CHANNELS];
 
-#define ADC_LOG_TIME 1000
-
-
-
-
-
-
-
-// ****************************************************************************
-static void dump_adc(void)
-{
-    SYSTICK_set_callback(dump_adc, ADC_LOG_TIME);
-
-    for (int i = 1; i <= 4; i++) {
-        printf("CH%d: %4ld%% (%4u -> %4u)  ", i, CHANNEL_TO_PERCENT(normalized_inputs[i]), adc_array_raw[i], adc_array_calibrated[i]);
-    }
-    printf("\n");
-}
-
 
 // ****************************************************************************
 // static uint32_t adc_read_channel(unsigned channel)
@@ -155,8 +136,6 @@ void INPUTS_init(void)
     gpio_set_mode(GPIOA, GPIO_MODE_INPUT, GPIO_CNF_INPUT_ANALOG, GPIO7);
     gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_ANALOG, GPIO0);
     gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_ANALOG, GPIO1);
-
-    SYSTICK_set_callback(dump_adc, ADC_LOG_TIME);
 }
 
 
@@ -228,4 +207,15 @@ int32_t INPUTS_get_input(label_t input)
     }
 
     return 0;
+}
+
+
+// ****************************************************************************
+void INPUTS_dump_adc(void)
+{
+    printf("BAT: %u  ", adc_array_raw[0]);
+    for (int i = 1; i <= 4; i++) {
+        printf("CH%d:%4ld%% (%4u->%4u)  ", i, CHANNEL_TO_PERCENT(normalized_inputs[i]), adc_array_raw[i], adc_array_calibrated[i]);
+    }
+    printf("\n");
 }
