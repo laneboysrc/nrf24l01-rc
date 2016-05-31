@@ -6,6 +6,7 @@
 #include <libopencm3/stm32/timer.h>
 #include <libopencmsis/core_cm3.h>
 
+#include <config.h>
 #include <inputs.h>
 #include <led.h>
 #include <mixer.h>
@@ -50,6 +51,14 @@ static void clock_init(void)
 
 
 // ****************************************************************************
+static void disable_binding(void)
+{
+    MUSIC_play(&song_deactivate);
+    PROTOCOL_HK310_disable_binding();
+}
+
+
+// ****************************************************************************
 int main(void)
 {
     clock_init();
@@ -71,6 +80,12 @@ int main(void)
     SOUND_play(C5, 100, NULL);
 
     LED_on();
+    PROTOCOL_HK310_enable_binding();
+    if (config.tx.bind_timeout_ms) {
+        SYSTICK_set_callback(disable_binding, config.tx.bind_timeout_ms);
+    }
+    // FIXME: disable binding also on any stick movement!
+
 
     while (1) {
         WATCHDOG_reset();

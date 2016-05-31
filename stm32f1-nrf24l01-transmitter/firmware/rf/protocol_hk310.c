@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -41,6 +42,7 @@ static uint8_t failsafe_packet[PACKET_SIZE];
 static uint8_t bind_packet[NUMBER_OF_BIND_PACKETS][PACKET_SIZE];
 static uint8_t bind_packet_index = 0;
 static uint8_t hop_index = 0;
+static bool bind_enabled = false;
 
 // FIXME: those must come from a central registry
 // TT01:
@@ -200,7 +202,7 @@ static void nrf_transmit_done_callback(void)
 
         case SEND_STICK2:
             send_stick_packet();
-            frame_state = SEND_BIND_INFO;
+            frame_state = bind_enabled ? SEND_BIND_INFO : SEND_PROGRAMBOX;
             break;
 
         case SEND_BIND_INFO:
@@ -241,6 +243,20 @@ void exti9_5_isr(void)
 {
     exti_reset_request(EXTI8);
     nrf_transmit_done_callback();
+}
+
+
+// ****************************************************************************
+void PROTOCOL_HK310_enable_binding(void)
+{
+    bind_enabled = true;
+}
+
+
+// ****************************************************************************
+void PROTOCOL_HK310_disable_binding(void)
+{
+    bind_enabled = false;
 }
 
 

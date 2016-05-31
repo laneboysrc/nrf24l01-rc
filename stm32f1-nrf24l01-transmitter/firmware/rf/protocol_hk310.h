@@ -11,3 +11,5 @@ typedef struct {
 } protocol_hk310_t;
 
 void PROTOCOL_HK310_init(void);
+void PROTOCOL_HK310_enable_binding(void);
+void PROTOCOL_HK310_disable_binding(void);
