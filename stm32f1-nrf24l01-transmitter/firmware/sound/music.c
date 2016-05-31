@@ -5,32 +5,6 @@
 #include <sound.h>
 
 
-// ****************************************************************************
-// Frequencies for each note in Hz
-// Source: http://www.phy.mtu.edu/~suits/notefreqs.html
-#define C3 131
-#define D3 147
-#define E3 165
-#define F3 175
-#define G3 196
-#define A3 220
-#define B3 247
-#define C4 262
-#define D4 294
-#define E4 330
-#define F4 349
-#define G4 392
-#define A4 440
-#define B4 494
-#define C5 523
-#define D5 587
-#define E5 659
-#define F5 698
-#define G5 784
-#define A5 880
-#define B5 988
-#define C6 1047
-
 #define PAUSE 0
 #define SONG_END 0xffff
 
@@ -101,6 +75,66 @@ const song song_deactivate = {
     .volume = 100,
     .tones = song_deactivate_tones
 };
+
+
+// ****************************************************************************
+static const tone song_shutdown_tones[] = {
+        {G6, 100},
+        {A5, 100},
+        {F6, 100},
+        {F5, 100},
+        {C6, 100},
+        {SONG_END, 0}
+};
+
+const song song_shutdown = {
+    .volume = 100,
+    .tones = song_shutdown_tones
+};
+
+
+// ****************************************************************************
+static const tone song_alarm1_tones[] = {
+        {D6, 100},
+        {D7, 100},
+        {SONG_END, 0}
+};
+
+const song song_alarm1 = {
+    .volume = 100,
+    .tones = song_alarm1_tones
+};
+
+
+// ****************************************************************************
+static const tone song_alarm2_tones[] = {
+        {F7, 100},
+        {D6, 100},
+        {D7, 100},
+        {SONG_END, 0}
+};
+
+const song song_alarm2 = {
+    .volume = 100,
+    .tones = song_alarm2_tones
+};
+
+
+// ****************************************************************************
+static const tone song_battery_alarm_tones[] = {
+        {C7, 50},
+        {PAUSE, 50},
+        {F6, 50},
+        {PAUSE, 50},
+        {C6, 50},
+        {SONG_END, 0}
+};
+
+const song song_battery_alarm = {
+    .volume = 70,
+    .tones = song_battery_alarm_tones
+};
+
 
 
 static const song *song_pointer = NULL;

@@ -15,5 +15,9 @@ typedef struct {
 extern const song song_startup;
 extern const song song_activate;
 extern const song song_deactivate;
+extern const song song_shutdown;
+extern const song song_alarm1;
+extern const song song_alarm2;
+extern const song song_battery_alarm;
 
 void MUSIC_play(song const *s);

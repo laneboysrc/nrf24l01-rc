@@ -76,7 +76,7 @@ int main(void)
 
     printf("\n\n\n**********\nTransmitter initialized\n");
     // MUSIC_play(&song_startup);
-    SOUND_play(523, 100,    NULL);
+    SOUND_play(C5, 100, NULL);
 
     while (1) {
         WATCHDOG_reset();
