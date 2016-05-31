@@ -44,16 +44,6 @@ void hard_fault_handler(void)
 
 
 // ****************************************************************************
-void exti2_isr(void)
-{
-    __asm(
-"    MRS   R0, MSP\n"
-"    MOVS  R1, #1\n"
-"    B fault_handler_c\n");
-}
-
-
-// ****************************************************************************
 static void write_byte(uint8_t x)
 {
     usart_send_blocking(USART1, x);
@@ -151,6 +141,8 @@ void fault_handler_c(unsigned int * hardfault_args, unsigned int fault_type)
     unsigned int stacked_pc;
     unsigned int stacked_psr;
 
+    __disable_irq();
+
     stacked_r0 = ((unsigned long) hardfault_args[0]);
     stacked_r1 = ((unsigned long) hardfault_args[1]);
     stacked_r2 = ((unsigned long) hardfault_args[2]);
@@ -161,10 +153,10 @@ void fault_handler_c(unsigned int * hardfault_args, unsigned int fault_type)
     stacked_pc = ((unsigned long) hardfault_args[6]);
     stacked_psr = ((unsigned long) hardfault_args[7]);
 
-    if (fault_type) {
-        fault_println("\n\n[Watchdog]", PRINTLN_NO_VALUE);
-    } else {
+    if (fault_type == 0) {
         fault_println("\n\n[Hard fault]", PRINTLN_NO_VALUE);
+    } else {
+        fault_println("\n\n[Unknown fault_type]", fault_type);
     }
 
     fault_println("R0 = ", stacked_r0);
