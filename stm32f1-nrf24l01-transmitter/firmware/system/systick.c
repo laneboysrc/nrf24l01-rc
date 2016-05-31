@@ -6,6 +6,7 @@
 #include <libopencm3/stm32/rcc.h>
 #include <libopencmsis/core_cm3.h>
 
+#include <led.h>
 #include <limits.h>
 #include <mixer.h>
 #include <systick.h>
@@ -143,10 +144,5 @@ void sys_tick_handler(void)
         }
     }
 
-    if ((milliseconds % 10) >= 8) {
-        gpio_clear(GPIOC, GPIO13);
-    }
-    else {
-        gpio_set(GPIOC, GPIO13);
-    }
+    LED_systick_callback();
 }

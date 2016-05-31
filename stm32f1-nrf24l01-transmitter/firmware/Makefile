@@ -53,11 +53,12 @@ C_SOURCE_FILES += $(abspath rf/nrf24l01p.c)
 C_SOURCE_FILES += $(abspath rf/protocol_hk310.c)
 C_SOURCE_FILES += $(abspath sound/music.c)
 C_SOURCE_FILES += $(abspath sound/sound.c)
+C_SOURCE_FILES += $(abspath system/error_handler.c)
+C_SOURCE_FILES += $(abspath system/led.c)
 C_SOURCE_FILES += $(abspath system/spi.c)
 C_SOURCE_FILES += $(abspath system/systick.c)
 C_SOURCE_FILES += $(abspath system/uart.c)
 C_SOURCE_FILES += $(abspath system/watchdog.c)
-C_SOURCE_FILES += $(abspath system/error_handler.c)
 C_SOURCE_FILES += $(abspath utils/ring_buffer.c)
 
 LIBS += -lc -lnosys

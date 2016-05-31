@@ -7,6 +7,7 @@
 #include <libopencmsis/core_cm3.h>
 
 #include <inputs.h>
+#include <led.h>
 #include <mixer.h>
 #include <music.h>
 #include <nrf24l01p.h>
@@ -38,22 +39,13 @@ static void clock_init(void)
     // NOTE: the transmitter will not boot when the crystal is not working as
     // there is no timeout waiting for the HSE in rcc_clock_setup_in_hse_8mhz_out_24mhz().
     rcc_clock_setup_in_hse_8mhz_out_24mhz();
-}
 
-
-// ****************************************************************************
-static void gpio_init(void)
-{
     // Enable clocks for GPIO port A (for GPIO_USART1_TX) and C (LED)
     // IMPORTANT: you can not 'or' them into one call due to bit-mangling
     rcc_periph_clock_enable(RCC_GPIOA);
     rcc_periph_clock_enable(RCC_GPIOB);
     rcc_periph_clock_enable(RCC_GPIOC);
     rcc_periph_clock_enable(RCC_AFIO);
-
-    // Configure LED output port
-    gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, GPIO13);
-    gpio_set(GPIOC, GPIO13);
 }
 
 
@@ -61,7 +53,7 @@ static void gpio_init(void)
 int main(void)
 {
     clock_init();
-    gpio_init();
+    LED_init();
     SYSTICK_init();
     UART_init();
     SPI_init();
@@ -77,6 +69,8 @@ int main(void)
     printf("\n\n\n**********\nTransmitter initialized\n");
     // MUSIC_play(&song_startup);
     SOUND_play(C5, 100, NULL);
+
+    LED_on();
 
     while (1) {
         WATCHDOG_reset();

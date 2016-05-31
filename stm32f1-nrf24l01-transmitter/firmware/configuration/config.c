@@ -20,7 +20,8 @@ config_t config = {
             {.type = ANALOG, .inputs = {2}, .labels = {ELE}},
             {.type = ANALOG, .inputs = {3}, .labels = {RUD, ST}},
             {.type = ANALOG, .inputs = {4}, .labels = {THR, TH}}
-        }
+        },
+        .led_pwm_percent = 30
     },
 
     .model = {
