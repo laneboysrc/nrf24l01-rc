@@ -1,5 +1,8 @@
 // This file has been ported from Deviation.
 
+// Background info:
+// http://blog.frankvh.com/2011/12/07/cortex-m3-m4-hard-fault-handler/
+
 // This code will write a stack-trace to disk should a fault happen
 // Since when it runs, memory may be corrupted, we want to use as
 // few functions or static memory addresses as possible.
@@ -30,16 +33,20 @@
 
 extern unsigned _stack;     // Defined in stm32f103c8t6.ld
 
-void fault_handler_c(unsigned int * hardfault_args, unsigned int fault_type);
+void hard_fault_handler_c(unsigned int * hardfault_args);
+void hard_fault_handler(void) __attribute__((naked));
 
 
 // ****************************************************************************
 void hard_fault_handler(void)
 {
-    __asm(
-"    MRS   R0, MSP\n"
-"    MOVS  R1, #0\n"
-"    B fault_handler_c\n");
+    __asm volatile (
+        "TST LR, #4                 \n"
+        "ITE EQ                     \n"
+        "MRSEQ R0, MSP              \n"
+        "MRSNE R0, PSP              \n"
+        "B hard_fault_handler_c     \n"
+    );
 }
 
 
@@ -129,8 +136,8 @@ static void memory_dump(void)
 
 // ****************************************************************************
 // From Joseph Yiu, minor edits by FVH
-// Hard fault handler in C, with stack frame location as input parameter
-void fault_handler_c(unsigned int * hardfault_args, unsigned int fault_type)
+// Modifyed by WLA
+void hard_fault_handler_c(unsigned int *hardfault_args)
 {
     unsigned int stacked_r0;
     unsigned int stacked_r1;
@@ -141,7 +148,9 @@ void fault_handler_c(unsigned int * hardfault_args, unsigned int fault_type)
     unsigned int stacked_pc;
     unsigned int stacked_psr;
 
-    __disable_irq();
+    if (CoreDebug->DHCSR & 1)  {        // Check C_DEBUGEN -> debugger connected
+       __asm volatile ("bkpt 0");       // Halt program execution here
+    }
 
     stacked_r0 = ((unsigned long) hardfault_args[0]);
     stacked_r1 = ((unsigned long) hardfault_args[1]);
@@ -153,12 +162,7 @@ void fault_handler_c(unsigned int * hardfault_args, unsigned int fault_type)
     stacked_pc = ((unsigned long) hardfault_args[6]);
     stacked_psr = ((unsigned long) hardfault_args[7]);
 
-    if (fault_type == 0) {
-        fault_println("\n\n[Hard fault]", PRINTLN_NO_VALUE);
-    } else {
-        fault_println("\n\n[Unknown fault_type]", fault_type);
-    }
-
+    fault_println("\n\n[Hard fault]", PRINTLN_NO_VALUE);
     fault_println("R0 = ", stacked_r0);
     fault_println("R1 = ", stacked_r1);
     fault_println("R2 = ", stacked_r2);

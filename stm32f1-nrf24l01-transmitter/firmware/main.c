@@ -43,6 +43,9 @@ void nmi_handler(void) {
 // ****************************************************************************
 static void clock_init(void)
 {
+    // Enable divide-by-0 and unaligned fault handling
+    SCB->CCR |= SCB_CCR_DIV_0_TRP | SCB_CCR_UNALIGN_TRP;
+
     // Enable the Clock Security System
     rcc_css_enable();
 
