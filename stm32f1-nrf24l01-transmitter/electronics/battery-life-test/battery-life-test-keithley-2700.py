@@ -11,8 +11,8 @@ from scpi.transports import rs232 as serial_transport
 import serial as pyserial
 import time
 
-DMM_PORT = '/dev/ttyUSB1'
 TX_PORT = '/dev/ttyUSB0'
+DMM_PORT = '/dev/ttyUSB1'
 
 
 tx_message = dict(time=0, msg="")
@@ -28,6 +28,7 @@ with open("measurements.csv", "at") as f:
     def tx_callback(message):
         tx_message['time'] = time.time()
         tx_message['msg'] = message
+        # print(message)
 
 
     tx_serial_port = pyserial.Serial(TX_PORT, 115200, timeout=0)
