@@ -40,6 +40,7 @@ void hard_fault_handler(void) __attribute__((naked));
 // ****************************************************************************
 void hard_fault_handler(void)
 {
+    // FIXME: does not work
     __asm volatile (
         "TST LR, #4                 \n"
         "ITE EQ                     \n"

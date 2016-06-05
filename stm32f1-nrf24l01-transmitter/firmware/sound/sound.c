@@ -40,7 +40,7 @@ void SOUND_init(void)
 
     // Remap TIM2_CH1 to GPIOA15.
     // Note that the default function of the pin A15 is JTAG, so we need to
-    // turn that off to it as normal GPIO!
+    // turn that off to make it a normal GPIO!
     gpio_primary_remap(AFIO_MAPR_SWJ_CFG_JTAG_OFF_SW_ON, AFIO_MAPR_TIM2_REMAP_PARTIAL_REMAP1);
     gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_TIM2_PR1_CH1_ETR);
 

@@ -12,8 +12,6 @@
 #include <systick.h>
 
 
-
-
 #define WINDOW_SIZE 10
 #define SAMPLE_COUNT NUMBER_OF_ADC_CHANNELS * WINDOW_SIZE
 
@@ -76,22 +74,9 @@ static void adc_init(void)
     // 239.5 + 12.5 cycles @ 12 MHz ADC clock means 21 us per conversion
     adc_set_sample_time_on_all_channels(ADC1, ADC_SMPR_SMP_239DOT5CYC);
 
-
     adc_power_on(ADC1);
     adc_reset_calibration(ADC1);
     adc_calibration(ADC1);
-
-
-    // // Build a RNG seed using ADC 14, 16, 17
-    // adc_enable_temperature_sensor(ADC1);
-
-    // for(int i = 0; i < 8; i++) {
-    //     uint32_t seed;
-    //     seed = ((adc_read_channel(16) & 0x03) << 2) | (adc_read_channel(17) & 0x03); //Get 2bits of RNG from Temp and Vref
-    //     seed ^= adc_read_channel(0) << i; //Get a couple more random bits from Voltage sensor
-    //     // rand32_r(0, seed);
-    // }
-    // // printf("RNG Seed: %08x\n", (int)rand32());
 
     // Enable the voltage reference and temperature sensor inputs
     adc_enable_temperature_sensor(ADC1);
@@ -99,8 +84,12 @@ static void adc_init(void)
     adc_set_conversion_sequence();
 
 
-    // DMA set-up
-    /* The following is based on code from here: http://code.google.com/p/rayaairbot */
+    // DMA set-up. This enables reading all ADC channels round-robin,
+    // filling up adc_array_oversample and then starting all over. No software
+    // involvement needed.
+    // Whenever the software wants ADC data, it reads adc_array_oversample.
+    //
+    // The code is based on code from http://code.google.com/p/rayaairbot
     rcc_periph_clock_enable(RCC_DMA1);
 
     dma_enable_circular_mode(DMA1, DMA_CHANNEL1);
@@ -126,6 +115,8 @@ void INPUTS_init(void)
     // Configure the analog inputs
     gpio_set_mode(GPIOA, GPIO_MODE_INPUT, GPIO_CNF_INPUT_ANALOG, GPIO0);
 
+    // FIXME: this needs to be dynamically based on whether an input is
+    // used at all, used as analog input, or used as digital input.
     gpio_set_mode(GPIOA, GPIO_MODE_INPUT, GPIO_CNF_INPUT_ANALOG, GPIO1);
     gpio_set_mode(GPIOA, GPIO_MODE_INPUT, GPIO_CNF_INPUT_ANALOG, GPIO2);
     gpio_set_mode(GPIOA, GPIO_MODE_INPUT, GPIO_CNF_INPUT_ANALOG, GPIO3);
@@ -145,11 +136,15 @@ void INPUTS_init(void)
 // represents without having to rely on the 3.3V accuracy.
 //
 // We then multiply the measured battery voltage on ADC0 by this value and
-// scale the result by the resistor divider (2k2 over 3.3).
-// The calulation is carried out in uV to get maximum resolution
+// scale the result by the resistor divider (2k2 over 3k3).
+// The calulation is carried out in uV to get maximum resolution.
 //
 // one_bit_voltage = 1.2V / ADC(17)
 // battery_voltage = ADC(0) * one_bit_voltage * ((2200 + 3300) / 3300)
+//
+// This algorithm was verified with a Keithley 2700 6.5 digit DMM over the
+// whole discharge of a Li-Ion battery, from 4.15V down to 2.5V. It is
+// surprisingly accurate!
 //
 uint32_t INPUTS_get_battery_voltage(void)
 {

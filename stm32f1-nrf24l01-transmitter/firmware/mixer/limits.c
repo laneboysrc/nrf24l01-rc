@@ -1,3 +1,4 @@
+#include <stdint.h>
 
 #include <channels.h>
 #include <config.h>
@@ -7,7 +8,7 @@
 #define MAX(a,b) (((a)>(b))?(a):(b))
 
 
-
+// ****************************************************************************
 void LIMITS_apply(void)
 {
     for (int i = 0; i < NUMBER_OF_OUTPUT_CHANNELS; i++) {

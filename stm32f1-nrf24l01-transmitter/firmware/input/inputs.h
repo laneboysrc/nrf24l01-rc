@@ -15,7 +15,6 @@
 typedef uint8_t port_t;
 
 
-
 // This structure describes the inputs on the transmitter PCB. It describes
 // which ananlog inputs there are, and which digital inputs there are.
 //

@@ -21,9 +21,6 @@
 #include <watchdog.h>
 
 
-
-
-
 // ****************************************************************************
 void nmi_handler(void) {
     // The NMI is triggered by the Clock Security System. We clear the CSS
@@ -39,6 +36,7 @@ void nmi_handler(void) {
 static void clock_init(void)
 {
     // Enable divide-by-0 and unaligned fault handling
+    // FIXME: does not work
     SCB->CCR |= SCB_CCR_DIV_0_TRP | SCB_CCR_UNALIGN_TRP;
 
     // Enable the Clock Security System
@@ -85,7 +83,6 @@ int main(void)
     PROTOCOL_HK310_init();
 
     printf("\n\n\n**********\nTransmitter initialized\n");
-    // MUSIC_play(&song_startup);
     SOUND_play(C5, 100, NULL);
 
     LED_on();

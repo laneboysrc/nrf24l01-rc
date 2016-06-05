@@ -3,6 +3,20 @@
 This script is used to test the battery life on our STM32 based nRF24L01
 RC transmitter.
 
+It is using a Keithley 2700 DMM with one 7700 card.
+The battery voltage is connected to contacts 101, the 3.3V supply to 102.
+
+This script connects to two serial ports.
+
+/dev/ttyUSB0 connects to the serial output of the STM32 in the transmitter.
+It monitors the battery voltage in mV it calculates internally, as well as
+the raw ADV values for the battery voltage in the internal 1.2V reference.
+
+/dev/ttyUSB1 connects to the Keithley 2700 and performs a "scan" (sequence of
+measurements) roughly every minute using SCPI commands.
+
+The results from both serial ports are combined into a CSV file.
+
 '''
 from __future__ import print_function
 
@@ -28,9 +42,10 @@ with open("measurements.csv", "at") as f:
     def tx_callback(message):
         tx_message['time'] = time.time()
         tx_message['msg'] = message
-        # print(message)
 
 
+    # We abuse the SCPI low-level interface to give read the STM32 serial
+    # output, which it generates every second, in the background.
     tx_serial_port = pyserial.Serial(TX_PORT, 115200, timeout=0)
     tx_transport = serial_transport(tx_serial_port)
     tx_transport.line_terminator = "\n"
@@ -42,10 +57,12 @@ with open("measurements.csv", "at") as f:
     dmm_transport = serial_transport(dmm_serial_port)
     keithley = scpi_device(dmm_transport)
 
+    # Set measurement slots 1..10 to 10 Volt, 7 digits resolution
     keithley.scpi.send_command("FUNC 'VOLT', (@101:110)", False)
     keithley.scpi.send_command("VOLT:RANG 10, (@101:110)", False)
     keithley.scpi.send_command("VOLT:DC:DIG 7", False)
 
+    # Setup the scan and start it
     keithley.scpi.send_command("TRIG:SOUR IMM", False)
     keithley.scpi.send_command("TRIG:COUN 1", False)
     keithley.scpi.send_command("SAMP:COUN 2", False)
@@ -56,6 +73,7 @@ with open("measurements.csv", "at") as f:
     keithley.scpi.send_command("INIT", False)
 
 
+    # Print the CSV header
     print("{}, {}, {}, {}, {}, {}".format("seconds", "tx_mv", "tx_adc_vcc", "tx_adc_vref", "Vbatt", "Vcc"), file=f)
     start = time.time();
 
@@ -68,10 +86,12 @@ with open("measurements.csv", "at") as f:
         voltages = [convert_voltage(dmm_data[0]), convert_voltage(dmm_data[3])]
 
         tx_adc_values = tx_message['msg']
+        # Buggy code, needs braces around subtraction. With the bug, the output
+        # has the last STM32 message repeated forever.
         if now - tx_message['time'] > 10:
             tx_adc_values = ', , '
 
-
+        # Output to the console as well as the CSV file
         print("{}, {}, {}, {}".format(int(now-start), tx_message['msg'], voltages[0], voltages[1]))
         print("{}, {}, {}, {}".format(int(now-start), tx_message['msg'], voltages[0], voltages[1]), file=f)
         f.flush()
