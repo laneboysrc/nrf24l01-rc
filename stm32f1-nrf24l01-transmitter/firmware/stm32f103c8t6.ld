@@ -6,4 +6,17 @@ MEMORY
 	ram (rwx) : ORIGIN = 0x20000000, LENGTH = 20K
 }
 
+
+/* Put the transmitter configuration in the upper-most 8 KBytes of flash */
+SECTIONS
+{
+    .transmitter_configuration 0x0800e000 :
+    {
+        *(.rodata.config_flash)
+    }
+}
+
+
 INCLUDE libopencm3_stm32f1.ld
+
+
