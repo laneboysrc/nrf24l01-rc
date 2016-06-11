@@ -1,6 +1,11 @@
+#include <string.h>
+#include <stdio.h>
+
 #include <config.h>
 
-config_t config = {
+config_t config;
+
+static const config_t config_flash = {
     .tx = {
         .transmitter_inputs = {
             {.input = 1, .type = ANALOG_WITH_CENTER,        // Ailerons
@@ -104,9 +109,19 @@ config_t config = {
                 .limit_l = -150000, .limit_h = 150000
             },
         },
+
         .protocol_hk310 = {
             .hop_channels = {41, 21, 16, 66, 38, 33, 23, 32, 48, 37, 30, 54, 1, 12, 34, 19, 59, 17, 53, 49},
             .address = {0xab, 0x22, 0x08, 0x97, 0x45}
         }
     }
 };
+
+
+// ****************************************************************************
+void CONFIG_init(void)
+{
+    // Copy the settings stored in the flash (config_flash) into the
+    // working-copy in RAM (config)
+    memcpy(&config, &config_flash, sizeof(config_t));
+}

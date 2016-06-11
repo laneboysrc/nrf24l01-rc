@@ -24,3 +24,5 @@ typedef struct {
 
 
 extern config_t config;
+
+void CONFIG_init(void);
