@@ -98,6 +98,20 @@ int main(void)
     printf("      sizeof(limits_t)=%u\n", sizeof(limits_t));
     printf("    sizeof(config.model.protocol_hk310)=%u\n", sizeof(config.model.protocol_hk310));
 
+
+// sizeof(config)=3080
+//   sizeof(config.tx)=548
+//     sizeof(config.tx.transmitter_inputs)=160
+//         sizeof(transmitter_input_t)=8
+//     sizeof(config.tx.logical_inputs)=380
+//       sizeof(logical_input_t)=19
+//   sizeof(config.model)=2532
+//     sizeof(config.model.mixer_units)=2000
+//       sizeof(mixer_unit_t)=20
+//     sizeof(config.model.limits)=504
+//       sizeof(limits_t)=28
+//     sizeof(config.model.protocol_hk310)=25
+
     SOUND_play(C5, 100, NULL);
     LED_on();
 
