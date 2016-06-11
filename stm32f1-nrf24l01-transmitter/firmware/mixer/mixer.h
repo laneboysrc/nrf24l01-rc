@@ -6,7 +6,7 @@
 #include <inputs.h>
 
 
-#define MAX_MIXER_UNITS 20
+#define MAX_MIXER_UNITS 100
 
 typedef struct  {
     curve_t curve;
