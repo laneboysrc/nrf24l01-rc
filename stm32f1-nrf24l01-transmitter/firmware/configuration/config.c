@@ -44,8 +44,7 @@ config_t config = {
                     .type = CURVE_NONE,
                 },
                 .scalar = 100,
-                .offset = 0,
-                .invert_source = 1
+                .offset = 0
             },
             {
                 .src = THR,
@@ -75,9 +74,10 @@ config_t config = {
                 .failsafe = PERCENT_TO_CHANNEL(8)
             },
             {
-                .ep_l = PERCENT_TO_CHANNEL(-35), .ep_h = PERCENT_TO_CHANNEL(30), .subtrim = 2200,
+                .ep_l = PERCENT_TO_CHANNEL(-30), .ep_h = PERCENT_TO_CHANNEL(35), .subtrim = -2200,
                 .limit_l = -150000, .limit_h = 150000,
-                .failsafe = PERCENT_TO_CHANNEL(5)
+                .failsafe = PERCENT_TO_CHANNEL(-5),
+                .invert = 1
             },
             {
                 .ep_l = CHANNEL_N100_PERCENT, .ep_h = CHANNEL_100_PERCENT, .subtrim = 0,

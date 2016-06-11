@@ -12,6 +12,7 @@ typedef struct {
     int32_t limit_l;
     int32_t limit_h;
     int32_t failsafe;
+    unsigned invert : 1;
 } limits_t;
 
 void LIMITS_apply(void);

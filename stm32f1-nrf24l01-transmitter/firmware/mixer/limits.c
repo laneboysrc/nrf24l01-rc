@@ -36,5 +36,10 @@ void LIMITS_apply(void)
 
         // Set the failsafe value, applying subtrim
         failsafe[i] = l->subtrim + l->failsafe;
+
+        if (l->invert) {
+            output_channels[i] = -output_channels[i];
+            failsafe[i] = -failsafe[i];
+        }
     }
 }
