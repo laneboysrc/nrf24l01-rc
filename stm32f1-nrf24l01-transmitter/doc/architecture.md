@@ -66,13 +66,14 @@ So we have the following logical input types:
 * Analog with center
 * Analog without center
 * Switch on/off (1 digital input)
-* Switch 3-position (2 digital inputs)
+* Switch 3-position (1 digital input, switching between GND / open / Vcc)
 * Switch n-positions (n digital inputs)
     * In theory we could do with n-1 digital inputs, using the state when
       all inputs are open as first position. However, this may cause issues that the first position is triggered when switching between
       the other positions, as contacts may temporarily open.
     * Therefore it is better to use n inputs and treat "all inputs open"
       as well as "more than one input closed" as error condition.
+* BCD switch 2^n-positions (n digital inputs)
 
 Having logical inputs allows us to setup multiple logical inputs for the same
 hardware input.
@@ -85,18 +86,17 @@ hardware input.
 * This implies that inputs are tagged (e.g. Aileron, Rudder, Elevator, Steering, Throttle, Gear, ST-Trim, ST-DR, TH-Hold ...) so that the mixer can read from the right values
 * An input may have multiple tags (Steering, Rudder) but each tag must only be assigned once
 * The inputs also have generic tags like A0, SW0... so that they can be used in mixers
-* Inputs may have 0..100 on one transmitter, and -100..0..100 on another one, i.e. they may be with our without center point!
+* Inputs may have 0..100 on one transmitter, and -100..0..100 on another one, i.e. they may be with or without center point!
 * If a mixer can not find its input, the input is considered value "0"
 * The direction is normalized: forward, more, right = positive; backward, less, left = negative
 
-* So the "mixer" describes the vehicle, but an input section describes the transmitter
+* So the "mixer" describes the vehicle, but the input section describes the transmitter
 * This should also allow us to extract "mixer" configurations from the 3XS model memory expansion EEPROM
 * The PB can change mixer configuration as well as hardware configuration
 
 * The nRF24 address can serve as a unique model identifier so that the PB can find the corresponding model in its memory
 
 * Trims have to be assigneable to a specific input. Trims may be either a pair of push-buttons (option: support a separate centering button?) or a potentiometer, or be mechanical (i.e. not existant from a software point-of-view).
-    - Note: output channels can have a trim too?!
 
 
 ## Overall architecture
@@ -131,6 +131,7 @@ hardware input.
 
     (Diagram made with the awesome asciiflow.com)
 
+
 ## Mixer
 
 * The mixer is derived from Deviation
@@ -145,17 +146,13 @@ hardware input.
     * Send stick data
     * Send stick data again (after NRF24 IRQ)
     * Send bind packet with fixed address at low power on channel 81
+        * *NOTE: Due to hardware differences the lowest power the nRF24 module with the PA can send is still very high compared to the HK310. As such we send bind packets only for the first 10 seconds after power on*
     * If connected:
-        * Send setup packet using Enhanced Shockburst at 2 Mbps
+        * Send setup packet using Enhanced Shockburst at 2 Mbps at lowest possible power
     * else if first hop channel
-        * Send setup packet with "free to connect" using Enhanced Shockburst at 2 Mbps
+        * Send setup packet "free to connect" on a fixed channel (111?) using Enhanced Shockburst at 2 Mbps at lowest possible power
     * Change to the next hop channel
     * Sleep until the next 5 ms
-
-* Programming box (PB):
-    * Listens for bind backets on channel 81 and learns the address and hop sequence
-    * Listens and responds to Setup packets on the first hop channel at 2 Mbps
-        * Note that legacy HK310 Tx sends bind packets but no Setup packet, so the PB has to deal with that
 
 * Setup protocol:
     * The Tx is the master on RF, but it is the slave regarding communication with the programming box (PB)
@@ -164,15 +161,15 @@ hardware input.
     * The setup packet uses dynamic payload up to 32 bytes at 2 Mbps (ARD must be set to 500 us)
 
 * Establishing a connection:
-    * The PB listens for Tx on the bind channel 81 at 250 kBps and learns the address and hop channel sequence
-    * The PB listens for Setup packets on the first hop channel. It ACKs with a new address to use; this way there can only be a single connection between a Tx and a PB at a given point in time.
-    * The Tx sends a setup packet with the (vehicle) address on the first hop channel (every 100 ms). The payload signals "Free to connect".
-    * When the Tx receives an answer with a new address from the PB it is now "connected" and starts sending setup packets on the received address using the hop frequencies every 5 ms.
-    * Once the PB has the ACK being taken by the Tx (= it received the "Free to connect") it listens to the adress it gave to the Tx. The Tx and PB are now connected.
+    * The Tx sends a 'free to connect' paket with address hop channel info every 100 ms on channel 111. (26 byte packet: 1 byte command, 5 bytes address, 20 bytes channels)
+    * The PB listens for Tx on channel 111 at 2Mbps and when receiving a "free to connect" packet it learns the address and hop channel sequence
+    * The PB ACKs if it wants to connect, with a unique address to use during the setup session
+    * When the Tx receives an answer it is now "connected" and starts sending setup packets using the hop frequencies every 5 ms, with the address received from the PB.
+    * Once the PB has the ACK being taken by the Tx (= it received the "Free to connect") it listens to the adress on the 2nd hop channel (since the 'free to connect' is sent during the first hop channel) with the address given to the Tx. The Tx and PB are now connected.
         * Note that the PB may have taken the ACK, but the Tx may not have received it. In that case the PB would timeout after 600 ms as described in "Terminating a connection".
 
 * Terminating a connection
-    * If the Tx or the PB do not receive anything for 600 ms they consider the connection lost and terminate the connected state. The Tx returns to sending of "Free to connect" setup packets.
+    * If the Tx or the PB do not receive anything for 600 ms they consider the connection lost and terminate the connected state. The Tx returns to sending of "Free to connect" setup packets every 100 ms on channel 111.
     * The PB can send the "Disconnect" command to the Tx. The Tx responds "Disconnecting now" and once it received the ACK from the PB it terminates the connection and returns sending "Free to connect" setup packets.
     * The PB considers the connection terminated after it received the "Disconnecting now" from the Tx, or after 600 ms if not received.
 
@@ -183,25 +180,24 @@ hardware input.
 
 * Commands
     * Free-to-connect [Tx->PB]
-        - Only sent on first hop channel (= every 100 ms)
+        - Only sent on channel 111, every 100 ms
         - Sent on the vehicle address
         - Only allows Connect command from PB
 
     * Connect [PB->Tx]
-        - Only sent on first hop channel
+        - Only sent on channel 111
         - Sent on the vehicle address
         - Payload: address to use for the rest of the communication
 
-    * Inquiry Tx->PB
+    * Tx->PB Inquiry
         - Payload: stick data (raw? channel outputs? how to deal with multiple channels?)
-
     * Tx->PB Acknowledged
     * PB->Tx Disconnect
     * Tx->PB Disconnecting-now
 
-    * Read data
+    * PB->Tx Read data
         - Payload: address (uint16_t), count (uint8__t)
-    * Write data
+    * PB->Tx Write data
         - Payload: address (uint16_t), up to 28 bytes data
 
 
@@ -257,36 +253,11 @@ Mode 3:
 
 ## Mixer
 
-The mixer originates from the DeviationTX project, which in turn comes in part from the ER9x project.
-However, in contrast to DeviationTx and ER9x the UI has always the sources on the left and the channel outputs on the right. I find this more intuitive.
-
-    Src   Mixer     Condition   Mux   Dest
-    --------------------------------------
-    ST    Expo/Dr               =     CH1
-    TH    Simple                =     CH2
-          Custom    TH-hold     =
-
-### Mixer types:
-- Simple: Source, Curve, Scale, Offset
-- Expo/Dr: Source, Curve, Scale; Switch, Curve (can be linked), Scale; Switch Curve (can be linked), Scale
-- Custom: Source, Curve, Scale, Offset, Switch
-- Cut: Value, SW (to implement Throttle cut, or TH-hold)
-
-### Mux types:
-- = Replace
-- + Add
-- * Multiply
-
-UI issue: how to add and delete entries for a destination?
-
-The above describes the mixer from a UI point of view.
-Technically all the mixer types are implementing by one *mixer unit* and virtual channels (in the case of Expo/Dr).
-
 ### Mixer unit
 The mixer unit is derived from the DeviationTx project. Each unit performs a simple function:
 
     if (Switch) then
-        Destination  op  f(Curve, Source) * Scalar + Offset
+        Destination  op  f(Curve, OptionalInvert(Source)) * Scalar + Offset
     endif
 
 Where:
@@ -300,12 +271,12 @@ Where:
     * MIN (**?**)
     * Delay (**?**)
   - f(): One of the curve functions applied to the input source
+  - OptionalInvert: Switch to invert the incoming Source
   - Source: The input source for the mixer unit. Can be
     - Phyiscal transmitter inputs (sticks, pots, switches, push-buttons)
     - Channels (output channels as sent to the receiver)
     - Virtual channels (10 available for user selection, 10 hidden for Expo/Dr)
     - Trainer port inputs (not supported but prepare...)
-    - **Sources may be inverted**
   - Scaler: A scaling factor
   - Offset: An offset value to move the result up or down
   - Trim: If enabled then the trim value (range +/-100) is added to the mixer unit output, taking source channel inversion into account
@@ -321,10 +292,6 @@ Simple:
   - 1 mixer unit
   - Trim is enabled (depends on source?)
   - Switch is "None"
-
-Custom:
-  - 1 mixer unit
-  - All fields exposed in the UI
 
 Cut:
   - 1 mixer unit
@@ -349,6 +316,11 @@ Expo/Dr:
     - 2 switches (switch1..2). If a switch is set to "None" that mixer unit is removed
     - 3 scalars to adjust the actual dual rate
 
+Other types to think about:
+* 4-wheel steering, with potentiometer to select seamlessly crabbing/2-wheel/4-wheel steering
+* V-tail
+* Flaperons
+
 ### Mixer resources
 
 Because Expo/Dr can use up to 4 mixer units, we need to figure out how to detect that we run out of mixer units or (hidden) virtual channels. The overflow can occur when we
@@ -372,8 +344,9 @@ Memory is not really an issue (20 KBytes on the MCU), but we have to read/write 
     int8_t  scalar;
     int8_t  offset;
     uint8_t tag;
+    unsigned invert_source : 1;
 
-= 22 bytes per mixer unit
+= 24 bytes per mixer unit
 So 100 mixers would be 2.2 KBytes
 
 The PB must align the mixers in the TX so that they can be processed in one loop.
@@ -391,12 +364,12 @@ The PB must align the mixers in the TX so that they can be processed in one loop
 
 ## Output channel configuration
 
-- Normal/Reverse
-- Fail-safe on/off and value
-- Safety None/switch and value (if switch is defined and on, override channel with value)
+- *Normal/Reverse*
+- Fail-safe value
+- *Safety None/switch and value (if switch is defined and on, override channel with value)*
 - Scale -/+ (end points)
 - Sub-trim (applied after scale/endpoints; We want this independent of scale)
-- Speed (0..250, speed of output change in degrees per 100ms)
+- *Speed (0..250, speed of output change in degrees per 100ms)*
 - Min/max limit (just hard limits, checked last)
 
 
