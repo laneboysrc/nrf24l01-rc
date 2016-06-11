@@ -85,18 +85,18 @@ int main(void)
 
     printf("\n\n\n**********\nTransmitter initialized\n");
 
-    printf("sizeof(config)=%u", sizeof(config));
-    printf("  sizeof(config.tx)=%u", sizeof(config.tx));
-    printf("    sizeof(config.tx.transmitter_inputs)=%u", sizeof(config.tx.transmitter_inputs));
-    printf("        sizeof(transmitter_input_t)=%u", sizeof(transmitter_input_t));
-    printf("    sizeof(config.tx.logical_inputs)=%u", sizeof(config.tx.logical_inputs));
-    printf("      sizeof(logical_input_t)=%u", sizeof(logical_input_t));
-    printf("  sizeof(config.model)=%u", sizeof(config.model));
-    printf("    sizeof(config.model.mixer_units)=%u", sizeof(config.model.mixer_units));
-    printf("      sizeof(mixer_unit_t)=%u", sizeof(mixer_unit_t));
-    printf("    sizeof(config.model.limits)=%u", sizeof(config.model.limits));
-    printf("      sizeof(limits_t)=%u", sizeof(limits_t));
-    printf("    sizeof(config.model.protocol_hk310)=%u", sizeof(config.model.protocol_hk310));
+    printf("sizeof(config)=%u\n", sizeof(config));
+    printf("  sizeof(config.tx)=%u\n", sizeof(config.tx));
+    printf("    sizeof(config.tx.transmitter_inputs)=%u\n", sizeof(config.tx.transmitter_inputs));
+    printf("        sizeof(transmitter_input_t)=%u\n", sizeof(transmitter_input_t));
+    printf("    sizeof(config.tx.logical_inputs)=%u\n", sizeof(config.tx.logical_inputs));
+    printf("      sizeof(logical_input_t)=%u\n", sizeof(logical_input_t));
+    printf("  sizeof(config.model)=%u\n", sizeof(config.model));
+    printf("    sizeof(config.model.mixer_units)=%u\n", sizeof(config.model.mixer_units));
+    printf("      sizeof(mixer_unit_t)=%u\n", sizeof(mixer_unit_t));
+    printf("    sizeof(config.model.limits)=%u\n", sizeof(config.model.limits));
+    printf("      sizeof(limits_t)=%u\n", sizeof(limits_t));
+    printf("    sizeof(config.model.protocol_hk310)=%u\n", sizeof(config.model.protocol_hk310));
 
     SOUND_play(C5, 100, NULL);
     LED_on();

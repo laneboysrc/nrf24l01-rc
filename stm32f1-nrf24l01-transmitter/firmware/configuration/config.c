@@ -124,4 +124,6 @@ void CONFIG_init(void)
     // Copy the settings stored in the flash (config_flash) into the
     // working-copy in RAM (config)
     memcpy(&config, &config_flash, sizeof(config_t));
+
+    printf("config_flash=%p\n", (void *)&config_flash);
 }
