@@ -44,11 +44,6 @@ static uint8_t bind_packet_index = 0;
 static uint8_t hop_index = 0;
 static bool bind_enabled = false;
 
-// FIXME: those must come from a central registry
-// TT01:
-// c3da63c656
-// 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67
-
 static const uint8_t bind_address[ADDRESS_SIZE] = {0x12, 0x23, 0x23, 0x45, 0x78};
 
 // This counter determines how often failsafe packets are sent in relation to
