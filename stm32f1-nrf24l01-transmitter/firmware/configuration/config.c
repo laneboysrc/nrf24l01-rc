@@ -4,22 +4,22 @@ config_t config = {
     .tx = {
         .transmitter_inputs = {
             {.input = 1, .type = ANALOG_WITH_CENTER,        // Ailerons
-             .calibration = {0, 2152, 4093}},
+             .calibration = {510, 1962, 3380}},
 
             {.input = 2, .type = ANALOG_WITH_CENTER,        // Elevator
-             .calibration = {ADC_VALUE_MIN, ADC_VALUE_HALF, ADC_VALUE_MAX}},
+             .calibration = {590, 1943, 3240}},
 
-            {.input = 3, .type = ANALOG_WITH_CENTER,        // Rudder
-             .calibration = {ADC_VALUE_MIN, ADC_VALUE_HALF, ADC_VALUE_MAX}},
+            {.input = 3, .type = ANALOG_WITH_CENTER,        // Throttle
+             .calibration = {670, ADC_VALUE_HALF, 3370}},
 
-            {.input = 4, .type = ANALOG_NO_CENTER,          // Throttle
-             .calibration = {ADC_VALUE_MIN, ADC_VALUE_HALF, ADC_VALUE_MAX}},
+            {.input = 4, .type = ANALOG_NO_CENTER,          // Rudder
+             .calibration = {580, 1874, 3410}},
         },
         .logical_inputs = {
             {.type = ANALOG, .inputs = {1}, .labels = {AIL}},
             {.type = ANALOG, .inputs = {2}, .labels = {ELE}},
-            {.type = ANALOG, .inputs = {3}, .labels = {RUD, ST}},
-            {.type = ANALOG, .inputs = {4}, .labels = {THR, TH}}
+            {.type = ANALOG, .inputs = {3}, .labels = {THR, TH}},
+            {.type = ANALOG, .inputs = {4}, .labels = {RUD, ST}}
         },
         .led_pwm_percent = 30,
         .bind_timeout_ms = 10 * 1000
@@ -31,11 +31,11 @@ config_t config = {
                 .src = AIL,
                 .dest = CH1,
                 .curve = {
-                    .type = CURVE_EXPO,
+                    .type = CURVE_NONE,
                     .points = {50, 50}
                 },
                 .scalar = 100,
-                .offset = 1
+                .offset = 0
             },
             {
                 .src = ELE,
@@ -43,7 +43,9 @@ config_t config = {
                 .curve = {
                     .type = CURVE_NONE,
                 },
-                .scalar = 100
+                .scalar = 100,
+                .offset = 0,
+                .invert_source = 1
             },
             {
                 .src = THR,
@@ -68,12 +70,14 @@ config_t config = {
 
         .limits =  {
             {
-                .ep_l = CHANNEL_N100_PERCENT, .ep_h = CHANNEL_100_PERCENT, .subtrim = 0,
-                .limit_l = -150000, .limit_h = 150000
+                .ep_l = PERCENT_TO_CHANNEL(-35), .ep_h = PERCENT_TO_CHANNEL(30), .subtrim = -1600,
+                .limit_l = -150000, .limit_h = 150000,
+                .failsafe = PERCENT_TO_CHANNEL(8)
             },
             {
-                .ep_l = CHANNEL_N100_PERCENT, .ep_h = CHANNEL_100_PERCENT, .subtrim = 0,
-                .limit_l = -150000, .limit_h = 150000
+                .ep_l = PERCENT_TO_CHANNEL(-35), .ep_h = PERCENT_TO_CHANNEL(30), .subtrim = 2200,
+                .limit_l = -150000, .limit_h = 150000,
+                .failsafe = PERCENT_TO_CHANNEL(5)
             },
             {
                 .ep_l = CHANNEL_N100_PERCENT, .ep_h = CHANNEL_100_PERCENT, .subtrim = 0,

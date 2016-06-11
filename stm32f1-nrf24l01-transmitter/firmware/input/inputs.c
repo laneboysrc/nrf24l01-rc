@@ -226,12 +226,12 @@ int32_t INPUTS_get_input(label_t input)
 // ****************************************************************************
 void INPUTS_dump_adc(void)
 {
-    // printf("BAT: %lumV  ", INPUTS_get_battery_voltage());
-    // for (int i = 1; i <= 4; i++) {
-    //     printf("CH%d:%4ld%% (%4u->%4u)  ", i, CHANNEL_TO_PERCENT(normalized_inputs[i]), adc_array_raw[i], adc_array_calibrated[i]);
-    // }
-    // printf("\n");
+    printf("BAT: %lumV  ", INPUTS_get_battery_voltage());
+    for (int i = 1; i <= 4; i++) {
+        printf("CH%d:%4ld%% (%4u->%4u)  ", i, CHANNEL_TO_PERCENT(normalized_inputs[i]), adc_array_raw[i], adc_array_calibrated[i]);
+    }
+    printf("\n");
 
-    printf("%lu, %u, %u\n", INPUTS_get_battery_voltage(), adc_array_raw[0], adc_array_raw[10]);
+    // printf("%lu, %u, %u\n", INPUTS_get_battery_voltage(), adc_array_raw[0], adc_array_raw[10]);
 
 }

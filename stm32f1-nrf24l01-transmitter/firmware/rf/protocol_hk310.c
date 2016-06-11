@@ -232,6 +232,10 @@ static void hk310_protocol_frame_callback(void)
     pulse_to_stickdata(channel_to_pulse_ns(output_channels[1]), &stick_packet[2]);
     pulse_to_stickdata(channel_to_pulse_ns(output_channels[2]), &stick_packet[4]);
 
+    pulse_to_stickdata(channel_to_pulse_ns(failsafe[0]), &failsafe_packet[0]);
+    pulse_to_stickdata(channel_to_pulse_ns(failsafe[1]), &failsafe_packet[2]);
+    pulse_to_stickdata(channel_to_pulse_ns(failsafe[2]), &failsafe_packet[4]);
+
     frame_state = SEND_STICK1;
     nrf_transmit_done_callback();
 }
@@ -264,15 +268,6 @@ void PROTOCOL_HK310_disable_binding(void)
 void PROTOCOL_HK310_init(void)
 {
     stick_packet[7] = 0x55;         // Packet ID for stick data
-
-    // Failsafe for steering: 1200 us
-    pulse_to_stickdata(1000*1000, &failsafe_packet[0]);
-
-    // Failsafe for throttle: 1500 us (center!)
-    pulse_to_stickdata(1500*1000, &failsafe_packet[2]);
-
-    // Failsafe for CH3: 2000 us
-    pulse_to_stickdata(2000*1000, &failsafe_packet[4]);
 
     failsafe_packet[7] = 0xaa;      // Packet ID for failsafe data
     failsafe_packet[8] = 0x5a;      // Failsafe on
