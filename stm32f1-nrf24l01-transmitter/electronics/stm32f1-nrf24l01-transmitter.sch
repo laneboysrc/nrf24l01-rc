@@ -1,7 +1,4 @@
 EESchema Schematic File Version 2
-LIBS:WLA-STM32
-LIBS:WLA-nrf24
-LIBS:WLA-power
 LIBS:power
 LIBS:device
 LIBS:conn
@@ -23,7 +20,7 @@ $Descr A4 11693 8268
 encoding utf-8
 Sheet 1 1
 Title "STM32F1 NRF24L01 RC transmitter"
-Date "27 may 2016"
+Date "12 jun 2016"
 Rev "1"
 Comp "LANE Boys RC"
 Comment1 ""
@@ -734,12 +731,6 @@ F 3 "" H 6750 6450 60  0000 C CNN
 	1    6750 6450
 	1    0    0    -1  
 $EndComp
-NoConn ~ 7100 2250
-NoConn ~ 7100 2400
-NoConn ~ 7100 2550
-NoConn ~ 7100 2700
-NoConn ~ 7100 2850
-NoConn ~ 7100 3000
 NoConn ~ 4550 3450
 NoConn ~ 4550 3600
 $Comp
@@ -959,7 +950,6 @@ Wire Wire Line
 	6200 1100 6200 1250
 Text Label 8700 1600 0    60   ~ 0
 CE
-NoConn ~ 7100 2100
 Wire Wire Line
 	8550 1050 10550 1050
 Wire Wire Line
@@ -1021,4 +1011,32 @@ Wire Wire Line
 	10200 6250 10100 6250
 Wire Wire Line
 	10100 6250 10100 5750
+Wire Wire Line
+	7550 2100 7100 2100
+Wire Wire Line
+	7550 2250 7100 2250
+Wire Wire Line
+	7550 2400 7100 2400
+Wire Wire Line
+	7550 2550 7100 2550
+Wire Wire Line
+	7550 2700 7100 2700
+Wire Wire Line
+	7550 2850 7100 2850
+Wire Wire Line
+	7550 3000 7100 3000
+Text Label 7550 2100 2    60   ~ 0
+SW3
+Text Label 7550 2250 2    60   ~ 0
+SW4
+Text Label 7550 2400 2    60   ~ 0
+SW5
+Text Label 7550 2550 2    60   ~ 0
+SW6
+Text Label 7550 2700 2    60   ~ 0
+SW7
+Text Label 7550 2850 2    60   ~ 0
+SW8
+Text Label 7550 3000 2    60   ~ 0
+SW9
 $EndSCHEMATC
