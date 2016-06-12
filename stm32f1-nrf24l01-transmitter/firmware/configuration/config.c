@@ -11,8 +11,10 @@
 
 static struct {
     bool active;
-    uint16_t *src;
-    uint16_t *dst;
+    uint32_t *version_src;
+    uint32_t *version_dst;
+    uint32_t *src;
+    uint32_t *dst;
     size_t words_remaining;
 } store_config = {.active = false};
 
@@ -25,6 +27,8 @@ config_t config;
 
 // ****************************************************************************
 static const config_t config_flash = {
+    .version = 0x00000001,
+
     .tx = {
         .transmitter_inputs = {
             {.input = 1, .type = ANALOG_WITH_CENTER,        // Ailerons
@@ -140,25 +144,29 @@ static const config_t config_flash = {
 
 // static void test_flash(void)
 // {
-//     uint16_t *loc = (uint16_t *)0x0800d000;
-// #define FLASH_PAGE_SIZE 1024
+//     uint32_t loc2 = 0x0800e000;
+//     volatile uint32_t loc = (uint32_t)&config_flash;
 
 
 //     printf("Testing flash write...\n");
 
+//     if (loc == loc2) {
+//         printf("Address match!\n");
+//     }
+
 //     printf("Unlocking flash...\n");
 //     flash_unlock();
 
-//     printf("%p before erasing: 0x%x (%d)\n", (void *)loc, *loc, *loc);
+//     printf("%p before erasing: 0x%lx (%ld)\n", (void *)loc, *(uint32_t *)loc, *(uint32_t *)loc);
 
 //     printf("Erasing page...\n");
 //     flash_erase_page((uint32_t)loc);
-//     printf("%p after erasing: 0x%x (%d)\n", (void *)loc, *loc, *loc);
+//     printf("%p after erasing: 0x%lx (%ld)\n", (void *)loc, *(uint32_t *)loc, *(uint32_t *)loc);
 
 //     printf("Writing uint16...\n");
 //     flash_clear_status_flags();
-//     flash_program_half_word((uint32_t)loc, 0x4711);
-//     printf("%p after writing: 0x%x (%d)\n", (void *)loc, *loc, *loc);
+//     flash_program_word((uint32_t)loc, 0x4711);
+//     printf("%p after writing: 0x%lx (%ld)\n", (void *)loc, *(uint32_t *)loc, *(uint32_t *)loc);
 
 //     printf("Locking flash...\n");
 //     flash_lock();
@@ -168,6 +176,14 @@ static const config_t config_flash = {
 // ****************************************************************************
 void CONFIG_background_flash_write(void)
 {
+    static bool logged = false;
+
+    if (!logged) {
+        logged = true;
+        printf("config.version=%lx\n", config.version);
+    }
+
+
     if (!store_config.active) {
         return;
     }
@@ -176,7 +192,7 @@ void CONFIG_background_flash_write(void)
         flash_erase_page((uint32_t)store_config.dst);
     }
 
-    flash_program_half_word((uint32_t)store_config.dst, *store_config.src);
+    flash_program_word((uint32_t) store_config.dst, *store_config.src);
 
     ++store_config.src;
     ++store_config.dst;
@@ -184,6 +200,7 @@ void CONFIG_background_flash_write(void)
 
     if (store_config.words_remaining == 0) {
         store_config.active = false;
+        flash_program_word((uint32_t)store_config.version_dst, *store_config.version_src);
         flash_lock();
         printf("CONFIG: done; config saved to flash.\n");
     }
@@ -193,17 +210,25 @@ void CONFIG_background_flash_write(void)
 // ****************************************************************************
 void CONFIG_save(void)
 {
+    // WARNING: because config_flash is defined as const, the compiler
+    // optimizes all kind of statements away. Don't put config_flash elements
+    // in printf as it will not print the actual value in the flash, but
+    // rather the value it was at compile time!
+
     if (store_config.active) {
         return;
     }
 
     store_config.active = true;
-    store_config.src = (uint16_t *)&config;
-    store_config.dst = (uint16_t *)&config_flash;
-    store_config.words_remaining = sizeof(config) / sizeof(uint16_t);
+    store_config.version_src = (uint32_t *)(&config);
+    store_config.version_dst = (uint32_t *)(&config_flash);
+    store_config.src = store_config.version_src + 1;
+    store_config.dst = store_config.version_dst + 1;
+    store_config.words_remaining = sizeof(config) / sizeof(uint32_t) - 1;
 
-    flash_unlock();
     printf("CONFIG: saving config to flash ...\n");
+    flash_unlock();
+    flash_erase_page((uint32_t)store_config.version_dst);
 }
 
 
@@ -214,5 +239,7 @@ void CONFIG_init(void)
     // working-copy in RAM (config)
     memcpy(&config, &config_flash, sizeof(config_t));
 
-    SYSTICK_set_callback(CONFIG_save, 3600);
+
+    // SYSTICK_set_callback(CONFIG_save, 600);
+    // SYSTICK_set_callback(test_flash, 3600);
 }

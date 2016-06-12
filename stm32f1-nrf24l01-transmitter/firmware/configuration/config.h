@@ -8,6 +8,8 @@
 
 
 typedef struct {
+    uint32_t version;
+
     struct {
         transmitter_input_t transmitter_inputs[MAX_TRANSMITTER_INPUTS];
         logical_input_t logical_inputs[MAX_LOGICAL_INPUTS];
