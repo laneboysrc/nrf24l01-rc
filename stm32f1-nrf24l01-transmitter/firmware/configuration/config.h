@@ -7,6 +7,8 @@
 #include <protocol_hk310.h>
 
 
+#define CONFIG_VERSION 1
+
 typedef struct {
     uint32_t version;
 
@@ -29,6 +31,7 @@ typedef struct {
 extern config_t config;
 
 void CONFIG_init(void);
+void CONFIG_load(void);
 void CONFIG_save(void);
 void CONFIG_background_flash_write(void);
 

@@ -67,6 +67,7 @@ static void disable_binding(void)
 int main(void)
 {
     uint32_t last_ms = 0;
+    uint32_t seconds = 0;
 
     clock_init();
     LED_init();
@@ -129,10 +130,17 @@ int main(void)
         WATCHDOG_reset();
 
         if ((milliseconds - last_ms) > 1000) {
-            last_ms = milliseconds;
-
             INPUTS_dump_adc();
             BATTERY_check_level();
+
+            if ((seconds % 5) == 0) {
+                if (config.version != CONFIG_VERSION) {
+                    MUSIC_play(&song_config_invalid);
+                }
+            }
+
+            last_ms = milliseconds;
+            ++seconds;
         }
 
         CONFIG_background_flash_write();

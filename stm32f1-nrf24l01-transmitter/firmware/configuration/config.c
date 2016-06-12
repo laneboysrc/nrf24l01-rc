@@ -26,8 +26,22 @@ config_t config;
 
 
 // ****************************************************************************
+static const config_t config_failsafe = {
+    .version = 0xffffffff,
+    // FIXME: add some useful defaults
+    .model = {
+        .name = "CONFIG CORRUPTED",
+        .protocol_hk310 = {
+            .hop_channels = {20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39},
+            .address = {0x0d, 0x0e, 0x0a, 0x0d, 0x00}
+        }
+    }
+};
+
+
+// ****************************************************************************
 static const config_t config_flash = {
-    .version = 0x00000001,
+    .version = CONFIG_VERSION,
 
     .tx = {
         .transmitter_inputs = {
@@ -233,12 +247,22 @@ void CONFIG_save(void)
 
 
 // ****************************************************************************
-void CONFIG_init(void)
+void CONFIG_load(void)
 {
     // Copy the settings stored in the flash (config_flash) into the
     // working-copy in RAM (config)
     memcpy(&config, &config_flash, sizeof(config_t));
 
+    if (config.version != CONFIG_VERSION) {
+        memcpy(&config, &config_failsafe, sizeof(config_t));
+    }
+}
+
+
+// ****************************************************************************
+void CONFIG_init(void)
+{
+    CONFIG_load();
 
     // SYSTICK_set_callback(CONFIG_save, 600);
     // SYSTICK_set_callback(test_flash, 3600);
