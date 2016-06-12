@@ -114,8 +114,9 @@ int main(void)
 //       sizeof(limits_t)=28
 //     sizeof(config.model.protocol_hk310)=25
 
-    SOUND_play(C5, 100, NULL);
     LED_on();
+    SOUND_play(C5, 100, NULL);
+    // MUSIC_play(&song_connecting);
 
 
     PROTOCOL_HK310_enable_binding();

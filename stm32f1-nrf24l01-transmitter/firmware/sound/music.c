@@ -136,6 +136,75 @@ const song song_alarm_battery_very_low = {
 };
 
 
+// ****************************************************************************
+static const tone song_config_invalid_tones[] = {
+        {G5, 200},
+        {A5, 200},
+        {G5, 200},
+        {A5, 200},
+        {G5, 200},
+        {A5, 200},
+        {SONG_END, 0}
+};
+
+const song song_config_invalid = {
+    .volume = 100,
+    .tones = song_config_invalid_tones
+};
+
+
+// ****************************************************************************
+static const tone song_connecting_tones[] = {
+        {C7, 50},
+        {PAUSE, 50},
+        {D7, 50},
+        {PAUSE, 50},
+        {E7, 50},
+        {PAUSE, 50},
+        {F7, 50},
+        {PAUSE, 50},
+        {C7, 50},
+        {PAUSE, 50},
+        {D7, 50},
+        {PAUSE, 50},
+        {E7, 50},
+        {PAUSE, 50},
+        {F7, 50},
+        {SONG_END, 0}
+};
+
+const song song_connecting = {
+    .volume = 100,
+    .tones = song_connecting_tones
+};
+
+
+// ****************************************************************************
+static const tone song_disconnecting_tones[] = {
+        {F7, 50},
+        {PAUSE, 50},
+        {E7, 50},
+        {PAUSE, 50},
+        {D7, 50},
+        {PAUSE, 50},
+        {C7, 50},
+        {PAUSE, 50},
+        {F7, 50},
+        {PAUSE, 50},
+        {E7, 50},
+        {PAUSE, 50},
+        {D7, 50},
+        {PAUSE, 50},
+        {C7, 50},
+        {SONG_END, 0}
+};
+
+const song song_disconnecting = {
+    .volume = 100,
+    .tones = song_disconnecting_tones
+};
+
+
 static const song *song_pointer = NULL;
 static uint8_t current_tone_index = 0;
 

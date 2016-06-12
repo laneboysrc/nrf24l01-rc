@@ -19,5 +19,8 @@ extern const song song_shutdown;
 extern const song song_alarm1;
 extern const song song_alarm_battery_low;
 extern const song song_alarm_battery_very_low;
+extern const song song_config_invalid;
+extern const song song_connecting;
+extern const song song_disconnecting;
 
 void MUSIC_play(song const *s);
