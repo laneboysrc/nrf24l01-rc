@@ -166,7 +166,7 @@ static const config_t config_flash = {
 
 
 // ****************************************************************************
-void CONFIG_perform_flash_write(void)
+void CONFIG_background_flash_write(void)
 {
     if (!store_config.active) {
         return;

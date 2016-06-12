@@ -28,5 +28,5 @@ extern config_t config;
 
 void CONFIG_init(void);
 void CONFIG_save(void);
-void CONFIG_perform_flash_write(void);
+void CONFIG_background_flash_write(void);
 

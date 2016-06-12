@@ -134,7 +134,7 @@ int main(void)
             BATTERY_check_level();
         }
 
-        CONFIG_perform_flash_write();
+        CONFIG_background_flash_write();
 
         // Put the CPU to sleep until an interrupt triggers. This reduces
         // power consumption drastically.
