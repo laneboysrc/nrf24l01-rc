@@ -1,9 +1,29 @@
+#include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
+
+#include <libopencm3/stm32/flash.h>
+
 
 #include <config.h>
+#include <systick.h>
+
+
+static struct {
+    bool active;
+    uint16_t *src;
+    uint16_t *dst;
+    size_t words_remaining;
+} store_config = {.active = false};
+
 
 config_t config;
 
+
+#define FLASH_PAGE_SIZE 1024
+
+
+// ****************************************************************************
 static const config_t config_flash = {
     .tx = {
         .transmitter_inputs = {
@@ -30,6 +50,7 @@ static const config_t config_flash = {
     },
 
     .model = {
+        .name = "HK Mini DLG",
         .mixer_units = {
             {
                 .src = AIL,
@@ -117,10 +138,81 @@ static const config_t config_flash = {
 };
 
 
+// static void test_flash(void)
+// {
+//     uint16_t *loc = (uint16_t *)0x0800d000;
+// #define FLASH_PAGE_SIZE 1024
+
+
+//     printf("Testing flash write...\n");
+
+//     printf("Unlocking flash...\n");
+//     flash_unlock();
+
+//     printf("%p before erasing: 0x%x (%d)\n", (void *)loc, *loc, *loc);
+
+//     printf("Erasing page...\n");
+//     flash_erase_page((uint32_t)loc);
+//     printf("%p after erasing: 0x%x (%d)\n", (void *)loc, *loc, *loc);
+
+//     printf("Writing uint16...\n");
+//     flash_clear_status_flags();
+//     flash_program_half_word((uint32_t)loc, 0x4711);
+//     printf("%p after writing: 0x%x (%d)\n", (void *)loc, *loc, *loc);
+
+//     printf("Locking flash...\n");
+//     flash_lock();
+// }
+
+
+// ****************************************************************************
+void CONFIG_perform_flash_write(void)
+{
+    if (!store_config.active) {
+        return;
+    }
+
+    if (((uint32_t)store_config.dst % FLASH_PAGE_SIZE) == 0) {
+        flash_erase_page((uint32_t)store_config.dst);
+    }
+
+    flash_program_half_word((uint32_t)store_config.dst, *store_config.src);
+
+    ++store_config.src;
+    ++store_config.dst;
+    --store_config.words_remaining;
+
+    if (store_config.words_remaining == 0) {
+        store_config.active = false;
+        flash_lock();
+        printf("CONFIG: done; config saved to flash.\n");
+    }
+}
+
+
+// ****************************************************************************
+void CONFIG_save(void)
+{
+    if (store_config.active) {
+        return;
+    }
+
+    store_config.active = true;
+    store_config.src = (uint16_t *)&config;
+    store_config.dst = (uint16_t *)&config_flash;
+    store_config.words_remaining = sizeof(config) / sizeof(uint16_t);
+
+    flash_unlock();
+    printf("CONFIG: saving config to flash ...\n");
+}
+
+
 // ****************************************************************************
 void CONFIG_init(void)
 {
     // Copy the settings stored in the flash (config_flash) into the
     // working-copy in RAM (config)
     memcpy(&config, &config_flash, sizeof(config_t));
+
+    SYSTICK_set_callback(CONFIG_save, 3600);
 }

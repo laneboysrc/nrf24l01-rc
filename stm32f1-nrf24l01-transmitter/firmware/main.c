@@ -92,6 +92,7 @@ int main(void)
     printf("    sizeof(config.tx.logical_inputs)=%u\n", sizeof(config.tx.logical_inputs));
     printf("      sizeof(logical_input_t)=%u\n", sizeof(logical_input_t));
     printf("  sizeof(config.model)=%u\n", sizeof(config.model));
+    printf("    sizeof(config.model.name)=%u\n", sizeof(config.model.name));
     printf("    sizeof(config.model.mixer_units)=%u\n", sizeof(config.model.mixer_units));
     printf("      sizeof(mixer_unit_t)=%u\n", sizeof(mixer_unit_t));
     printf("    sizeof(config.model.limits)=%u\n", sizeof(config.model.limits));
@@ -99,13 +100,14 @@ int main(void)
     printf("    sizeof(config.model.protocol_hk310)=%u\n", sizeof(config.model.protocol_hk310));
 
 
-// sizeof(config)=3080
+// sizeof(config)=3096
 //   sizeof(config.tx)=548
 //     sizeof(config.tx.transmitter_inputs)=160
 //         sizeof(transmitter_input_t)=8
 //     sizeof(config.tx.logical_inputs)=380
 //       sizeof(logical_input_t)=19
 //   sizeof(config.model)=2532
+//     sizeof(config.model.name)=16
 //     sizeof(config.model.mixer_units)=2000
 //       sizeof(mixer_unit_t)=20
 //     sizeof(config.model.limits)=504
@@ -131,6 +133,8 @@ int main(void)
             INPUTS_dump_adc();
             BATTERY_check_level();
         }
+
+        CONFIG_perform_flash_write();
 
         // Put the CPU to sleep until an interrupt triggers. This reduces
         // power consumption drastically.

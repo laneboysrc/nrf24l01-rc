@@ -16,6 +16,7 @@ typedef struct {
     } tx;
 
     struct {
+        char name[16];
         mixer_unit_t mixer_units[MAX_MIXER_UNITS];
         limits_t limits[NUMBER_OF_CHANNELS];
         protocol_hk310_t protocol_hk310;
@@ -26,3 +27,6 @@ typedef struct {
 extern config_t config;
 
 void CONFIG_init(void);
+void CONFIG_save(void);
+void CONFIG_perform_flash_write(void);
+
