@@ -1,3 +1,0 @@
-[submodule "stm32f1-nrf24l01-transmitter/firmware/libs/libopencm3"]
-	path = stm32f1-nrf24l01-transmitter/firmware/libs/libopencm3
-	url = https://github.com/libopencm3/libopencm3
