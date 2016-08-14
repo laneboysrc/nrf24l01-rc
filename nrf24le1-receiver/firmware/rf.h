@@ -20,7 +20,7 @@
 #define REUSE_TX_PL         0xe3    // Reuse TX payload
 #define R_RX_PL_WID         0x60    // Payload width for the top payload in the RX FIFO
 #define W_ACK_PAYLOAD       0xa8    // Write payload to be transmitted together with ACK
-#define W_TX_PAYLOAD_NOACK  0x0b    // Disables AUTOACK on this packet
+#define W_TX_PAYLOAD_NOACK  0xb0    // Disables AUTOACK on this packet
 #define NOP                 0xff    // No Operation; used to read the status register
 
 
