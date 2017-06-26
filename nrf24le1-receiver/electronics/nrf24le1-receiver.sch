@@ -1,11 +1,11 @@
 EESchema Schematic File Version 2
+LIBS:nrf24le1-receiver-rescue
 LIBS:power
 LIBS:device
 LIBS:transistors
 LIBS:conn
 LIBS:linear
 LIBS:regul
-LIBS:special
 LIBS:microcontrollers
 LIBS:dsp
 LIBS:microchip
@@ -18,7 +18,7 @@ LIBS:nrf24le1-module-15x21
 LIBS:opto
 LIBS:MCP1703
 LIBS:nrf24le1-receiver-cache
-EELAYER 27 0
+EELAYER 25 0
 EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
@@ -99,7 +99,7 @@ F 3 "~" H 3050 6050 60  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L C C3
+L C-RESCUE-nrf24le1-receiver C3
 U 1 1 5479215B
 P 4000 6400
 F 0 "C3" H 4000 6500 40  0000 L CNN
@@ -110,7 +110,7 @@ F 3 "~" H 4000 6400 60  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L C C2
+L C-RESCUE-nrf24le1-receiver C2
 U 1 1 5479216A
 P 1700 6350
 F 0 "C2" H 1700 6450 40  0000 L CNN
@@ -121,7 +121,7 @@ F 3 "~" H 1700 6350 60  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L R R2
+L R-RESCUE-nrf24le1-receiver R2
 U 1 1 5479219C
 P 9050 1650
 F 0 "R2" V 9130 1650 40  0000 C CNN
@@ -132,7 +132,7 @@ F 3 "~" H 9050 1650 30  0000 C CNN
 	0    -1   -1   0   
 $EndComp
 $Comp
-L R R3
+L R-RESCUE-nrf24le1-receiver R3
 U 1 1 547921A9
 P 9050 2100
 F 0 "R3" V 9130 2100 40  0000 C CNN
@@ -143,7 +143,7 @@ F 3 "~" H 9050 2100 30  0000 C CNN
 	0    -1   -1   0   
 $EndComp
 $Comp
-L R R4
+L R-RESCUE-nrf24le1-receiver R4
 U 1 1 547921AF
 P 9050 2550
 F 0 "R4" V 9130 2550 40  0000 C CNN
@@ -154,7 +154,7 @@ F 3 "~" H 9050 2550 30  0000 C CNN
 	0    -1   -1   0   
 $EndComp
 $Comp
-L R R5
+L R-RESCUE-nrf24le1-receiver R5
 U 1 1 547921B5
 P 9050 3000
 F 0 "R5" V 9130 3000 40  0000 C CNN
@@ -220,7 +220,7 @@ F 3 "" H 9600 3450 60  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L +3.3V #PWR06
+L +3.3V-RESCUE-nrf24le1-receiver #PWR06
 U 1 1 547921F3
 P 4000 5900
 F 0 "#PWR06" H 4000 5860 30  0001 C CNN
@@ -231,7 +231,7 @@ F 3 "" H 4000 5900 60  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L +3.3V #PWR07
+L +3.3V-RESCUE-nrf24le1-receiver #PWR07
 U 1 1 54792200
 P 2300 2000
 F 0 "#PWR07" H 2300 1960 30  0001 C CNN
@@ -323,7 +323,7 @@ CH2-MOSI
 Text Label 8250 3000 0    60   ~ 0
 CH1-SCK
 $Comp
-L LED D1
+L LED-RESCUE-nrf24le1-receiver D1
 U 1 1 547928FB
 P 6300 6100
 F 0 "D1" H 6300 6200 50  0000 C CNN
@@ -334,7 +334,7 @@ F 3 "~" H 6300 6100 60  0000 C CNN
 	0    1    1    0   
 $EndComp
 $Comp
-L R R1
+L R-RESCUE-nrf24le1-receiver R1
 U 1 1 5479290A
 P 6300 5550
 F 0 "R1" V 6380 5550 40  0000 C CNN
@@ -560,7 +560,7 @@ Power supply 3.3V
 Text Notes 8450 5100 0    80   ~ 16
 Bind button
 $Comp
-L CP C4
+L CP-RESCUE-nrf24le1-receiver C4
 U 1 1 54A9ECE7
 P 2300 2600
 F 0 "C4" H 2350 2700 40  0000 L CNN
@@ -571,7 +571,7 @@ F 3 "~" H 2300 2600 300 0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L CP C1
+L CP-RESCUE-nrf24le1-receiver C1
 U 1 1 54A9ED05
 P 2050 2600
 F 0 "C1" H 2100 2700 40  0000 L CNN
