@@ -23,7 +23,9 @@
 
 #define __SYSTICK_IN_MS 16
 
-#define NUMBER_OF_CHANNELS 3
+// Note: the original HKR3000 is a 3-channel receiver, but our custom code
+// also supports a modified version of the protocol that can handle 4 channels.
+#define NUMBER_OF_CHANNELS 4
 #define SERVO_PULSE_CENTER 1500
 #define INITIAL_ENDPOINT_DELTA 200
 
@@ -82,6 +84,7 @@
     #define GPIO_CH1 P0_5
     #define GPIO_CH2 P0_7
     #define GPIO_CH3 P1_0
+    #define GPIO_CH4 P1_1
     #define GPIO_PPM P1_1
     //#define GPIO_SDA P1_3
     //#define GPIO_SCL P1_4
@@ -102,6 +105,7 @@
     #define GPIO_CH1 P0_5
     #define GPIO_CH2 P0_7
     #define GPIO_CH3 P1_0
+    #define GPIO_CH4 P1_1
     #define GPIO_PPM P1_1
     //#define GPIO_SDA P0_3
     //#define GPIO_SCL P0_4
@@ -121,6 +125,7 @@
     #define GPIO_CH1 P0_5
     #define GPIO_CH2 P0_7
     #define GPIO_CH3 P1_0
+    #define GPIO_CH4 P0_3   // Shared with Tx pin function
     #define GPIO_PPM P1_1
 
     #define GPIO_INIT() \

@@ -7,6 +7,7 @@
 #ifdef ENABLE_UART
 
 void init_uart0(void);
+void disable_uart0(void);
 
 bool uart0_send_is_ready(void);
 void uart0_send_char(const char c);
@@ -26,6 +27,7 @@ void uart0_send_linefeed(void);
 #else /* ENABLE_UART */
 
 #define init_uart0()
+#define disable_uart0()
 #define uart0_send_cstring(x)
 #define uart0_send_char(x)
 #define uart0_send_int32(x)

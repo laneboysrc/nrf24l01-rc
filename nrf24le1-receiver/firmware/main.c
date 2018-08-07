@@ -119,7 +119,9 @@ void delay_us(uint16_t microseconds)
 int main(void)
 {
     init_hardware();
+#ifndef NO_DEBUG
     init_uart0();
+#endif
     init_spi();
     init_hardware_final();
 

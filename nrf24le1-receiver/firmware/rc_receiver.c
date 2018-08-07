@@ -7,6 +7,12 @@
 #include <rf.h>
 #include <uart0.h>
 
+#define PROTOCOL_3CH 0xaa
+#define PROTOCOL_4CH 0xab
+#define STICKDATA_PACKETID_3CH 0x55
+#define FAILSAFE_PACKETID_3CH 0xaa
+#define STICKDATA_PACKETID_4CH 0x56
+#define FAILSAFE_PACKETID_4CH 0xab
 
 #define PAYLOAD_SIZE 10
 #define ADDRESS_WIDTH 5
@@ -38,16 +44,21 @@ extern bool systick;
 
 
 __xdata uint16_t channels[NUMBER_OF_CHANNELS];
-__xdata uint16_t raw_data[2];
 bool successful_stick_data = false;
+
+#ifdef EXTENDED_PREPROCESSOR_OUTPUT
+__xdata uint16_t raw_data[2];
+#endif
 
 static bool use_buffer_0;
 static __xdata uint16_t pulse_buffer_0_0;
 static __xdata uint16_t pulse_buffer_0_1;
 static __xdata uint16_t pulse_buffer_0_2;
+static __xdata uint16_t pulse_buffer_0_3;
 static __xdata uint16_t pulse_buffer_1_0;
 static __xdata uint16_t pulse_buffer_1_1;
 static __xdata uint16_t pulse_buffer_1_2;
+static __xdata uint16_t pulse_buffer_1_3;
 
 static bool rf_int_fired = false;
 static uint8_t led_state;
@@ -70,8 +81,11 @@ static bool binding = false;
 static uint16_t bind_timer;
 static const uint8_t BIND_CHANNEL = 0x51;
 static const uint8_t BIND_ADDRESS[ADDRESS_WIDTH] = {0x12, 0x23, 0x23, 0x45, 0x78};
-static __xdata uint8_t bind_storage_area[ADDRESS_WIDTH + NUMBER_OF_HOP_CHANNELS];
+static __xdata uint8_t bind_storage_area[NUMBER_OF_PERSISTENT_ELEMENTS];
+#define PROTOCOLID_INDEX (sizeof(bind_storage_area)-1)
 
+static uint8_t stickdata_packetid;
+static uint8_t failsafe_packetid;
 
 
 // ****************************************************************************
@@ -105,11 +119,13 @@ static void output_pulses(void)
         pulse_buffer_1_0 = channels[0];
         pulse_buffer_1_1 = channels[1];
         pulse_buffer_1_2 = channels[2];
+        pulse_buffer_1_3 = channels[3];
     }
     else {
         pulse_buffer_0_0 = channels[0];
         pulse_buffer_0_1 = channels[1];
         pulse_buffer_0_2 = channels[2];
+        pulse_buffer_0_3 = channels[3];
     }
 
     use_buffer_0 ^= 1;
@@ -198,6 +214,17 @@ static void parse_bind_data(void)
     for (i = 0; i < NUMBER_OF_HOP_CHANNELS; i++) {
         hop_data[i] = bind_storage_area[ADDRESS_WIDTH + i];
     }
+
+    if (bind_storage_area[PROTOCOLID_INDEX] != PROTOCOL_4CH) {
+        init_uart0();
+        stickdata_packetid = STICKDATA_PACKETID_3CH;
+        failsafe_packetid = FAILSAFE_PACKETID_3CH;
+    }
+    else {
+        disable_uart0();
+        stickdata_packetid = STICKDATA_PACKETID_4CH;
+        failsafe_packetid = FAILSAFE_PACKETID_4CH;
+    }
 }
 
 
@@ -233,6 +260,10 @@ static void binding_done(void)
 // cc cc        A 16 byte checksum of bytes a1..a5
 // h[a-t]       20 channels for frequency hopping
 // ..           Not used
+//
+// The receiver also supports a modded protocol (LANEBoysRC-4ch) with 4 channels
+// channels, During binding the special marker for the first packet is
+// "ff ab 56" for this protocol.
 //
 // ****************************************************************************
 static void process_binding(void)
@@ -290,18 +321,21 @@ static void process_binding(void)
     switch (bind_state) {
         case 0:
             if (payload[0] == 0xff) {
-                if (payload[1] == 0xaa) {
-                    if (payload[2] == 0x55) {
-                        checksum = 0;
-                        for (i = 0; i < 5; i++) {
-                            uint8_t payload_byte;
+                if (((payload[1] == 0xaa) && (payload[2] == 0x55)) ||
+                    ((payload[1] == 0xab) && (payload[2] == 0x56))) {
 
-                            payload_byte = payload[3 + i];
-                            bind_storage_area[i] = payload_byte;
-                            checksum += payload_byte;
-                        }
-                        bind_state = 1;
+                    // Save the protocol identifier (PROTOCOL_3CH=0xaa or PROTOCOL_4CH=0xab)
+                    bind_storage_area[PROTOCOLID_INDEX] = payload[1];
+
+                    checksum = 0;
+                    for (i = 0; i < 5; i++) {
+                        uint8_t payload_byte;
+
+                        payload_byte = payload[3 + i];
+                        bind_storage_area[i] = payload_byte;
+                        checksum += payload_byte;
                     }
+                    bind_state = 1;
                 }
             }
             break;
@@ -423,12 +457,14 @@ static void process_receiving(void)
 
     // ================================
     // payload[7] is 0x55 for stick data
-    if (payload[7] == 0x55) {
+    if (payload[7] == stickdata_packetid) {
         channels[0] = (payload[1] << 8) + payload[0];
         channels[1] = (payload[3] << 8) + payload[2];
         channels[2] = (payload[5] << 8) + payload[4];
+        channels[3] = (payload[9] << 8) + payload[6];
         output_pulses();
 
+#ifdef EXTENDED_PREPROCESSOR_OUTPUT
         // Save raw received data for the pre-processor to output, so someone
         // can build custom extension based on hijacking channel 3 and using
         // the unused payload bytes 6 and 9.
@@ -438,6 +474,7 @@ static void process_receiving(void)
         //     payload 6 + 9
         raw_data[0] = stickdata2txdata((payload[5] << 8) + payload[4]);
         raw_data[1] = (payload[6] << 8) + payload[9];
+#endif
 
         successful_stick_data = true;
 
@@ -446,13 +483,14 @@ static void process_receiving(void)
     }
     // ================================
     // payload[7] is 0xaa for failsafe data
-    else if (payload[7] == 0xaa) {
+    else if (payload[7] == failsafe_packetid) {
         // payload[8]: 0x5a if enabled, 0x5b if disabled
         if (payload[8] == 0x5a) {
             failsafe_enabled = true;
             failsafe[0] = (payload[1] << 8) + payload[0];
             failsafe[1] = (payload[3] << 8) + payload[2];
             failsafe[2] = (payload[5] << 8) + payload[4];
+            failsafe[3] = (payload[9] << 8) + payload[6];
         }
         else {
             // If failsafe is disabled use default values of 1500ms, just
@@ -630,7 +668,16 @@ void servo_pulse_timer_handler(void) __interrupt ((0x001b - 3) / 8) __using (1)
 {
     static uint8_t servo_pulse_state;
 
+    // The HKR3000 and HKR3100 hardware share the PPM and CH4 pin. We therefore
+    // output PPM only in 3-channel mode (when stickdata_packetid is not
+    // the 4-channel packet id 0x56)
+#if HARDWARE == NRF24LE1_MODULE
     GPIO_PPM = 0;
+#else
+    if (stickdata_packetid != STICKDATA_PACKETID_4CH) {
+        GPIO_PPM = 0;
+    }
+#endif
 
     // This code has been written to provide reasonably effectient assembler
     // code for SDCC.
@@ -660,14 +707,35 @@ void servo_pulse_timer_handler(void) __interrupt ((0x001b - 3) / 8) __using (1)
         GPIO_CH3 = 1;
         TIMER1 = use_buffer_0 ? pulse_buffer_0_2 : pulse_buffer_1_2;
     }
+    else if (servo_pulse_state == 4) {
+        if (stickdata_packetid == STICKDATA_PACKETID_4CH) {
+            // 4-channel protocol active
+            GPIO_CH3 = 0;
+            GPIO_CH4 = 1;
+            TIMER1 = use_buffer_0 ? pulse_buffer_0_3 : pulse_buffer_1_3;
+        }
+        else {
+            // 3-channel protocol active
+            GPIO_CH3 = 0;
+            // All done: stop the timer and reset for the next pulse train
+            TCON_tr1 = 0;
+            servo_pulse_state = 0;
+        }
+    }
     else {
-        GPIO_CH3 = 0;
+        GPIO_CH4 = 0;
         // All done: stop the timer and reset for the next pulse train
         TCON_tr1 = 0;
         servo_pulse_state = 0;
     }
 
+#if HARDWARE == NRF24LE1_MODULE
     GPIO_PPM = 1;
+#else
+    if (stickdata_packetid != 0x56) {
+        GPIO_PPM = 1;
+    }
+#endif
 }
 
 

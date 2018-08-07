@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdbool.h>
 
 #include <platform.h>
 #include <uart0.h>
@@ -30,6 +31,7 @@ which is the maximum needed for decimal.
 static __xdata char temp[TRANSMIT_BUFFER_SIZE];
 static __xdata char buf[TRANSMIT_BUFFER_SIZE];
 
+static bool uart_enabled;
 
 // ****************************************************************************
 static void uint32_to_cstring(uint32_t value, char *result,
@@ -82,12 +84,25 @@ void init_uart0(void)
     S0RELL = 0xf3;
 
     S0CON_ti0 = 1;          // Set "Tx data was sent" flag
+    uart_enabled = true;
+}
+
+
+// ****************************************************************************
+void disable_uart0(void)
+{
+    uart_enabled = false;
+    S0CON = 0x00;
 }
 
 
 // ****************************************************************************
 bool uart0_send_is_ready(void)
 {
+    if (!uart_enabled) {
+        return true;
+    }
+
     if (!S0CON_ti0) {
         return false;
     }
@@ -98,6 +113,10 @@ bool uart0_send_is_ready(void)
 // ****************************************************************************
 void uart0_send_char(const char c)
 {
+    if (!uart_enabled) {
+        return;
+    }
+
     while (!uart0_send_is_ready());
 
     S0CON_ti0 = 0;

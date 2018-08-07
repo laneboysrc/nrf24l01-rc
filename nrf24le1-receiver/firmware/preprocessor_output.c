@@ -19,6 +19,7 @@
 
 #ifdef EXTENDED_PREPROCESSOR_OUTPUT
     #define TX_DATA_SIZE 8
+    extern __xdata uint16_t raw_data[2];
 #else
     #define TX_DATA_SIZE 4
 #endif
@@ -27,7 +28,6 @@
 
 extern bool systick;
 extern __xdata uint16_t channels[NUMBER_OF_CHANNELS];
-extern __xdata uint16_t raw_data[2];
 extern bool successful_stick_data;
 
 static bool initialized = false;
