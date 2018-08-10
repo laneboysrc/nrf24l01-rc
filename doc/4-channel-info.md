@@ -2,6 +2,8 @@
 
 As of August 2018 the receiver supports a variant of the RF protocol that supports 4 channels.
 
+Note: this mode is only useful if you use the LANE Boys RC [Headless transmitter](https://github.com/laneboysrc/rc-headless-transmitter), which is the only transmitter supporting this protocol.
+
 The original HKR3000 protocol uses a payload of 10 bytes to transmit stick- and failsafe data. Two of the bytes (6 and 9) are unused. We make use of these bytes to transmit data for a 4th channel.
 
 The receiver hardware has four connectors: 3 channels and a battery/pre-processor output.
