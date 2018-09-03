@@ -83,9 +83,10 @@ static void init_hardware(void)
     IEN0_tf2 = 1;           // Enable Timer2 interrupt
     IEN1_rfirq = 1;
 
-    TCON_tr0 = 1;           // Start Timer 0
+    TCON_tr0 = 1;           // Start Timer0
 
-    IP0 = (1 << 3);         // Timer 1 interrupt has higher priority than the rest
+    IP0 = (1 << 3);         // Timer1 interrupt has higher priority than the rest
+    IP1 = (1 << 3);
 }
 
 
