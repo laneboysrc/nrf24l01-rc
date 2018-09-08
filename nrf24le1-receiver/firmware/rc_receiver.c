@@ -120,15 +120,15 @@ static void output_pulses(void)
         pulse_buffer_1_1 = channels[1];
         pulse_buffer_1_2 = channels[2];
         pulse_buffer_1_3 = channels[3];
+        use_buffer_0 = false;
     }
     else {
         pulse_buffer_0_0 = channels[0];
         pulse_buffer_0_1 = channels[1];
         pulse_buffer_0_2 = channels[2];
         pulse_buffer_0_3 = channels[3];
+        use_buffer_0 = true;
     }
-
-    use_buffer_0 ^= 1;
 }
 
 
@@ -668,6 +668,17 @@ void servo_pulse_timer_handler(void) __interrupt ((0x001b - 3) / 8) __using (1)
 {
     static uint8_t servo_pulse_state;
 
+    // Stop Timer1
+    // This is very important as otherwise we create potential jitter,
+    // presumably because the timer may decrement between writing the low and
+    // high byte, and the low byte may roll-over, decrementing the high byte
+    // before applying the correct low value.
+    //
+    // Stopping the timer and then restarting resolves the issue, as it is
+    // not possible for the timer to decrement while we are writing the
+    // new value.
+    TCON_tr1 = 0;
+
     // The HKR3000 and HKR3100 hardware share the PPM and CH4 pin. We therefore
     // output PPM only in 3-channel mode (when stickdata_packetid is not
     // the 4-channel packet id 0x56)
@@ -696,16 +707,19 @@ void servo_pulse_timer_handler(void) __interrupt ((0x001b - 3) / 8) __using (1)
     if (servo_pulse_state == 1) {
         GPIO_CH1 = 1;
         TIMER1 = use_buffer_0 ? pulse_buffer_0_0 : pulse_buffer_1_0;
+        TCON_tr1 = 1;
     }
     else if (servo_pulse_state == 2) {
         GPIO_CH1 = 0;
         GPIO_CH2 = 1;
         TIMER1 = use_buffer_0 ? pulse_buffer_0_1 : pulse_buffer_1_1;
+        TCON_tr1 = 1;
     }
     else if (servo_pulse_state == 3) {
         GPIO_CH2 = 0;
         GPIO_CH3 = 1;
         TIMER1 = use_buffer_0 ? pulse_buffer_0_2 : pulse_buffer_1_2;
+        TCON_tr1 = 1;
     }
     else if (servo_pulse_state == 4) {
         if (stickdata_packetid == STICKDATA_PACKETID_4CH) {
@@ -713,12 +727,12 @@ void servo_pulse_timer_handler(void) __interrupt ((0x001b - 3) / 8) __using (1)
             GPIO_CH3 = 0;
             GPIO_CH4 = 1;
             TIMER1 = use_buffer_0 ? pulse_buffer_0_3 : pulse_buffer_1_3;
+            TCON_tr1 = 1;
         }
         else {
             // 3-channel protocol active
             GPIO_CH3 = 0;
-            // All done: stop the timer and reset for the next pulse train
-            TCON_tr1 = 0;
+            // All done: reset for the next pulse train
             servo_pulse_state = 0;
         }
     }
