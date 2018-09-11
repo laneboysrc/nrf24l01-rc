@@ -11,37 +11,63 @@
 #include <servo.h>
 
 
-#define PWM_TIMER 2
 
-// The normalized dinput channels are clamped to -10000..0..10000, while
-// the output channels can go up to -18000..0..18000 (-180%..0%..180%),
-// corresponding to receiver pulses of 600us..1500us..2400us
-#define SERVO_PULSE_MIN 600
-#define SERVO_PULSE_CENTER 1500
-#define SERVO_PULSE_MAX 2400
+/*
+For info: In Spektrum receivers 11 bit data (0..2047) is mapped from 900us..2100us.
 
-#define SERVO_PULSE_PERIOD 8000
 
-static const nrf_drv_timer_t pwm_timer = NRF_DRV_TIMER_INSTANCE(PWM_TIMER);
+In the headless transmitter the normalized input channels are clamped to
+-10000..0..10000, while the output channels can go up to -18000..0..18000
+(-180%..0%..180%), corresponding to receiver pulses of 600us..1500us..2400us
+
+Over the air we map the -18000..18000 range into 12 bits (because 12 is 3 nibbles
+and therefore easy to handle). We treat the 12 bits as unsigned value, so the output
+channel value -18000 translates to over-the-air value 0, and +18000 to value 4095,
+with center being output channel value 0 and over-the-air value 2048.
+
+To convert we need the following formula:
+
+    over-the-air = (output_channel + 18000) * 4096 / 36000;
+=>
+    over-the-air = (output_channel + 18000) << 7 / 1125;
+
+
+On the receiver side we need to convert 0..4095 into 600..2400us. Since we run
+the timer at 2 MHz (0.5 us), we need to work in half-us units
+
+    us = 600 + (value * 1800 / 4096)
+=>
+    half_us = 1200 + ((value * 225) >> 8)
+
+*/
+
+#define US_TO_TIMER(x) (x*2)
+
+#define NUMBER_OF_SERVO_BANKS 2
+
+#define SERVO_PULSE_PERIOD (US_TO_TIMER(16000)/NUMBER_OF_SERVO_BANKS)
+#define SERVO_PULSE_MIN (US_TO_TIMER(600))
+#define SERVO_PULSE_CENTER (US_TO_TIMER(1500))
+#define SERVO_PULSE_MAX (US_TO_TIMER(2400))
+
+static const nrf_drv_timer_t pwm_timer = NRF_DRV_TIMER_INSTANCE(2);
 
 extern volatile uint32_t milliseconds;
 
-static uint8_t step = 0;
+static uint8_t state;
 static nrf_ppi_channel_t ppi_channels[4];
 
-static uint16_t servo[4] = {1500, 1200, 1700, 2000};
-static bool up[4] = {true, false, true, false};
+static uint16_t servo[4] = {US_TO_TIMER(1500), US_TO_TIMER(1200), US_TO_TIMER(1700), US_TO_TIMER(2000)};
 
 static const uint8_t cc_channels[] = {NRF_TIMER_CC_CHANNEL0, NRF_TIMER_CC_CHANNEL1, NRF_TIMER_CC_CHANNEL2, NRF_TIMER_CC_CHANNEL3};
 
-#define NUMBER_OF_SERVO_BANKS 2
 static uint8_t servo_bank_select = 0;
 static const uint32_t servo_banks[NUMBER_OF_SERVO_BANKS][4] = {
     {GPIO_SERVO_1, GPIO_SERVO_2, GPIO_SERVO_3, GPIO_SERVO_4},
     {GPIO_SERVO_5, GPIO_SERVO_6, GPIO_SERVO_7, GPIO_SERVO_8},
 };
 
-static int running = false;
+static bool running = false;
 
 
 // ****************************************************************************
@@ -65,29 +91,29 @@ Initialization:
     Enable CC0 interrupt
     Clear the timer
     Start the timer
-    set Step to 1
+    set State to 1
 
-Step 1 (at timer count 0):
+State 1 (at timer count 0):
     // Triggered when the compare interrupt fires
     // Servo outputs all go HIGH because CC0..3 were set to the same value.
     Set the CC0..3 to the respective servo pulse duration
-    set Step to 2
+    set State to 2
 
-Step 2 (at time of servo pulse CC0):
+State 2 (at time of servo pulse CC0):
     // Triggered when the compare interrupt fires because the servo pulse CC0 is
     // done. We reuse CC0 to time the remainder servo pulse frequency.
     Set CC0 to SERVO_PULSE_MAX + 1000
     Disable PPI0 being trigged by CC0
-    set Step to 3
+    set State to 3
 
-Step 3 (at time of servo pulse CC0):
+State 3 (at time of servo pulse CC0):
     // Triggered when the compare interrupt fires. By now all servo pulses must
     // have been completed (GPIO set back to LOW), because the longest servo pulse we output is SERVO_PULSE_MAX
-    // and Step 3 fired at SERVO_PULSE_MAX + 1000
+    // and State 3 fired at SERVO_PULSE_MAX + 1000
     Set CC0 to SERVO_PULSE_PERIOD and enable NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK
     Set CC1..3 to SERVO_PULSE_PERIOD
     Enable PPI0 being trigged by CC0
-    set Step to 1
+    set State to 1
 
 
 This sequence can easily be extended to more servo channels by chaning GPIOTE
@@ -107,19 +133,19 @@ swap between different ports, causing glitches on the pins.
 // Timer interrupt, called by the nrf timer driver
 static void pwm_timer_handler(nrf_timer_event_t event_type, void * p_context)
 {
-    switch (step) {
+    switch (state) {
         case 1:
             nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL0, servo[0], 0, true);
             nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL1, servo[1], 0, false);
             nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL2, servo[2], 0, false);
             nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL3, servo[3], 0, false);
-            step = 2;
+            state = 2;
             break;
 
         case 2:
             nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL0, SERVO_PULSE_MAX + 1000, 0, true);
             nrf_drv_ppi_channel_disable(ppi_channels[0]);
-            step = 3;
+            state = 3;
             break;
 
         case 3:
@@ -137,7 +163,7 @@ static void pwm_timer_handler(nrf_timer_event_t event_type, void * p_context)
             nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL3, SERVO_PULSE_PERIOD, 0, false);
             nrf_drv_ppi_channel_enable(ppi_channels[0]);
 
-            step = 1;
+            state = 1;
             break;
     }
 }
@@ -147,11 +173,11 @@ static void pwm_timer_handler(nrf_timer_event_t event_type, void * p_context)
 void SERVO_init(void)
 {
     nrf_drv_timer_config_t timer_config  = {
-        .frequency          = NRF_TIMER_FREQ_1MHz,
+        .frequency          = NRF_TIMER_FREQ_2MHz,
         .mode               = NRF_TIMER_MODE_TIMER,
         .bit_width          = NRF_TIMER_BIT_WIDTH_16,
         .interrupt_priority = APP_IRQ_PRIORITY_LOW,
-        .p_context          = (void *) (uint32_t) PWM_TIMER,
+        .p_context          = NULL,
     };
 
     nrf_drv_ppi_init();
@@ -178,13 +204,6 @@ void SERVO_init(void)
 
 
 // ****************************************************************************
-void SERVO_set(uint8_t index, int16_t value)
-{
-
-}
-
-
-// ****************************************************************************
 void SERVO_start(void)
 {
     if (running) {
@@ -194,7 +213,7 @@ void SERVO_start(void)
     running = true;
 
     nrf_drv_timer_enable(&pwm_timer);
-    step = 1;
+    state = 1;
 
     for (int i = 0; i < 4; i++) {
         nrf_gpio_pin_clear(servo_banks[0][i]);
@@ -204,23 +223,42 @@ void SERVO_start(void)
 
 
 // ****************************************************************************
+void SERVO_set(uint8_t index, uint16_t value_12bit)
+{
+    uint32_t half_us;
+
+    // Optimized form of
+    // half_us = 2 * (600 + (value * 1800 / 4096))
+    half_us = 1200 + (((uint32_t)value_12bit * 225) >> 8);
+    servo[index] = half_us;
+}
+
+
+// ****************************************************************************
 void SERVO_process(void)
 {
     static uint32_t next = 50;
 
     if (milliseconds > 1000) {
+        if (!running) {
+            SERVO_set(0, 0);
+            SERVO_set(1, 0xfff);
+            SERVO_set(2, 0x800);
+            SERVO_set(3, 0xa00);
+        }
         SERVO_start();
     }
 
 
     if (milliseconds >= next) {
         int i;
+        static bool up[4] = {true, false, true, false};
 
         next += 5;
 
         for (i = 0; i < 4; i++) {
             if (up[i]) {
-                if (servo[i] < 2000) {
+                if (servo[i] < US_TO_TIMER(2000)) {
                     ++servo[i];
                 }
                 else {
@@ -229,7 +267,7 @@ void SERVO_process(void)
                 }
             }
             else {
-                if (servo[i] > 1000) {
+                if (servo[i] > US_TO_TIMER(1000)) {
                     --servo[i];
                 }
                 else {
