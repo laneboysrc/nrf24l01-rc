@@ -54,7 +54,7 @@ However, resources are very limited: the GPIOTE module only has 4 instances.
 For our servo pulse output application we can work around that with "manual
 labour".
 
-Step 0:
+Initialization:
     // This step is only done once when starting up the PWM. We assime that that
     // all GPIO are HIGH.
     Set CC0 to 5 ms and enable NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK
@@ -99,51 +99,38 @@ this is not an issue.
 // Timer interrupt, called by the nrf timer driver
 static void pwm_timer_handler(nrf_timer_event_t event_type, void * p_context)
 {
-    if (step == 1) {
-        nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL0, servo[0], 0, true);
-        nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL1, servo[1], 0, false);
-        nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL2, servo[2], 0, false);
-        nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL3, servo[3], 0, false);
-        step = 2;
-    }
-    else if (step == 2) {
-        nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL0, SERVO_PULSE_MAX + 1000, 0, true);
-        nrf_drv_ppi_channel_disable(ppi_channels[0]);
-        step = 3;
-    }
-    else if (step == 3) {
-        if (servo_bank_select) {
-            nrf_gpio_pin_set(GPIO_TEST);
-        }
+    switch (step) {
+        case 1:
+            nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL0, servo[0], 0, true);
+            nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL1, servo[1], 0, false);
+            nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL2, servo[2], 0, false);
+            nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL3, servo[3], 0, false);
+            step = 2;
+            break;
 
-        for (int i = 0; i < 4; i++) {
-            nrf_drv_ppi_channel_free(ppi_channels[i]);
-            nrf_gpio_pin_clear(servo_banks[servo_bank_select][i]);
-        }
+        case 2:
+            nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL0, SERVO_PULSE_MAX + 1000, 0, true);
+            nrf_drv_ppi_channel_disable(ppi_channels[0]);
+            step = 3;
+            break;
 
-        servo_bank_select = servo_bank_select ? 0 : 1;
+        case 3:
+        default:
+            servo_bank_select = (servo_bank_select + 1) % NUMBER_OF_SERVO_BANKS;
 
-        for (int i = 0; i < 4; i++) {
-            nrf_gpiote_task_configure(i, servo_banks[servo_bank_select][i], NRF_GPIOTE_POLARITY_TOGGLE, 0) ;
+            for (int i = 0; i < 4; i++) {
+                nrf_gpiote_task_configure(i, servo_banks[servo_bank_select][i], NRF_GPIOTE_POLARITY_TOGGLE, 0) ;
+                nrf_gpiote_task_enable(i);
+            }
 
-            nrf_drv_ppi_channel_alloc(&ppi_channels[i]);
-            nrf_drv_ppi_channel_assign(ppi_channels[i],
-                nrf_drv_timer_compare_event_address_get(&pwm_timer, cc_channels[i]),
-                nrf_gpiote_task_addr_get(NRF_GPIOTE_TASKS_OUT_0 + (sizeof(uint32_t) * i)));
+            nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL0, SERVO_PULSE_PERIOD, NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK, true);
+            nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL1, SERVO_PULSE_PERIOD, 0, false);
+            nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL2, SERVO_PULSE_PERIOD, 0, false);
+            nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL3, SERVO_PULSE_PERIOD, 0, false);
+            nrf_drv_ppi_channel_enable(ppi_channels[0]);
 
-            nrf_gpiote_task_enable(i);
-
-            nrf_drv_ppi_channel_enable(ppi_channels[i]);
-        }
-
-        nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL0, SERVO_PULSE_PERIOD, NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK, true);
-        nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL1, SERVO_PULSE_PERIOD, 0, false);
-        nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL2, SERVO_PULSE_PERIOD, 0, false);
-        nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL3, SERVO_PULSE_PERIOD, 0, false);
-        nrf_drv_ppi_channel_enable(ppi_channels[0]);
-
-        step = 1;
-        nrf_gpio_pin_clear(GPIO_TEST);
+            step = 1;
+            break;
     }
 }
 
@@ -163,31 +150,32 @@ void SERVO_init(void)
     nrf_drv_ppi_init();
 
     for (int i = 0; i < 4; i++) {
-        nrf_gpiote_task_configure(i, servo_banks[servo_bank_select][i], NRF_GPIOTE_POLARITY_TOGGLE, 1) ;
+        nrf_gpiote_task_configure(i, servo_banks[servo_bank_select][i], NRF_GPIOTE_POLARITY_TOGGLE, 0) ;
+        nrf_gpiote_task_enable(i);
 
         nrf_drv_ppi_channel_alloc(&ppi_channels[i]);
-
         nrf_drv_ppi_channel_assign(ppi_channels[i],
             nrf_drv_timer_compare_event_address_get(&pwm_timer, cc_channels[i]),
             nrf_gpiote_task_addr_get(NRF_GPIOTE_TASKS_OUT_0 + (sizeof(uint32_t) * i)));
-
-        nrf_gpiote_task_enable(i);
-
         nrf_drv_ppi_channel_enable(ppi_channels[i]);
     }
 
     nrf_drv_timer_init(&pwm_timer, &timer_config, pwm_timer_handler);
     nrf_drv_timer_clear(&pwm_timer);
 
-    nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL0, 500, NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK, true);
-    nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL1, 500, 0, false);
-    nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL2, 500, 0, false);
-    nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL3, 500, 0, false);
+    nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL0, SERVO_PULSE_PERIOD, NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK, true);
+    nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL1, SERVO_PULSE_PERIOD, 0, false);
+    nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL2, SERVO_PULSE_PERIOD, 0, false);
+    nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL3, SERVO_PULSE_PERIOD, 0, false);
 
+    nrf_gpio_pin_set(GPIO_TEST);
     nrf_drv_timer_enable(&pwm_timer);
-    step = 3;
+    step = 1;
 
-
+    for (int i = 0; i < 4; i++) {
+        nrf_gpio_pin_clear(servo_banks[0][i]);
+        nrf_gpio_pin_clear(servo_banks[1][i]);
+    }
 }
 
 
