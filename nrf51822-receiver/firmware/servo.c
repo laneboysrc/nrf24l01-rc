@@ -41,6 +41,7 @@ static const uint32_t servo_banks[NUMBER_OF_SERVO_BANKS][4] = {
     {GPIO_SERVO_5, GPIO_SERVO_6, GPIO_SERVO_7, GPIO_SERVO_8},
 };
 
+static int running = false;
 
 
 // ****************************************************************************
@@ -68,22 +69,24 @@ Initialization:
 
 Step 1 (at timer count 0):
     // Triggered when the compare interrupt fires
+    // Servo outputs all go HIGH because CC0..3 were set to the same value.
     Set the CC0..3 to the respective servo pulse duration
-    Set PPI0..3 to trigger on CC0..3
     set Step to 2
 
 Step 2 (at time of servo pulse CC0):
     // Triggered when the compare interrupt fires because the servo pulse CC0 is
     // done. We reuse CC0 to time the remainder servo pulse frequency.
-    Set CC0 to 4 ms
-    Disable PPI0 trigged by CC0
+    Set CC0 to SERVO_PULSE_MAX + 1000
+    Disable PPI0 being trigged by CC0
     set Step to 3
 
 Step 3 (at time of servo pulse CC0):
     // Triggered when the compare interrupt fires. By now all servo pulses must
-    // have been completed, because the longest servo pulse we output is 2.5 ms
-    Set CC0 to 5 ms and enable NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK
-    Set PPI0..3 to trigger on CC0
+    // have been completed (GPIO set back to LOW), because the longest servo pulse we output is SERVO_PULSE_MAX
+    // and Step 3 fired at SERVO_PULSE_MAX + 1000
+    Set CC0 to SERVO_PULSE_PERIOD and enable NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK
+    Set CC1..3 to SERVO_PULSE_PERIOD
+    Enable PPI0 being trigged by CC0
     set Step to 1
 
 
@@ -91,6 +94,11 @@ This sequence can easily be extended to more servo channels by chaning GPIOTE
 in Step 3. Of course the repeat frequency halfes, but for up to 12 channels
 this is not an issue.
 
+
+IMPORTANT:
+This implementation does not use the GPIOTE driver, but manages GPIOTE directly.
+This is necessary as the GPIOTE driver sets GPIOs back to disconnected when we
+swap between different ports, causing glitches on the pins.
 
 */
 // ****************************************************************************
@@ -134,6 +142,7 @@ static void pwm_timer_handler(nrf_timer_event_t event_type, void * p_context)
     }
 }
 
+
 // ****************************************************************************
 void SERVO_init(void)
 {
@@ -144,8 +153,6 @@ void SERVO_init(void)
         .interrupt_priority = APP_IRQ_PRIORITY_LOW,
         .p_context          = (void *) (uint32_t) PWM_TIMER,
     };
-
-    printf("SERVO_init()\n");
 
     nrf_drv_ppi_init();
 
@@ -167,15 +174,6 @@ void SERVO_init(void)
     nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL1, SERVO_PULSE_PERIOD, 0, false);
     nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL2, SERVO_PULSE_PERIOD, 0, false);
     nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL3, SERVO_PULSE_PERIOD, 0, false);
-
-    nrf_gpio_pin_set(GPIO_TEST);
-    nrf_drv_timer_enable(&pwm_timer);
-    step = 1;
-
-    for (int i = 0; i < 4; i++) {
-        nrf_gpio_pin_clear(servo_banks[0][i]);
-        nrf_gpio_pin_clear(servo_banks[1][i]);
-    }
 }
 
 
@@ -187,9 +185,33 @@ void SERVO_set(uint8_t index, int16_t value)
 
 
 // ****************************************************************************
+void SERVO_start(void)
+{
+    if (running) {
+        return;
+    }
+
+    running = true;
+
+    nrf_drv_timer_enable(&pwm_timer);
+    step = 1;
+
+    for (int i = 0; i < 4; i++) {
+        nrf_gpio_pin_clear(servo_banks[0][i]);
+        nrf_gpio_pin_clear(servo_banks[1][i]);
+    }
+}
+
+
+// ****************************************************************************
 void SERVO_process(void)
 {
     static uint32_t next = 50;
+
+    if (milliseconds > 1000) {
+        SERVO_start();
+    }
+
 
     if (milliseconds >= next) {
         int i;
