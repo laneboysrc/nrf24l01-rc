@@ -15,7 +15,6 @@
 
 #define SYSTICK_IN_MS 1
 volatile uint32_t milliseconds;
-static volatile uint8_t systick_count;
 
 
 // ****************************************************************************
@@ -29,9 +28,26 @@ static void CLOCKS_init( void )
 // ****************************************************************************
 static void GPIO_init( void )
 {
-    nrf_gpio_cfg_input(GPIO_SELECT_MODE, NRF_GPIO_PIN_PULLUP);
-    nrf_gpio_cfg_output(LED_0);
-    nrf_gpio_cfg_output(LED_1);
+    nrf_gpio_cfg_output(GPIO_LED);
+    nrf_gpio_cfg_output(GPIO_TEST);
+
+    nrf_gpio_pin_set(GPIO_SERVO_1);
+    nrf_gpio_pin_set(GPIO_SERVO_2);
+    nrf_gpio_pin_set(GPIO_SERVO_3);
+    nrf_gpio_pin_set(GPIO_SERVO_4);
+    nrf_gpio_pin_set(GPIO_SERVO_5);
+    nrf_gpio_pin_set(GPIO_SERVO_6);
+    nrf_gpio_pin_set(GPIO_SERVO_7);
+    nrf_gpio_pin_set(GPIO_SERVO_8);
+
+    nrf_gpio_cfg_output(GPIO_SERVO_1);
+    nrf_gpio_cfg_output(GPIO_SERVO_2);
+    nrf_gpio_cfg_output(GPIO_SERVO_3);
+    nrf_gpio_cfg_output(GPIO_SERVO_4);
+    nrf_gpio_cfg_output(GPIO_SERVO_5);
+    nrf_gpio_cfg_output(GPIO_SERVO_6);
+    nrf_gpio_cfg_output(GPIO_SERVO_7);
+    nrf_gpio_cfg_output(GPIO_SERVO_8);
 }
 
 
@@ -89,7 +105,6 @@ static void UART_read()
 static void rtc_callback(nrf_drv_rtc_int_type_t int_type)
 {
     if (int_type == NRF_DRV_RTC_INT_TICK) {
-        ++systick_count;
         milliseconds += SYSTICK_IN_MS;
     }
 }
@@ -125,7 +140,7 @@ void LED_blink(void)
 
     if (milliseconds >= next) {
         next += 500;
-        nrf_gpio_pin_toggle(LED_0);
+        nrf_gpio_pin_toggle(GPIO_LED);
     }
 }
 
@@ -137,6 +152,10 @@ int main(void)
     CLOCKS_init();
     RTC_init();
     UART_init();
+
+    while (milliseconds < 1000) {
+        __WFE();
+    }
 
     SERVO_init();
 

@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#include <nrf_drv_gpiote.h>
 #include <nrf_drv_ppi.h>
 #include <nrf_drv_timer.h>
 #include <nrf_gpio.h>
@@ -11,29 +10,38 @@
 
 #include <servo.h>
 
-#define SERVO_1 (19)
-#define SERVO_2 (20)
-#define SERVO_3 (21)
-#define SERVO_4 (22)
 
 #define PWM_TIMER 2
 
+// The normalized dinput channels are clamped to -10000..0..10000, while
+// the output channels can go up to -18000..0..18000 (-180%..0%..180%),
+// corresponding to receiver pulses of 600us..1500us..2400us
 #define SERVO_PULSE_MIN 600
 #define SERVO_PULSE_CENTER 1500
 #define SERVO_PULSE_MAX 2400
 
-#define SERVO_PULSE_PERIOD 16000
+#define SERVO_PULSE_PERIOD 8000
 
 static const nrf_drv_timer_t pwm_timer = NRF_DRV_TIMER_INSTANCE(PWM_TIMER);
-static const nrf_drv_gpiote_out_config_t gpiote_out_config = GPIOTE_CONFIG_OUT_TASK_TOGGLE(0);
 
 extern volatile uint32_t milliseconds;
 
 static uint8_t step = 0;
 static nrf_ppi_channel_t ppi_channels[4];
 
-static uint16_t servo[4] = {1500, 1200, 1200, 2000};
+static uint16_t servo[4] = {1500, 1200, 1700, 2000};
 static bool up[4] = {true, false, true, false};
+
+static const uint8_t cc_channels[] = {NRF_TIMER_CC_CHANNEL0, NRF_TIMER_CC_CHANNEL1, NRF_TIMER_CC_CHANNEL2, NRF_TIMER_CC_CHANNEL3};
+
+#define NUMBER_OF_SERVO_BANKS 2
+static uint8_t servo_bank_select = 0;
+static const uint32_t servo_banks[NUMBER_OF_SERVO_BANKS][4] = {
+    {GPIO_SERVO_1, GPIO_SERVO_2, GPIO_SERVO_3, GPIO_SERVO_4},
+    {GPIO_SERVO_5, GPIO_SERVO_6, GPIO_SERVO_7, GPIO_SERVO_8},
+};
+
+
 
 // ****************************************************************************
 /*
@@ -91,7 +99,6 @@ this is not an issue.
 // Timer interrupt, called by the nrf timer driver
 static void pwm_timer_handler(nrf_timer_event_t event_type, void * p_context)
 {
-    // printf("S%d %lu\n", step, milliseconds);
     if (step == 1) {
         nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL0, servo[0], 0, true);
         nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL1, servo[1], 0, false);
@@ -105,20 +112,44 @@ static void pwm_timer_handler(nrf_timer_event_t event_type, void * p_context)
         step = 3;
     }
     else if (step == 3) {
+        if (servo_bank_select) {
+            nrf_gpio_pin_set(GPIO_TEST);
+        }
+
+        for (int i = 0; i < 4; i++) {
+            nrf_drv_ppi_channel_free(ppi_channels[i]);
+            nrf_gpio_pin_clear(servo_banks[servo_bank_select][i]);
+        }
+
+        servo_bank_select = servo_bank_select ? 0 : 1;
+
+        for (int i = 0; i < 4; i++) {
+            nrf_gpiote_task_configure(i, servo_banks[servo_bank_select][i], NRF_GPIOTE_POLARITY_TOGGLE, 0) ;
+
+            nrf_drv_ppi_channel_alloc(&ppi_channels[i]);
+            nrf_drv_ppi_channel_assign(ppi_channels[i],
+                nrf_drv_timer_compare_event_address_get(&pwm_timer, cc_channels[i]),
+                nrf_gpiote_task_addr_get(NRF_GPIOTE_TASKS_OUT_0 + (sizeof(uint32_t) * i)));
+
+            nrf_gpiote_task_enable(i);
+
+            nrf_drv_ppi_channel_enable(ppi_channels[i]);
+        }
+
         nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL0, SERVO_PULSE_PERIOD, NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK, true);
         nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL1, SERVO_PULSE_PERIOD, 0, false);
         nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL2, SERVO_PULSE_PERIOD, 0, false);
         nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL3, SERVO_PULSE_PERIOD, 0, false);
         nrf_drv_ppi_channel_enable(ppi_channels[0]);
+
         step = 1;
+        nrf_gpio_pin_clear(GPIO_TEST);
     }
 }
 
 // ****************************************************************************
 void SERVO_init(void)
 {
-    uint32_t ret;
-
     nrf_drv_timer_config_t timer_config  = {
         .frequency          = NRF_TIMER_FREQ_1MHz,
         .mode               = NRF_TIMER_MODE_TIMER,
@@ -127,105 +158,47 @@ void SERVO_init(void)
         .p_context          = (void *) (uint32_t) PWM_TIMER,
     };
 
-
     printf("SERVO_init()\n");
 
-    ret = nrf_drv_ppi_init();
-    if ((ret != NRF_SUCCESS) && (ret != MODULE_ALREADY_INITIALIZED)) {
-        printf("Failed to initialize PPI: err=%ld", ret);
+    nrf_drv_ppi_init();
+
+    for (int i = 0; i < 4; i++) {
+        nrf_gpiote_task_configure(i, servo_banks[servo_bank_select][i], NRF_GPIOTE_POLARITY_TOGGLE, 1) ;
+
+        nrf_drv_ppi_channel_alloc(&ppi_channels[i]);
+
+        nrf_drv_ppi_channel_assign(ppi_channels[i],
+            nrf_drv_timer_compare_event_address_get(&pwm_timer, cc_channels[i]),
+            nrf_gpiote_task_addr_get(NRF_GPIOTE_TASKS_OUT_0 + (sizeof(uint32_t) * i)));
+
+        nrf_gpiote_task_enable(i);
+
+        nrf_drv_ppi_channel_enable(ppi_channels[i]);
     }
 
-    ret = nrf_drv_gpiote_init();
-    if (ret != NRF_SUCCESS) {
-        printf("Failed to initialize GPIOTE: err=%ld", ret);
-    }
-
-    ret = nrf_drv_gpiote_out_init(SERVO_1, &gpiote_out_config);
-    if (ret != NRF_SUCCESS) {
-        printf("Failed to initialize GPIOTE for Servo 1: err=%ld", ret);
-    }
-    nrf_drv_gpiote_out_task_force(SERVO_1, 1);
-    nrf_drv_gpiote_out_task_enable(SERVO_1);
-
-    ret = nrf_drv_gpiote_out_init(SERVO_2, &gpiote_out_config);
-    if (ret != NRF_SUCCESS) {
-        printf("Failed to initialize GPIOTE for Servo 2: err=%ld", ret);
-    }
-    nrf_drv_gpiote_out_task_force(SERVO_2, 1);
-    nrf_drv_gpiote_out_task_enable(SERVO_2);
-
-    ret = nrf_drv_gpiote_out_init(SERVO_3, &gpiote_out_config);
-    if (ret != NRF_SUCCESS) {
-        printf("Failed to initialize GPIOTE for Servo 3: err=%ld", ret);
-    }
-    nrf_drv_gpiote_out_task_force(SERVO_3, 1);
-    nrf_drv_gpiote_out_task_enable(SERVO_3);
-
-    ret = nrf_drv_gpiote_out_init(SERVO_4, &gpiote_out_config);
-    if (ret != NRF_SUCCESS) {
-        printf("Failed to initialize GPIOTE for Servo 4: err=%ld", ret);
-    }
-    nrf_drv_gpiote_out_task_force(SERVO_4, 1);
-    nrf_drv_gpiote_out_task_enable(SERVO_4);
-
-    ret = nrf_drv_ppi_channel_alloc(&ppi_channels[0]);
-    if (ret != NRF_SUCCESS) {
-        printf("Failed to allocate PPI channel 0: err=%ld", ret);
-    }
-    ret = nrf_drv_ppi_channel_alloc(&ppi_channels[1]);
-    if (ret != NRF_SUCCESS) {
-        printf("Failed to allocate PPI channel 1: err=%ld", ret);
-    }
-    ret = nrf_drv_ppi_channel_alloc(&ppi_channels[2]);
-    if (ret != NRF_SUCCESS) {
-        printf("Failed to allocate PPI channel 2: err=%ld", ret);
-    }
-    ret = nrf_drv_ppi_channel_alloc(&ppi_channels[3]);
-    if (ret != NRF_SUCCESS) {
-        printf("Failed to allocate PPI channel 3: err=%ld", ret);
-    }
-
-    nrf_drv_ppi_channel_assign(ppi_channels[0],
-        nrf_drv_timer_compare_event_address_get(&pwm_timer, NRF_TIMER_CC_CHANNEL0),
-        nrf_drv_gpiote_out_task_addr_get(SERVO_1));
-    nrf_drv_ppi_channel_assign(ppi_channels[1],
-        nrf_drv_timer_compare_event_address_get(&pwm_timer, NRF_TIMER_CC_CHANNEL1),
-        nrf_drv_gpiote_out_task_addr_get(SERVO_2));
-    nrf_drv_ppi_channel_assign(ppi_channels[2],
-        nrf_drv_timer_compare_event_address_get(&pwm_timer, NRF_TIMER_CC_CHANNEL2),
-        nrf_drv_gpiote_out_task_addr_get(SERVO_3));
-    nrf_drv_ppi_channel_assign(ppi_channels[3],
-        nrf_drv_timer_compare_event_address_get(&pwm_timer, NRF_TIMER_CC_CHANNEL3),
-        nrf_drv_gpiote_out_task_addr_get(SERVO_4));
-
-
-    nrf_drv_ppi_channel_enable(ppi_channels[0]);
-    nrf_drv_ppi_channel_enable(ppi_channels[1]);
-    nrf_drv_ppi_channel_enable(ppi_channels[2]);
-    nrf_drv_ppi_channel_enable(ppi_channels[3]);
-
-
-    ret = nrf_drv_timer_init(&pwm_timer, &timer_config, pwm_timer_handler);
-    if (ret != NRF_SUCCESS) {
-        printf("Failed to initalize the timer: err=%ld", ret);
-    }
-
+    nrf_drv_timer_init(&pwm_timer, &timer_config, pwm_timer_handler);
     nrf_drv_timer_clear(&pwm_timer);
 
-    nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL0, SERVO_PULSE_PERIOD, NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK, true);
-    nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL1, SERVO_PULSE_PERIOD, 0, false);
-    nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL2, SERVO_PULSE_PERIOD, 0, false);
-    nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL3, SERVO_PULSE_PERIOD, 0, false);
+    nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL0, 500, NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK, true);
+    nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL1, 500, 0, false);
+    nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL2, 500, 0, false);
+    nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL3, 500, 0, false);
 
     nrf_drv_timer_enable(&pwm_timer);
+    step = 3;
 
-    nrf_drv_gpiote_out_task_force(SERVO_1, 0);
-    nrf_drv_gpiote_out_task_force(SERVO_2, 0);
-    nrf_drv_gpiote_out_task_force(SERVO_3, 0);
-    nrf_drv_gpiote_out_task_force(SERVO_4, 0);
-    step = 1;
+
 }
 
+
+// ****************************************************************************
+void SERVO_set(uint8_t index, int16_t value)
+{
+
+}
+
+
+// ****************************************************************************
 void SERVO_process(void)
 {
     static uint32_t next = 50;

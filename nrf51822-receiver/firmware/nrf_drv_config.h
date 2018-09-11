@@ -1,13 +1,18 @@
 #pragma once
 
-#define GPIO_SELECT_MODE            0
+#define GPIO_LED                    18
+#define GPIO_SERVO_1                21
+#define GPIO_SERVO_2                22
+#define GPIO_SERVO_3                23
+#define GPIO_SERVO_4                24
+#define GPIO_SERVO_5                25
+#define GPIO_SERVO_6                16
+#define GPIO_SERVO_7                17
+#define GPIO_SERVO_8                28
 
-#define LED_0                       18
-#define LED_1                       19
+#define GPIO_BIND_BUTTON            16
 
-#define BUTTON_0                    16
-#define BUTTON_1                    17
-#define BUTTON_PULL                 NRF_GPIO_PIN_PULLUP
+#define GPIO_TEST                   30
 
 
 #define CLOCK_ENABLED               1
