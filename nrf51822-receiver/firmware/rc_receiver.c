@@ -4,12 +4,19 @@
 
 #include <nrf_drv_config.h>
 #include <nrf_gpio.h>
+#include <nrf_drv_timer.h>
+#include <micro_esb.h>
+#include <uesb_error_codes.h>
+#include <app_util_platform.h>
 
 #include <rc_receiver.h>
 #include <persistent_storage.h>
 
 
-#define __SYSTICK_IN_MS (1000/RTC0_CONFIG_FREQUENCY)
+extern volatile uint32_t milliseconds;
+
+
+#define __SYSTICK_IN_MS 10
 #define SERVO_PULSE_CENTER 2048     // Half value of 12 bit
 
 #define NUMBER_OF_CHANNELS 8
@@ -23,7 +30,7 @@
 
 #define FAILSAFE_TIMEOUT (640 / __SYSTICK_IN_MS)
 #define BIND_TIMEOUT (5000 / __SYSTICK_IN_MS)
-#define ISP_TIMEOUT (3000 / __SYSTICK_IN_MS)
+// #define ISP_TIMEOUT (3000 / __SYSTICK_IN_MS)
 #define BLINK_TIME_FAILSAFE (320 / __SYSTICK_IN_MS)
 #define BLINK_TIME_BINDING (50 / __SYSTICK_IN_MS)
 
@@ -35,10 +42,6 @@
 #define BUTTON_PRESSED 0
 #define BUTTON_RELEASED 1
 
-#define LED_ON 0
-
-
-extern bool systick;
 
 
 uint16_t channels[NUMBER_OF_CHANNELS];
@@ -46,12 +49,13 @@ uint16_t raw_data[2];
 bool successful_stick_data = false;
 
 
-static bool rf_int_fired = false;
+// static bool rf_int_fired = false;
 static unsigned int led_state;
 static unsigned int blink_timer;
-static unsigned int bind_button_timer;
+// static unsigned int bind_button_timer;
 
-static uint8_t payload[PAYLOAD_SIZE];
+// static uint8_t payload[PAYLOAD_SIZE];
+static uesb_payload_t payload;
 
 static uint8_t failsafe_enabled;
 static uint16_t failsafe[NUMBER_OF_CHANNELS];
@@ -66,21 +70,24 @@ static uint8_t hop_data[NUMBER_OF_HOP_CHANNELS];
 static bool binding_requested = false;
 static bool binding = false;
 static unsigned int bind_timer;
-// static const uint8_t BIND_CHANNEL = 0x51;
-// static const uint8_t BIND_ADDRESS[ADDRESS_WIDTH] = {0x12, 0x23, 0x23, 0x45, 0x78};
+static const uint8_t BIND_CHANNEL = 0x51;
+static const uint8_t BIND_ADDRESS[ADDRESS_WIDTH] = {0x12, 0x23, 0x23, 0x45, 0x78};
 static uint8_t bind_storage_area[ADDRESS_WIDTH + NUMBER_OF_HOP_CHANNELS] __attribute__ ((aligned (4)));
 
 
+// We are using TIMER1 for the hop timer
+static const nrf_drv_timer_t hop_timer = NRF_DRV_TIMER_INSTANCE(1);
+
 
 // ****************************************************************************
-// static void print_payload(void)
-// {
-//     int i;
-//     for (i = 0; i < PAYLOAD_SIZE; i++) {
-//         printf("%02x ", payload[i]);
-//     }
-//     printf("\n");
-// }
+static void print_payload(void)
+{
+    int i;
+    for (i = 0; i < PAYLOAD_SIZE; i++) {
+        printf("%02x ", payload.data[i]);
+    }
+    printf("\n");
+}
 
 
 // ****************************************************************************
@@ -142,6 +149,7 @@ static void stop_hop_timer(void)
 {
     // Stop the SCTimer L
     // LPC_SCT->CTRL_L |= (1 << 2);
+    nrf_drv_timer_disable(&hop_timer);
 
     perform_hop_requested = false;
 }
@@ -160,6 +168,20 @@ static void restart_hop_timer(void)
     // LPC_SCT->COUNT_L = 0;
     // LPC_SCT->CTRL_L &= ~(1 << 2);
 
+
+    // FIXME: deal with FIRST_HOP_TIME_IN_US    !!!!!!!!!!!!!!!!!!!!!!!
+    // FIXME: deal with FIRST_HOP_TIME_IN_US    !!!!!!!!!!!!!!!!!!!!!!!
+    // FIXME: deal with FIRST_HOP_TIME_IN_US    !!!!!!!!!!!!!!!!!!!!!!!
+    // FIXME: deal with FIRST_HOP_TIME_IN_US    !!!!!!!!!!!!!!!!!!!!!!!
+    // FIXME: deal with FIRST_HOP_TIME_IN_US    !!!!!!!!!!!!!!!!!!!!!!!
+    // FIXME: deal with FIRST_HOP_TIME_IN_US    !!!!!!!!!!!!!!!!!!!!!!!
+    // FIXME: deal with FIRST_HOP_TIME_IN_US    !!!!!!!!!!!!!!!!!!!!!!!
+
+    nrf_drv_timer_extended_compare(&hop_timer, NRF_TIMER_CC_CHANNEL0, HOP_TIME_IN_US-1, NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK, true);
+    nrf_drv_timer_clear(&hop_timer);
+    nrf_drv_timer_enable(&hop_timer);
+
+
     hops_without_packet = 0;
     perform_hop_requested = false;
 }
@@ -170,16 +192,24 @@ static void restart_packet_receiving(void)
 {
     stop_hop_timer();
 
-    // rf_clear_ce();
     hop_index = 0;
     hops_without_packet = 0;
     perform_hop_requested = false;
+
+    uesb_stop_rx();
+    uesb_set_address(UESB_ADDRESS_PIPE0, model_address);
+    uesb_set_rf_channel(hop_data[0]);
+    uesb_flush_rx();
+    uesb_start_rx();
+
+    // rf_clear_ce();
     // rf_set_rx_address(DATA_PIPE_0, ADDRESS_WIDTH, model_address);
     // rf_set_channel(hop_data[0]);
     // rf_flush_rx_fifo();
     // rf_clear_irq(RX_RD);
-    rf_int_fired = false;
     // rf_set_ce();
+
+    // rf_int_fired = false;
 }
 
 
@@ -260,6 +290,15 @@ static void process_binding(void)
         // Set special channel 0x51
         // rf_set_channel(BIND_CHANNEL);
         // rf_set_ce();
+
+        uesb_stop_rx();
+        // Set special address 12h 23h 23h 45h 78h
+        uesb_set_address(UESB_ADDRESS_PIPE0, BIND_ADDRESS);
+        // Set special channel 0x51
+        uesb_set_rf_channel(BIND_CHANNEL);
+        uesb_flush_rx();
+        uesb_start_rx();
+
         return;
     }
 
@@ -275,26 +314,34 @@ static void process_binding(void)
 
 
     // ================================
-    if (!rf_int_fired) {
-        return;
-    }
-    rf_int_fired = false;
+    // if (!rf_int_fired) {
+    //     return;
+    // }
+    // rf_int_fired = false;
 
     // while (!rf_is_rx_fifo_emtpy()) {
     //     rf_read_fifo(payload, PAYLOAD_SIZE);
     // }
     // rf_clear_irq(RX_RD);
 
+    if (uesb_read_rx_payload(&payload) != UESB_SUCCESS) {
+        return;
+    }
+    // Flush if more than one packet is pending, use the latest
+    while (uesb_read_rx_payload(&payload) == UESB_SUCCESS);
+
+    print_payload();
+
     switch (bind_state) {
         case 0:
-            if (payload[0] == 0xff) {
-                if (payload[1] == 0xaa) {
-                    if (payload[2] == 0x55) {
+            if (payload.data[0] == 0xff) {
+                if (payload.data[1] == 0xaa) {
+                    if (payload.data[2] == 0x55) {
                         checksum = 0;
                         for (i = 0; i < 5; i++) {
                             uint8_t payload_byte;
 
-                            payload_byte = payload[3 + i];
+                            payload_byte = payload.data[3 + i];
                             bind_storage_area[i] = payload_byte;
                             checksum += payload_byte;
                         }
@@ -305,11 +352,11 @@ static void process_binding(void)
             break;
 
         case 1:
-            if (payload[0] == (checksum & 0xff)) {
-                if (payload[1] == (checksum >> 8)) {
-                    if (payload[2] == 0) {
+            if (payload.data[0] == (checksum & 0xff)) {
+                if (payload.data[1] == (checksum >> 8)) {
+                    if (payload.data[2] == 0) {
                         for (i = 0; i < 7; i++) {
-                            bind_storage_area[5 + i] = payload[3 + i];
+                            bind_storage_area[5 + i] = payload.data[3 + i];
                         }
                         bind_state = 2;
                     }
@@ -318,11 +365,11 @@ static void process_binding(void)
             break;
 
         case 2:
-            if (payload[0] == (checksum & 0xff)) {
-                if (payload[1] == (checksum >> 8)) {
-                    if (payload[2] == 1) {
+            if (payload.data[0] == (checksum & 0xff)) {
+                if (payload.data[1] == (checksum >> 8)) {
+                    if (payload.data[2] == 1) {
                         for (i = 0; i < 7; i++) {
-                            bind_storage_area[12 + i] = payload[3 + i];
+                            bind_storage_area[12 + i] = payload.data[3 + i];
                         }
                         bind_state = 3;
                     }
@@ -331,11 +378,11 @@ static void process_binding(void)
             break;
 
         case 3:
-            if (payload[0] == (checksum & 0xff)) {
-                if (payload[1] == (checksum >> 8)) {
-                    if (payload[2] == 2) {
+            if (payload.data[0] == (checksum & 0xff)) {
+                if (payload.data[1] == (checksum >> 8)) {
+                    if (payload.data[2] == 2) {
                         for (i = 0; i < 6; i++) {
-                            bind_storage_area[19 + i] = payload[3 + i];
+                            bind_storage_area[19 + i] = payload.data[3 + i];
                         }
 
                         save_persistent_storage(bind_storage_area);
@@ -400,20 +447,30 @@ static void process_receiving(void)
             hop_index = (hop_index + 1) % NUMBER_OF_HOP_CHANNELS;
             // rf_set_channel(hop_data[hop_index]);
             // rf_set_ce();
+
+            uesb_stop_rx();
+            uesb_set_rf_channel(hop_data[hop_index]);
+            uesb_start_rx();
         }
     }
 
 
     // ================================
-    if (!rf_int_fired) {
-        return;
-    }
-    rf_int_fired = false;
+    // if (!rf_int_fired) {
+    //     return;
+    // }
+    // rf_int_fired = false;
 
     // while (!rf_is_rx_fifo_emtpy()) {
     //     rf_read_fifo(payload, PAYLOAD_SIZE);
     // }
     // rf_clear_irq(RX_RD);
+
+    if (uesb_read_rx_payload(&payload) != UESB_SUCCESS) {
+        return;
+    }
+
+    while (uesb_read_rx_payload(&payload) == UESB_SUCCESS);
 
 #ifndef NO_DEBUG
     if (hops_without_packet > 1) {
@@ -426,10 +483,10 @@ static void process_receiving(void)
 
     // ================================
     // payload[7] is 0x55 for stick data
-    if (payload[7] == 0x55) {   // Stick data
-        channels[0] = stickdata2ms((payload[1] << 8) + payload[0]);
-        channels[1] = stickdata2ms((payload[3] << 8) + payload[2]);
-        channels[2] = stickdata2ms((payload[5] << 8) + payload[4]);
+    if (payload.data[7] == 0x55) {   // Stick data
+        channels[0] = stickdata2ms((payload.data[1] << 8) + payload.data[0]);
+        channels[1] = stickdata2ms((payload.data[3] << 8) + payload.data[2]);
+        channels[2] = stickdata2ms((payload.data[5] << 8) + payload.data[4]);
         output_pulses();
 
         // Save raw received data for the pre-processor to output, so someone
@@ -439,8 +496,8 @@ static void process_receiving(void)
         //   - See hk310-expansion project for hijacking channel 3
         //   - Custom nRF module firmware required in the transmitter to utilize
         //     payload 6 + 9
-        raw_data[0] = stickdata2txdata((payload[5] << 8) + payload[4]);
-        raw_data[1] = (payload[6] << 8) + payload[9];
+        raw_data[0] = stickdata2txdata((payload.data[5] << 8) + payload.data[4]);
+        raw_data[1] = (payload.data[6] << 8) + payload.data[9];
 
 
         if (!successful_stick_data) {
@@ -453,13 +510,13 @@ static void process_receiving(void)
     }
     // ================================
     // payload[7] is 0xaa for failsafe data
-    else if (payload[7] == 0xaa) {
+    else if (payload.data[7] == 0xaa) {
         // payload[8]: 0x5a if enabled, 0x5b if disabled
-        if (payload[8] == 0x5a) {
+        if (payload.data[8] == 0x5a) {
             failsafe_enabled = true;
-            failsafe[0] = stickdata2ms((payload[1] << 8) + payload[0]);
-            failsafe[1] = stickdata2ms((payload[3] << 8) + payload[2]);
-            failsafe[2] = stickdata2ms((payload[5] << 8) + payload[4]);
+            failsafe[0] = stickdata2ms((payload.data[1] << 8) + payload.data[0]);
+            failsafe[1] = stickdata2ms((payload.data[3] << 8) + payload.data[2]);
+            failsafe[2] = stickdata2ms((payload.data[5] << 8) + payload.data[4]);
         }
         else {
             // If failsafe is disabled use default values of 1500ms, just
@@ -473,10 +530,6 @@ static void process_receiving(void)
 // ****************************************************************************
 static void process_systick(void)
 {
-    if (!systick) {
-        return;
-    }
-
     if (failsafe_timer) {
         --failsafe_timer;
     }
@@ -485,9 +538,9 @@ static void process_systick(void)
         --bind_timer;
     }
 
-    if (bind_button_timer) {
-        --bind_button_timer;
-    }
+    // if (bind_button_timer) {
+    //     --bind_button_timer;
+    // }
 
     if (blink_timer) {
         --blink_timer;
@@ -502,11 +555,7 @@ static void process_bind_button(void)
     bool new_button_state;
 
 
-    if (!systick) {
-        return;
-    }
-
-    new_button_state = GPIO_BIND;
+    new_button_state = nrf_gpio_pin_read(GPIO_BIND);
 
 
     if (new_button_state == old_button_state) {
@@ -514,9 +563,9 @@ static void process_bind_button(void)
     }
     old_button_state = new_button_state;
 
-    if (new_button_state == BUTTON_PRESSED) {
-        bind_button_timer = ISP_TIMEOUT;
-    }
+    // if (new_button_state == BUTTON_PRESSED) {
+    //     bind_button_timer = ISP_TIMEOUT;
+    // }
 
     if (new_button_state == BUTTON_RELEASED) {
         binding_requested = true;
@@ -567,11 +616,31 @@ static void process_led(void)
 
 
 // ****************************************************************************
-void init_receiver(void)
+static void hop_timer_handler(nrf_timer_event_t event_type, void * p_context)
 {
+    perform_hop_requested = true;
+}
+
+
+// ****************************************************************************
+void RECEIVER_init(void)
+{
+    uesb_config_t uesb_config = UESB_DEFAULT_CONFIG;
+
+    nrf_drv_timer_config_t timer_config  = {
+        .frequency          = NRF_TIMER_FREQ_1MHz,
+        .mode               = NRF_TIMER_MODE_TIMER,
+        .bit_width          = NRF_TIMER_BIT_WIDTH_16,
+        .interrupt_priority = APP_IRQ_PRIORITY_LOW,
+        .p_context          = NULL,
+    };
+
     load_persistent_storage(bind_storage_area);
     parse_bind_data();
     initialize_failsafe();
+
+    nrf_drv_timer_init(&hop_timer, &timer_config, hop_timer_handler);
+    nrf_drv_timer_clear(&hop_timer);
 
     // rf_enable_clock();
     // rf_clear_ce();
@@ -584,6 +653,18 @@ void init_receiver(void)
     // rf_set_address_width(ADDRESS_WIDTH);
     // rf_set_payload_size(DATA_PIPE_0, PAYLOAD_SIZE);
 
+    uesb_config.protocol            = UESB_PROTOCOL_ESB;
+    uesb_config.bitrate             = UESB_BITRATE_250KBPS;
+    uesb_config.mode                = UESB_MODE_PRX;
+    uesb_config.crc                 = UESB_CRC_16BIT;
+    uesb_config.dynamic_ack_enabled = 0;
+    uesb_config.dynamic_payload_length_enabled = 0;
+    uesb_config.payload_length      = PAYLOAD_SIZE;
+    uesb_config.rf_addr_length      = ADDRESS_WIDTH;
+    uesb_config.rx_pipes_enabled    = 0x01;                              \
+
+    uesb_init(&uesb_config);
+
     restart_packet_receiving();
 
     led_state = LED_STATE_IDLE;
@@ -591,10 +672,16 @@ void init_receiver(void)
 
 
 // ****************************************************************************
-void process_receiver(void)
+void RECEIVER_process(void)
 {
-    process_systick();
-    process_bind_button();
+    static uint32_t next = __SYSTICK_IN_MS;
+
+    if (milliseconds >= next) {
+        next += __SYSTICK_IN_MS;
+        process_systick();
+        process_bind_button();
+    }
+
     process_binding();
     process_receiving();
     process_led();
@@ -602,14 +689,8 @@ void process_receiver(void)
 
 
 // ****************************************************************************
-void rf_interrupt_handler(void)
-{
-    rf_int_fired = true;
-}
+// void rf_interrupt_handler(void)
+// {
+//     rf_int_fired = true;
+// }
 
-
-// ****************************************************************************
-void hop_timer_handler(void)
-{
-    perform_hop_requested = true;
-}

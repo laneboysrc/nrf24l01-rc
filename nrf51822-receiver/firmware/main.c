@@ -11,7 +11,9 @@
 #include <nrf_gpio.h>
 #include <app_uart.h>
 
+#include <rc_receiver.h>
 #include <servo.h>
+
 
 #define SYSTICK_IN_MS (1000/RTC0_CONFIG_FREQUENCY)
 volatile uint32_t milliseconds;
@@ -30,6 +32,8 @@ static void GPIO_init( void )
 {
     nrf_gpio_cfg_output(GPIO_LED);
     nrf_gpio_cfg_output(GPIO_TEST);
+
+    nrf_gpio_cfg_input(GPIO_BIND, NRF_GPIO_PIN_PULLUP);
 
     nrf_gpio_pin_set(GPIO_SERVO_1);
     nrf_gpio_pin_set(GPIO_SERVO_2);
@@ -134,18 +138,6 @@ static void RTC_init(void)
 
 
 // ****************************************************************************
-void LED_blink(void)
-{
-    static uint32_t next = 500;
-
-    if (milliseconds >= next) {
-        next += 500;
-        nrf_gpio_pin_toggle(GPIO_LED);
-    }
-}
-
-
-// ****************************************************************************
 int main(void)
 {
     GPIO_init();
@@ -153,17 +145,14 @@ int main(void)
     RTC_init();
     UART_init();
 
-    while (milliseconds < 1000) {
-        __WFE();
-    }
-
+    RECEIVER_init();
     SERVO_init();
 
     printf("nRF51822 receiver running\n");
 
     while (true) {
         UART_read();
-        LED_blink();
+        RECEIVER_process();
         SERVO_process();
 
         __WFE();

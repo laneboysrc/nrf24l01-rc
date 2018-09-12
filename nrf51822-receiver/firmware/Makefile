@@ -1,4 +1,4 @@
-.DEFAULT_GOAL := all
+.DEFAULT_GOAL := program
 
 PROJECT_NAME := nrf51822-receiver
 

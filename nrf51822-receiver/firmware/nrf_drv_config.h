@@ -6,13 +6,13 @@
 #define GPIO_SERVO_3                23
 #define GPIO_SERVO_4                24
 #define GPIO_SERVO_5                25
-#define GPIO_SERVO_6                16
-#define GPIO_SERVO_7                17
-#define GPIO_SERVO_8                28
+#define GPIO_SERVO_6                28
+#define GPIO_SERVO_7                29
+#define GPIO_SERVO_8                30
 
 #define GPIO_BIND                   16
 
-#define GPIO_TEST                   30
+#define GPIO_TEST                   0
 
 
 #define CLOCK_ENABLED               1
@@ -25,7 +25,7 @@
 
 
 #define RTC0_ENABLED                1
-#define RTC0_CONFIG_FREQUENCY       100
+#define RTC0_CONFIG_FREQUENCY       1000
 #define RTC0_CONFIG_IRQ_PRIORITY    APP_IRQ_PRIORITY_LOW
 #define RTC0_CONFIG_RELIABLE        false
 #define RTC0_INSTANCE_INDEX         0
@@ -56,12 +56,18 @@
 #define GPIOTE_CONFIG_IRQ_PRIORITY  APP_IRQ_PRIORITY_LOW
 #define GPIOTE_CONFIG_NUM_OF_LOW_POWER_EVENTS 0
 
+#define TIMER1_ENABLED             1
+#define TIMER1_CONFIG_FREQUENCY    NRF_TIMER_FREQ_16MHz
+#define TIMER1_CONFIG_MODE         TIMER_MODE_MODE_Timer
+#define TIMER1_CONFIG_BIT_WIDTH    TIMER_BITMODE_BITMODE_16Bit
+#define TIMER1_CONFIG_IRQ_PRIORITY APP_IRQ_PRIORITY_LOW
+#define TIMER1_INSTANCE_INDEX      0
 
 #define TIMER2_ENABLED             1
 #define TIMER2_CONFIG_FREQUENCY    NRF_TIMER_FREQ_16MHz
 #define TIMER2_CONFIG_MODE         TIMER_MODE_MODE_Timer
 #define TIMER2_CONFIG_BIT_WIDTH    TIMER_BITMODE_BITMODE_16Bit
 #define TIMER2_CONFIG_IRQ_PRIORITY APP_IRQ_PRIORITY_LOW
-#define TIMER2_INSTANCE_INDEX      0
+#define TIMER2_INSTANCE_INDEX      1
 
-#define TIMER_COUNT                1
+#define TIMER_COUNT                2

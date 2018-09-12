@@ -43,13 +43,16 @@ the timer at 2 MHz (0.5 us), we need to work in half-us units
 
 #define US_TO_TIMER(x) (x*2)
 
-#define NUMBER_OF_SERVO_BANKS 2
+#define NUMBER_OF_SERVOS_PER_BANK (4)
+#define NUMBER_OF_SERVO_BANKS (2)
+#define NUMBER_OF_SERVOS (NUMBER_OF_SERVOS_PER_BANK*NUMBER_OF_SERVO_BANKS)
 
 #define SERVO_PULSE_PERIOD (US_TO_TIMER(16000)/NUMBER_OF_SERVO_BANKS)
 #define SERVO_PULSE_MIN (US_TO_TIMER(600))
 #define SERVO_PULSE_CENTER (US_TO_TIMER(1500))
 #define SERVO_PULSE_MAX (US_TO_TIMER(2400))
 
+// We are using TIMER2 for the servo pulse timer
 static const nrf_drv_timer_t pwm_timer = NRF_DRV_TIMER_INSTANCE(2);
 
 extern volatile uint32_t milliseconds;
@@ -57,12 +60,12 @@ extern volatile uint32_t milliseconds;
 static uint8_t state;
 static nrf_ppi_channel_t ppi_channels[4];
 
-static uint16_t servo[4] = {US_TO_TIMER(1500), US_TO_TIMER(1200), US_TO_TIMER(1700), US_TO_TIMER(2000)};
+static uint16_t servo[NUMBER_OF_SERVOS] = {US_TO_TIMER(1500), US_TO_TIMER(1200), US_TO_TIMER(1700), US_TO_TIMER(2000)};
 
 static const uint8_t cc_channels[] = {NRF_TIMER_CC_CHANNEL0, NRF_TIMER_CC_CHANNEL1, NRF_TIMER_CC_CHANNEL2, NRF_TIMER_CC_CHANNEL3};
 
 static uint8_t servo_bank_select = 0;
-static const uint32_t servo_banks[NUMBER_OF_SERVO_BANKS][4] = {
+static const uint32_t servo_banks[NUMBER_OF_SERVO_BANKS][NUMBER_OF_SERVOS_PER_BANK] = {
     {GPIO_SERVO_1, GPIO_SERVO_2, GPIO_SERVO_3, GPIO_SERVO_4},
     {GPIO_SERVO_5, GPIO_SERVO_6, GPIO_SERVO_7, GPIO_SERVO_8},
 };
@@ -227,6 +230,10 @@ void SERVO_set(uint8_t index, uint16_t value_12bit)
 {
     uint32_t half_us;
 
+    if (index >= NUMBER_OF_SERVOS) {
+        return;
+    }
+
     // Optimized form of
     // half_us = 2 * (600 + (value * 1800 / 4096))
     half_us = 1200 + (((uint32_t)value_12bit * 225) >> 8);
@@ -245,6 +252,10 @@ void SERVO_process(void)
             SERVO_set(1, 0xfff);
             SERVO_set(2, 0x800);
             SERVO_set(3, 0xa00);
+            SERVO_set(4, 0x800);
+            SERVO_set(5, 0xe00);
+            SERVO_set(6, 0x500);
+            SERVO_set(7, 0x200);
         }
         SERVO_start();
     }
@@ -252,11 +263,11 @@ void SERVO_process(void)
 
     if (milliseconds >= next) {
         int i;
-        static bool up[4] = {true, false, true, false};
+        static bool up[NUMBER_OF_SERVOS] = {true, false, true, false, true, true, false, true};
 
         next += 5;
 
-        for (i = 0; i < 4; i++) {
+        for (i = 0; i < NUMBER_OF_SERVOS; i++) {
             if (up[i]) {
                 if (servo[i] < US_TO_TIMER(2000)) {
                     ++servo[i];
