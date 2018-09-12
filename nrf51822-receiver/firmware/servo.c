@@ -253,37 +253,37 @@ void SERVO_set(uint8_t index, uint32_t pulse_ns)
 // ****************************************************************************
 void SERVO_process(void)
 {
-    static uint32_t next = 1000;
+    // static uint32_t next = 1000;
 
-    if (milliseconds >= next) {
-        int i;
-        static uint32_t servo_us[NUMBER_OF_SERVOS] = {1500, 1000, 2000, 600, 2400, 1300, 1600, 1600};
-        static bool up[NUMBER_OF_SERVOS] = {true, false, true, false, true, true, false, true};
+    // if (milliseconds >= next) {
+    //     int i;
+    //     static uint32_t servo_us[NUMBER_OF_SERVOS] = {1500, 1000, 2000, 600, 2400, 1300, 1600, 1600};
+    //     static bool up[NUMBER_OF_SERVOS] = {true, false, true, false, true, true, false, true};
 
-        next += 5;
+    //     next += 5;
 
-        for (i = 0; i < NUMBER_OF_SERVOS; i++) {
-            if (up[i]) {
-                if (servo_us[i] < 2000) {
-                    ++servo_us[i];
-                }
-                else {
-                    up[i] = false;
-                    --servo_us[i];
-                }
-            }
-            else {
-                if (servo_us[i] > 1000) {
-                    --servo_us[i];
-                }
-                else {
-                    up[i] = true;
-                    ++servo_us[i];
-                }
-            }
+    //     for (i = 0; i < NUMBER_OF_SERVOS; i++) {
+    //         if (up[i]) {
+    //             if (servo_us[i] < 2000) {
+    //                 ++servo_us[i];
+    //             }
+    //             else {
+    //                 up[i] = false;
+    //                 --servo_us[i];
+    //             }
+    //         }
+    //         else {
+    //             if (servo_us[i] > 1000) {
+    //                 --servo_us[i];
+    //             }
+    //             else {
+    //                 up[i] = true;
+    //                 ++servo_us[i];
+    //             }
+    //         }
 
-            SERVO_set(i, servo_us[i] * 1000);
-        }
-    }
+    //         SERVO_set(i, servo_us[i] * 1000);
+    //     }
+    // }
 }
 

@@ -10,6 +10,7 @@
 #include <app_util_platform.h>
 
 #include <rc_receiver.h>
+#include <servo.h>
 #include <persistent_storage.h>
 
 
@@ -17,7 +18,7 @@ extern volatile uint32_t milliseconds;
 
 
 #define __SYSTICK_IN_MS 10
-#define SERVO_PULSE_CENTER 2048     // Half value of 12 bit
+#define SERVO_PULSE_CENTER_NS (1500 * 1000)
 
 #define NUMBER_OF_CHANNELS 8
 
@@ -51,7 +52,7 @@ extern volatile uint32_t milliseconds;
 
 
 
-uint16_t channels[NUMBER_OF_CHANNELS];
+uint32_t channels[NUMBER_OF_CHANNELS];
 uint16_t raw_data[2];
 bool successful_stick_data = false;
 
@@ -65,7 +66,7 @@ static unsigned int blink_timer;
 static uesb_payload_t payload;
 
 static uint8_t failsafe_enabled;
-static uint16_t failsafe[NUMBER_OF_CHANNELS];
+static uint32_t failsafe[NUMBER_OF_CHANNELS];
 static unsigned int failsafe_timer;
 
 static uint8_t model_address[ADDRESS_WIDTH];
@@ -107,7 +108,7 @@ static void initialize_failsafe(void) {
     failsafe_enabled = false;
     failsafe_timer = FAILSAFE_TIMEOUT;
     for (i = 0; i < NUMBER_OF_CHANNELS; i++) {
-        failsafe[i] = SERVO_PULSE_CENTER;
+        failsafe[i] = SERVO_PULSE_CENTER_NS;
     }
 }
 
@@ -115,22 +116,23 @@ static void initialize_failsafe(void) {
 // ****************************************************************************
 static void output_pulses(void)
 {
-    // int i;
+    int i;
 
-    // for (i = 0; i < NUMBER_OF_CHANNELS; i++) {
-    //     LPC_SCT->MATCHREL[i + 1].H = channels[i];
-    // }
+    for (i = 0; i < NUMBER_OF_CHANNELS; i++) {
+        // LPC_SCT->MATCHREL[i + 1].H = channels[i];
+        SERVO_set(i, channels[i]);
+    }
 }
 
 
 // ****************************************************************************
-static uint16_t stickdata2ms(uint16_t stickdata)
+static uint32_t stickdata2ns(uint16_t stickdata)
 {
-    uint32_t ms;
+    uint32_t ns;
 
-    // ms = (0xffff - stickdata) * 3 / 4;
-    ms = (0xffff - stickdata);
-    return ms & 0xffff;
+    ns = (0xffff - stickdata) * 3 / 4;
+    // ms = (0xffff - stickdata);
+    return ns;
 }
 
 
@@ -506,10 +508,10 @@ static void process_receiving(void)
     // ================================
     // payload[7] is 0x55 for stick data
     if (payload.data[7] == stickdata_packetid) {   // Stick data
-        channels[0] = stickdata2ms((payload.data[1] << 8) + payload.data[0]);
-        channels[1] = stickdata2ms((payload.data[3] << 8) + payload.data[2]);
-        channels[2] = stickdata2ms((payload.data[5] << 8) + payload.data[4]);
-        channels[3] = stickdata2ms((payload.data[9] << 8) + payload.data[6]);
+        channels[0] = stickdata2ns((payload.data[1] << 8) + payload.data[0]);
+        channels[1] = stickdata2ns((payload.data[3] << 8) + payload.data[2]);
+        channels[2] = stickdata2ns((payload.data[5] << 8) + payload.data[4]);
+        channels[3] = stickdata2ns((payload.data[9] << 8) + payload.data[6]);
         output_pulses();
 
         // Save raw received data for the pre-processor to output, so someone
@@ -537,10 +539,10 @@ static void process_receiving(void)
         // payload[8]: 0x5a if enabled, 0x5b if disabled
         if (payload.data[8] == 0x5a) {
             failsafe_enabled = true;
-            failsafe[0] = stickdata2ms((payload.data[1] << 8) + payload.data[0]);
-            failsafe[1] = stickdata2ms((payload.data[3] << 8) + payload.data[2]);
-            failsafe[2] = stickdata2ms((payload.data[5] << 8) + payload.data[4]);
-            failsafe[3] = stickdata2ms((payload.data[9] << 8) + payload.data[6]);
+            failsafe[0] = stickdata2ns((payload.data[1] << 8) + payload.data[0]);
+            failsafe[1] = stickdata2ns((payload.data[3] << 8) + payload.data[2]);
+            failsafe[2] = stickdata2ns((payload.data[5] << 8) + payload.data[4]);
+            failsafe[3] = stickdata2ns((payload.data[9] << 8) + payload.data[6]);
         }
         else {
             // If failsafe is disabled use default values of 1500ms, just
