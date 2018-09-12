@@ -3,6 +3,8 @@
 SEARCH_DIR(.)
 GROUP(-lgcc -lc -lnosys)
 
+page_size = 1024;
+
 MEMORY
 {
     FLASH (rx)  : ORIGIN = 0x0,        LENGTH = 128k
@@ -20,3 +22,12 @@ SECTIONS
 }
 
 INCLUDE "nrf5x_common.ld"
+
+SECTIONS
+{
+    /* Use the top-most page in flash to store the persistent data */
+    .persistent_data (ORIGIN(FLASH) + LENGTH(FLASH) - page_size) :
+    {
+        KEEP(*(.persistent_data))
+    } > FLASH
+}
