@@ -1,4 +1,4 @@
-.DEFAULT_GOAL := program
+.DEFAULT_GOAL := all
 
 PROJECT_NAME := nrf51822-receiver
 
@@ -42,17 +42,13 @@ C_SOURCE_FILES += $(abspath $(NRF_SDK_PATH)/components/libraries/fifo/app_fifo.c
 C_SOURCE_FILES += $(abspath $(NRF_SDK_PATH)/components/libraries/uart/app_uart_fifo.c)
 C_SOURCE_FILES += $(abspath $(NRF_SDK_PATH)/components/libraries/uart/retarget.c)
 C_SOURCE_FILES += $(abspath $(NRF_SDK_PATH)/components/libraries/util/app_util_platform.c)
-C_SOURCE_FILES += $(abspath $(NRF_SDK_PATH)/components/properitary_rf/esb/nrf_esb.c)
 C_SOURCE_FILES += $(abspath $(NRF_SDK_PATH)/components/toolchain/system_nrf51.c)
-
-
 
 ASM_SOURCE_FILES = $(abspath $(NRF_SDK_PATH)/components/toolchain/gcc/gcc_startup_nrf51.s)
 
 INC_PATHS += -I$(abspath .)
 INC_PATHS += -I$(abspath $(NRF_SDK_PATH)/components/device)
 INC_PATHS += -I$(abspath $(NRF_SDK_PATH)/components/drivers_nrf/common)
-INC_PATHS += -I$(abspath $(NRF_SDK_PATH)/components/drivers_nrf/delay)
 INC_PATHS += -I$(abspath $(NRF_SDK_PATH)/components/drivers_nrf/hal)
 INC_PATHS += -I$(abspath $(NRF_SDK_PATH)/components/drivers_nrf/clock)
 INC_PATHS += -I$(abspath $(NRF_SDK_PATH)/components/drivers_nrf/nrf_soc_nosd)
@@ -64,7 +60,6 @@ INC_PATHS += -I$(abspath $(NRF_SDK_PATH)/components/drivers_nrf/timer)
 INC_PATHS += -I$(abspath $(NRF_SDK_PATH)/components/libraries/fifo)
 INC_PATHS += -I$(abspath $(NRF_SDK_PATH)/components/libraries/uart)
 INC_PATHS += -I$(abspath $(NRF_SDK_PATH)/components/libraries/util)
-INC_PATHS += -I$(abspath $(NRF_SDK_PATH)/components/properitary_rf/esb)
 INC_PATHS += -I$(abspath $(NRF_SDK_PATH)/components/toolchain)
 INC_PATHS += -I$(abspath $(NRF_SDK_PATH)/components/toolchain/CMSIS/Include)
 
