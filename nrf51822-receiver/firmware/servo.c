@@ -55,22 +55,23 @@ the timer at 2 MHz (0.5 us), we need to work in half-us units
 // We are using TIMER0 for the servo pulse timer
 static const nrf_drv_timer_t pwm_timer = NRF_DRV_TIMER_INSTANCE(0);
 
-extern volatile uint32_t milliseconds;
-
-static uint8_t state;
 static nrf_ppi_channel_t ppi_channels[4];
 
-static uint16_t servo[NUMBER_OF_SERVOS] = {US_TO_TIMER(1500), US_TO_TIMER(1200), US_TO_TIMER(1700), US_TO_TIMER(2000)};
+static bool running = false;
+static uint8_t state;
 
 static const uint8_t cc_channels[] = {NRF_TIMER_CC_CHANNEL0, NRF_TIMER_CC_CHANNEL1, NRF_TIMER_CC_CHANNEL2, NRF_TIMER_CC_CHANNEL3};
 
-static uint8_t servo_bank_select = 0;
-static const uint32_t servo_banks[NUMBER_OF_SERVO_BANKS][NUMBER_OF_SERVOS_PER_BANK] = {
+static uint8_t servo_bank = 0;
+static const uint32_t servo_gpio[NUMBER_OF_SERVO_BANKS][NUMBER_OF_SERVOS_PER_BANK] = {
     {GPIO_SERVO_1, GPIO_SERVO_2, GPIO_SERVO_3, GPIO_SERVO_4},
     {GPIO_SERVO_5, GPIO_SERVO_6, GPIO_SERVO_7, GPIO_SERVO_8},
 };
+static uint16_t servo_timer_value[NUMBER_OF_SERVOS];
 
-static bool running = false;
+
+extern volatile uint32_t milliseconds;
+
 
 
 // ****************************************************************************
@@ -137,13 +138,16 @@ swap between different ports, causing glitches on the pins.
 static void pwm_timer_handler(nrf_timer_event_t event_type, void * p_context)
 {
     switch (state) {
-        case 1:
-            nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL0, servo[0], 0, true);
-            nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL1, servo[1], 0, false);
-            nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL2, servo[2], 0, false);
-            nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL3, servo[3], 0, false);
+        case 1: {
+            uint8_t offset = servo_bank * NUMBER_OF_SERVOS_PER_BANK;
+
+            nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL0, servo_timer_value[offset + 0], 0, true);
+            nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL1, servo_timer_value[offset + 1], 0, false);
+            nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL2, servo_timer_value[offset + 2], 0, false);
+            nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL3, servo_timer_value[offset + 3], 0, false);
             state = 2;
             break;
+        }
 
         case 2:
             nrf_drv_timer_extended_compare(&pwm_timer, NRF_TIMER_CC_CHANNEL0, SERVO_PULSE_MAX + 1000, 0, true);
@@ -153,10 +157,10 @@ static void pwm_timer_handler(nrf_timer_event_t event_type, void * p_context)
 
         case 3:
         default:
-            servo_bank_select = (servo_bank_select + 1) % NUMBER_OF_SERVO_BANKS;
+            servo_bank = (servo_bank + 1) % NUMBER_OF_SERVO_BANKS;
 
             for (int i = 0; i < 4; i++) {
-                nrf_gpiote_task_configure(i, servo_banks[servo_bank_select][i], NRF_GPIOTE_POLARITY_TOGGLE, 0) ;
+                nrf_gpiote_task_configure(i, servo_gpio[servo_bank][i], NRF_GPIOTE_POLARITY_TOGGLE, 0) ;
                 nrf_gpiote_task_enable(i);
             }
 
@@ -183,18 +187,11 @@ void SERVO_init(void)
         .p_context          = NULL,
     };
 
-    nrf_drv_ppi_init();
-
-    for (int i = 0; i < 4; i++) {
-        nrf_gpiote_task_configure(i, servo_banks[servo_bank_select][i], NRF_GPIOTE_POLARITY_TOGGLE, 0) ;
-        nrf_gpiote_task_enable(i);
-
-        nrf_drv_ppi_channel_alloc(&ppi_channels[i]);
-        nrf_drv_ppi_channel_assign(ppi_channels[i],
-            nrf_drv_timer_compare_event_address_get(&pwm_timer, cc_channels[i]),
-            nrf_gpiote_task_addr_get(NRF_GPIOTE_TASKS_OUT_0 + (sizeof(uint32_t) * i)));
-        nrf_drv_ppi_channel_enable(ppi_channels[i]);
+    for (int i = 0; i < NUMBER_OF_SERVOS; i++) {
+        servo_timer_value[i] = US_TO_TIMER(1500);
     }
+
+    nrf_drv_ppi_init();
 
     nrf_drv_timer_init(&pwm_timer, &timer_config, pwm_timer_handler);
     nrf_drv_timer_clear(&pwm_timer);
@@ -215,77 +212,77 @@ void SERVO_start(void)
 
     running = true;
 
-    nrf_drv_timer_enable(&pwm_timer);
-    state = 1;
+    for (int i = 0; i < NUMBER_OF_SERVOS_PER_BANK; i++) {
+        nrf_gpio_pin_clear(servo_gpio[0][i]);
+        nrf_gpio_pin_clear(servo_gpio[1][i]);
+    }
 
     for (int i = 0; i < 4; i++) {
-        nrf_gpio_pin_clear(servo_banks[0][i]);
-        nrf_gpio_pin_clear(servo_banks[1][i]);
+        nrf_gpiote_task_configure(i, servo_gpio[servo_bank][i], NRF_GPIOTE_POLARITY_TOGGLE, 0) ;
+        nrf_gpiote_task_enable(i);
+
+        nrf_drv_ppi_channel_alloc(&ppi_channels[i]);
+        nrf_drv_ppi_channel_assign(ppi_channels[i],
+            nrf_drv_timer_compare_event_address_get(&pwm_timer, cc_channels[i]),
+            nrf_gpiote_task_addr_get(NRF_GPIOTE_TASKS_OUT_0 + (sizeof(uint32_t) * i)));
+        nrf_drv_ppi_channel_enable(ppi_channels[i]);
     }
+
+    nrf_drv_timer_enable(&pwm_timer);
+    state = 1;
 }
 
 
 // ****************************************************************************
-void SERVO_set(uint8_t index, uint16_t value_12bit)
+void SERVO_set(uint8_t index, uint32_t pulse_ns)
 {
-    uint32_t half_us;
-
     if (index >= NUMBER_OF_SERVOS) {
         return;
     }
 
-    // Optimized form of
-    // half_us = 2 * (600 + (value * 1800 / 4096))
-    half_us = 1200 + (((uint32_t)value_12bit * 225) >> 8);
-    servo[index] = half_us;
+    // Since the servo pulse timer runs at 2 MHz (500ns), we have to devide
+    // the incoming nanosecond pulse value by 500.
+    servo_timer_value[index] = pulse_ns / 500;
+
+    if (!running) {
+        SERVO_start();
+    }
 }
 
 
 // ****************************************************************************
 void SERVO_process(void)
 {
-    static uint32_t next = 50;
-
-    if (milliseconds > 1000) {
-        if (!running) {
-            SERVO_set(0, 0);
-            SERVO_set(1, 0xfff);
-            SERVO_set(2, 0x800);
-            SERVO_set(3, 0xa00);
-            SERVO_set(4, 0x800);
-            SERVO_set(5, 0xe00);
-            SERVO_set(6, 0x500);
-            SERVO_set(7, 0x200);
-        }
-        SERVO_start();
-    }
-
+    static uint32_t next = 1000;
 
     if (milliseconds >= next) {
         int i;
+        static uint32_t servo_us[NUMBER_OF_SERVOS] = {1500, 1000, 2000, 600, 2400, 1300, 1600, 1600};
         static bool up[NUMBER_OF_SERVOS] = {true, false, true, false, true, true, false, true};
 
         next += 5;
 
         for (i = 0; i < NUMBER_OF_SERVOS; i++) {
             if (up[i]) {
-                if (servo[i] < US_TO_TIMER(2000)) {
-                    ++servo[i];
+                if (servo_us[i] < 2000) {
+                    ++servo_us[i];
                 }
                 else {
                     up[i] = false;
-                    --servo[i];
+                    --servo_us[i];
                 }
             }
             else {
-                if (servo[i] > US_TO_TIMER(1000)) {
-                    --servo[i];
+                if (servo_us[i] > 1000) {
+                    --servo_us[i];
                 }
                 else {
                     up[i] = true;
-                    ++servo[i];
+                    ++servo_us[i];
                 }
             }
+
+            SERVO_set(i, servo_us[i] * 1000);
         }
     }
 }
