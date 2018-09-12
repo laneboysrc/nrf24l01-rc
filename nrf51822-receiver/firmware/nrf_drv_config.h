@@ -10,7 +10,7 @@
 #define GPIO_SERVO_7                17
 #define GPIO_SERVO_8                28
 
-#define GPIO_BIND_BUTTON            16
+#define GPIO_BIND                   16
 
 #define GPIO_TEST                   30
 
@@ -21,11 +21,11 @@
 #define CLOCK_CONFIG_IRQ_PRIORITY   APP_IRQ_PRIORITY_LOW
 
 
-#define NRF_MAXIMUM_LATENCY_US      2000
+#define NRF_MAXIMUM_LATENCY_US      1000
 
 
 #define RTC0_ENABLED                1
-#define RTC0_CONFIG_FREQUENCY       1000
+#define RTC0_CONFIG_FREQUENCY       100
 #define RTC0_CONFIG_IRQ_PRIORITY    APP_IRQ_PRIORITY_LOW
 #define RTC0_CONFIG_RELIABLE        false
 #define RTC0_INSTANCE_INDEX         0

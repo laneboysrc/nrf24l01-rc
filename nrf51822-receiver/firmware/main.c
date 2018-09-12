@@ -13,7 +13,7 @@
 
 #include <servo.h>
 
-#define SYSTICK_IN_MS 1
+#define SYSTICK_IN_MS (1000/RTC0_CONFIG_FREQUENCY)
 volatile uint32_t milliseconds;
 
 

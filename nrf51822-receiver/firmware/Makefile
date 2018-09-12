@@ -31,6 +31,8 @@ RM 					:= rm -rf
 
 
 C_SOURCE_FILES  = $(abspath main.c)
+C_SOURCE_FILES += $(abspath persistent_storage.c)
+C_SOURCE_FILES += $(abspath rc_receiver.c)
 C_SOURCE_FILES += $(abspath servo.c)
 C_SOURCE_FILES += $(abspath vendor/nrf51-micro-esb/common/micro_esb.c)
 C_SOURCE_FILES += $(abspath $(NRF_SDK_PATH)/components/drivers_nrf/clock/nrf_drv_clock.c)
