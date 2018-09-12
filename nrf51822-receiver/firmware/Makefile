@@ -32,6 +32,7 @@ RM 					:= rm -rf
 
 C_SOURCE_FILES  = $(abspath main.c)
 C_SOURCE_FILES += $(abspath servo.c)
+C_SOURCE_FILES += $(abspath vendor/nrf51-micro-esb/common/micro_esb.c)
 C_SOURCE_FILES += $(abspath $(NRF_SDK_PATH)/components/drivers_nrf/clock/nrf_drv_clock.c)
 C_SOURCE_FILES += $(abspath $(NRF_SDK_PATH)/components/drivers_nrf/common/nrf_drv_common.c)
 C_SOURCE_FILES += $(abspath $(NRF_SDK_PATH)/components/drivers_nrf/ppi/nrf_drv_ppi.c)
@@ -62,6 +63,7 @@ INC_PATHS += -I$(abspath $(NRF_SDK_PATH)/components/libraries/uart)
 INC_PATHS += -I$(abspath $(NRF_SDK_PATH)/components/libraries/util)
 INC_PATHS += -I$(abspath $(NRF_SDK_PATH)/components/toolchain)
 INC_PATHS += -I$(abspath $(NRF_SDK_PATH)/components/toolchain/CMSIS/Include)
+INC_PATHS += -I$(abspath vendor/nrf51-micro-esb/common)
 
 OBJECT_DIRECTORY = _build
 LISTING_DIRECTORY = $(OBJECT_DIRECTORY)
