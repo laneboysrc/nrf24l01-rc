@@ -52,8 +52,8 @@ the timer at 2 MHz (0.5 us), we need to work in half-us units
 #define SERVO_PULSE_CENTER (US_TO_TIMER(1500))
 #define SERVO_PULSE_MAX (US_TO_TIMER(2400))
 
-// We are using TIMER2 for the servo pulse timer
-static const nrf_drv_timer_t pwm_timer = NRF_DRV_TIMER_INSTANCE(2);
+// We are using TIMER0 for the servo pulse timer
+static const nrf_drv_timer_t pwm_timer = NRF_DRV_TIMER_INSTANCE(0);
 
 extern volatile uint32_t milliseconds;
 
