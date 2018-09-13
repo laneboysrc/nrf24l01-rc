@@ -146,14 +146,14 @@ int main(void)
     UART_init();
 
     RECEIVER_init();
-    SERVO_init();
+    // SERVO_init();
 
     printf("nRF51822 receiver running\n");
 
     while (true) {
         UART_read();
         RECEIVER_process();
-        SERVO_process();
+        // SERVO_process();
 
         __WFE();
     }

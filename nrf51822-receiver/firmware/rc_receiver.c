@@ -5,9 +5,10 @@
 #include <nrf_drv_config.h>
 #include <nrf_gpio.h>
 #include <nrf_drv_timer.h>
+#include <app_util_platform.h>
+
 #include <micro_esb.h>
 #include <uesb_error_codes.h>
-#include <app_util_platform.h>
 
 #include <rc_receiver.h>
 #include <servo.h>
@@ -79,7 +80,9 @@ static bool binding_requested = false;
 static bool binding = false;
 static unsigned int bind_timer;
 static const uint8_t BIND_CHANNEL = 0x51;
-static const uint8_t BIND_ADDRESS[ADDRESS_WIDTH] = {0x12, 0x23, 0x23, 0x45, 0x78};
+// static const uint8_t BIND_ADDRESS[ADDRESS_WIDTH] = {0x78, 0x12, 0x23, 0x23, 0x45};
+// static const uint8_t BIND_ADDRESS[ADDRESS_WIDTH] = {0x78, 0x45, 0x23, 0x23, 0x12};
+// static const uint8_t BIND_ADDRESS[ADDRESS_WIDTH] = {0x12, 0x23, 0x23, 0x45, 0x78};
 static uint8_t bind_storage_area[NUMBER_OF_PERSISTENT_ELEMENTS] __attribute__ ((aligned (4)));
 #define PROTOCOLID_INDEX (sizeof(bind_storage_area)-1)
 
@@ -208,11 +211,13 @@ static void restart_packet_receiving(void)
     hops_without_packet = 0;
     perform_hop_requested = false;
 
-    uesb_stop_rx();
-    uesb_set_address(UESB_ADDRESS_PIPE0, model_address);
-    uesb_set_rf_channel(hop_data[0]);
-    uesb_flush_rx();
-    uesb_start_rx();
+    // uesb_stop_rx();
+    // uesb_set_address(UESB_ADDRESS_PIPE0, model_address);
+    // uesb_set_rf_channel(hop_data[0]);
+    // uesb_set_address(UESB_ADDRESS_PIPE0, BIND_ADDRESS);
+    // uesb_set_rf_channel(BIND_CHANNEL);
+    // uesb_flush_rx();
+    // uesb_start_rx();
 
     // rf_clear_ce();
     // rf_set_rx_address(DATA_PIPE_0, ADDRESS_WIDTH, model_address);
@@ -283,7 +288,7 @@ static void binding_done(void)
 // ..           Not used
 //
 // ****************************************************************************
-static void process_binding(void)
+void process_binding(void)
 {
     static unsigned int bind_state;
     static uint16_t checksum;
@@ -312,13 +317,13 @@ static void process_binding(void)
         // rf_set_channel(BIND_CHANNEL);
         // rf_set_ce();
 
-        uesb_stop_rx();
+        // uesb_stop_rx();
         // Set special address 12h 23h 23h 45h 78h
-        uesb_set_address(UESB_ADDRESS_PIPE0, BIND_ADDRESS);
+        // uesb_set_address(UESB_ADDRESS_PIPE0, BIND_ADDRESS);
         // Set special channel 0x51
-        uesb_set_rf_channel(BIND_CHANNEL);
-        uesb_flush_rx();
-        uesb_start_rx();
+        // uesb_set_rf_channel(BIND_CHANNEL);
+        // uesb_flush_rx();
+        // uesb_start_rx();
 
         return;
     }
@@ -345,11 +350,11 @@ static void process_binding(void)
     // }
     // rf_clear_irq(RX_RD);
 
-    if (uesb_read_rx_payload(&payload) != UESB_SUCCESS) {
+    // if (uesb_read_rx_payload(&payload) != UESB_SUCCESS) {
         return;
-    }
+    // }
     // Flush if more than one packet is pending, use the latest
-    while (uesb_read_rx_payload(&payload) == UESB_SUCCESS);
+    // while (uesb_read_rx_payload(&payload) == UESB_SUCCESS);
 
     print_payload();
 
@@ -429,7 +434,7 @@ static void process_binding(void)
 
 
 // ****************************************************************************
-static void process_receiving(void)
+void process_receiving(void)
 {
     // ================================
     if (binding) {
@@ -472,9 +477,9 @@ static void process_receiving(void)
             // rf_set_channel(hop_data[hop_index]);
             // rf_set_ce();
 
-            uesb_stop_rx();
-            uesb_set_rf_channel(hop_data[hop_index]);
-            uesb_start_rx();
+            // uesb_stop_rx();
+            // uesb_set_rf_channel(hop_data[hop_index]);
+            // uesb_start_rx();
         }
     }
 
@@ -490,11 +495,11 @@ static void process_receiving(void)
     // }
     // rf_clear_irq(RX_RD);
 
-    if (uesb_read_rx_payload(&payload) != UESB_SUCCESS) {
+    // if (uesb_read_rx_payload(&payload) != UESB_SUCCESS) {
         return;
-    }
+    // }
 
-    while (uesb_read_rx_payload(&payload) == UESB_SUCCESS);
+    // while (uesb_read_rx_payload(&payload) == UESB_SUCCESS);
 
 #ifndef NO_DEBUG
     if (hops_without_packet > 1) {
@@ -642,12 +647,55 @@ static void hop_timer_handler(nrf_timer_event_t event_type, void * p_context)
 }
 
 
+
+// ****************************************************************************
+// Callback for the micro ESB stack
+void rf_event_handler(void)
+{
+    static uint32_t rf_interrupts;
+
+    uesb_get_clear_interrupts(&rf_interrupts);
+
+    if(rf_interrupts & UESB_INT_TX_SUCCESS_MSK) {
+        printf("TX SUCCESS EVENT\n");
+    }
+
+    if(rf_interrupts & UESB_INT_TX_FAILED_MSK) {
+        printf("TX FAILED EVENT\n");
+    }
+
+    if(rf_interrupts & UESB_INT_RX_DR_MSK) {
+        uesb_read_rx_payload(&payload);
+        printf("RX RECEIVED EVENT length=%d pipe=%d, rssi=%d data=", payload.length, payload.pipe, payload.rssi);
+        for (int i = 0; i < payload.length; i++) {
+            printf("%02x ", payload.data[i]);
+        }
+        printf("\n");
+    }
+}
+
 // ****************************************************************************
 void RECEIVER_init(void)
 {
-    uesb_config_t uesb_config = UESB_DEFAULT_CONFIG;
 
-    nrf_drv_timer_config_t timer_config  = {
+    uesb_config_t uesb_config = {
+        .bitrate               = UESB_BITRATE_250KBPS,
+        .crc                   = UESB_CRC_16BIT,
+        .dynamic_ack_enabled   = 0,
+        .dynamic_payload_length_enabled = 0,
+        .event_handler         = rf_event_handler,
+        .mode                  = UESB_MODE_PRX,
+        .payload_length        = PAYLOAD_SIZE,
+        .protocol              = UESB_PROTOCOL_SB,
+        .radio_irq_priority    = 1,
+        .rf_addr_length        = ADDRESS_WIDTH,
+        .rf_channel            = BIND_CHANNEL,
+        .rx_address_p0         = {0x12, 0x23, 0x23, 0x45, 0x78},
+        .rx_address_p1         = {0x78, 0x45, 0x23, 0x23, 0x12},
+        .rx_pipes_enabled      = 0x03,
+    };
+
+    const nrf_drv_timer_config_t timer_config  = {
         .frequency          = NRF_TIMER_FREQ_1MHz,
         .mode               = NRF_TIMER_MODE_TIMER,
         .bit_width          = NRF_TIMER_BIT_WIDTH_16,
@@ -673,19 +721,13 @@ void RECEIVER_init(void)
     // rf_set_address_width(ADDRESS_WIDTH);
     // rf_set_payload_size(DATA_PIPE_0, PAYLOAD_SIZE);
 
-    uesb_config.protocol            = UESB_PROTOCOL_ESB;
-    uesb_config.bitrate             = UESB_BITRATE_250KBPS;
-    uesb_config.mode                = UESB_MODE_PRX;
-    uesb_config.crc                 = UESB_CRC_16BIT;
-    uesb_config.dynamic_ack_enabled = 0;
-    uesb_config.dynamic_payload_length_enabled = 0;
-    uesb_config.payload_length      = PAYLOAD_SIZE;
-    uesb_config.rf_addr_length      = ADDRESS_WIDTH;
-    uesb_config.rx_pipes_enabled    = 0x01;                              \
+
 
     uesb_init(&uesb_config);
+    uesb_start_rx();
 
-    restart_packet_receiving();
+
+    // restart_packet_receiving();
 
     led_state = LED_STATE_IDLE;
 }
@@ -695,15 +737,23 @@ void RECEIVER_init(void)
 void RECEIVER_process(void)
 {
     static uint32_t next = __SYSTICK_IN_MS;
+    static uint8_t channel = 0;
 
     if (milliseconds >= next) {
-        next += __SYSTICK_IN_MS;
+        // next += __SYSTICK_IN_MS;
+        next += 100;
         process_systick();
         process_bind_button();
+
+        uesb_stop_rx();
+        uesb_set_rf_channel(channel);
+        channel = (channel + 1) % 250;
+        uesb_start_rx();
+        printf("ch=%d\n", channel);
     }
 
-    process_binding();
-    process_receiving();
+    // process_binding();
+    // process_receiving();
     process_led();
 }
 
