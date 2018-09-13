@@ -70,11 +70,11 @@ static void UART_init(void)
 // ****************************************************************************
 static void UART_read()
 {
-    uint8_t byte;
     static uint8_t stream[5];
+    static uint8_t byte;
 
     while (app_uart_get(&byte) == NRF_SUCCESS) {
-        uint8_t last_index = sizeof(stream) - 1;
+        const uint8_t last_index = sizeof(stream) - 1;
 
         for (int i = 0; i < last_index; i++) {
             stream[i] = stream[i+1];
