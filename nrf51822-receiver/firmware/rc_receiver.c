@@ -686,7 +686,7 @@ void RECEIVER_init(void)
         .event_handler         = rf_event_handler,
         .mode                  = UESB_MODE_PRX,
         .payload_length        = PAYLOAD_SIZE,
-        .protocol              = UESB_PROTOCOL_SB,
+        .protocol              = UESB_PROTOCOL_ESB,
         .radio_irq_priority    = 1,
         .rf_addr_length        = ADDRESS_WIDTH,
         .rf_channel            = BIND_CHANNEL,
@@ -737,19 +737,11 @@ void RECEIVER_init(void)
 void RECEIVER_process(void)
 {
     static uint32_t next = __SYSTICK_IN_MS;
-    static uint8_t channel = 0;
 
     if (milliseconds >= next) {
-        // next += __SYSTICK_IN_MS;
-        next += 100;
+        next += __SYSTICK_IN_MS;
         process_systick();
         process_bind_button();
-
-        uesb_stop_rx();
-        uesb_set_rf_channel(channel);
-        channel = (channel + 1) % 250;
-        uesb_start_rx();
-        printf("ch=%d\n", channel);
     }
 
     // process_binding();

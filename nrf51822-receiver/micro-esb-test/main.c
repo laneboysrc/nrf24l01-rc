@@ -152,12 +152,12 @@ static void TX_init(void)
         .event_handler         = rf_event_handler,
         .mode                  = UESB_MODE_PTX,
         .payload_length        = PAYLOAD_SIZE,
-        .protocol              = UESB_PROTOCOL_SB,
+        .protocol              = UESB_PROTOCOL_ESB,
         .radio_irq_priority    = 1,
         .rf_addr_length        = ADDRESS_WIDTH,
         .rf_channel            = BIND_CHANNEL,
-        .rx_address_p0         = {0x12, 0x23, 0x23, 0x45, 0x78},
-        .rx_pipes_enabled      = 0x01,
+        .tx_address            = {0x12, 0x23, 0x23, 0x45, 0x78},
+        .rx_pipes_enabled      = 0,
         .tx_mode               = UESB_TXMODE_AUTO,                 \
     };
 
@@ -174,6 +174,7 @@ static void TX_send(void)
     uint32_t ret;
 
     memcpy(payload.data, "Hello!", 6);
+    uesb_flush_tx();
     ret = uesb_write_tx_payload(&payload);
     if (ret != NRF_SUCCESS) {
         printf("uesb_write_tx_payload failed ret=%lu\n", ret);
