@@ -30,7 +30,7 @@ U 1 1 5B9B4FAE
 P 6550 2000
 F 0 "U3" H 7028 1978 50  0000 L CNN
 F 1 "NRF24L01_Breakout" H 7028 1887 50  0000 L CNN
-F 2 "RF_Module:nRF24L01_Breakout" H 6700 2600 50  0001 L CIN
+F 2 "nordic-semiconductor:nrf24l01-E01-ML01IPX" H 6700 2600 50  0001 L CIN
 F 3 "http://www.nordicsemi.com/eng/content/download/2730/34105/file/nRF24L01_Product_Specification_v2_0.pdf" H 6550 1900 50  0001 C CNN
 	1    6550 2000
 	1    0    0    -1  
@@ -126,24 +126,24 @@ $EndComp
 $Comp
 L Device:R_Pack04 RN1
 U 1 1 5B9B56F7
-P 9000 1700
-F 0 "RN1" V 8583 1700 50  0000 C CNN
-F 1 "R_Pack04" V 8674 1700 50  0000 C CNN
-F 2 "Resistor_SMD:R_Array_Concave_4x0603" V 9275 1700 50  0001 C CNN
-F 3 "~" H 9000 1700 50  0001 C CNN
-	1    9000 1700
-	0    1    1    0   
+P 9000 1600
+F 0 "RN1" V 8583 1600 50  0000 C CNN
+F 1 "R_Pack04" V 8674 1600 50  0000 C CNN
+F 2 "Resistor_SMD:R_Array_Concave_4x0603" V 9275 1600 50  0001 C CNN
+F 3 "~" H 9000 1600 50  0001 C CNN
+	1    9000 1600
+	0    1    -1   0   
 $EndComp
 $Comp
 L Device:R_Pack04 RN2
 U 1 1 5B9B57C3
-P 9000 3700
-F 0 "RN2" V 8583 3700 50  0000 C CNN
-F 1 "R_Pack04" V 8674 3700 50  0000 C CNN
-F 2 "Resistor_SMD:R_Array_Concave_4x0603" V 9275 3700 50  0001 C CNN
-F 3 "~" H 9000 3700 50  0001 C CNN
-	1    9000 3700
-	0    1    1    0   
+P 9000 3600
+F 0 "RN2" V 8583 3600 50  0000 C CNN
+F 1 "R_Pack04" V 8674 3600 50  0000 C CNN
+F 2 "Resistor_SMD:R_Array_Concave_4x0603" V 9275 3600 50  0001 C CNN
+F 3 "~" H 9000 3600 50  0001 C CNN
+	1    9000 3600
+	0    1    -1   0   
 $EndComp
 $Comp
 L Connector:Conn_01x03_Male J5
@@ -493,9 +493,9 @@ Wire Wire Line
 Wire Wire Line
 	6100 6250 6100 6400
 Text Label 5100 6250 0    50   ~ 0
-XTALIN
-Text Label 6100 6250 2    50   ~ 0
 XTALOUT
+Text Label 6100 6250 2    50   ~ 0
+XTALIN
 Wire Wire Line
 	1300 6150 1300 6250
 Wire Wire Line
@@ -573,7 +573,7 @@ Wire Wire Line
 Wire Wire Line
 	2500 2700 1900 2700
 Text Label 1900 2700 0    50   ~ 0
-CH3-Rx
+CH1-Rx
 Wire Wire Line
 	2500 2800 1900 2800
 Wire Wire Line
@@ -589,29 +589,29 @@ Wire Wire Line
 Wire Wire Line
 	2500 3400 1900 3400
 Text Label 1900 2800 0    50   ~ 0
-SCK
+CH5
 Text Label 1900 2900 0    50   ~ 0
 MOSI
 Text Label 1900 3000 0    50   ~ 0
-CSN
+MISO
 Text Label 1900 3100 0    50   ~ 0
-CH4-Tx
+CH6-Tx
 Text Label 1900 3200 0    50   ~ 0
-LED
+IRQ
 Text Label 1900 3300 0    50   ~ 0
-CH1
+CH3
 Text Label 1900 3400 0    50   ~ 0
-CH2
+CH4
 Wire Wire Line
 	3900 2800 4600 2800
 Text Label 4600 2800 2    50   ~ 0
-IRQ
+CSN
 Wire Wire Line
 	3900 2900 4600 2900
 Wire Wire Line
 	3900 3000 4600 3000
 Text Label 4600 2900 2    50   ~ 0
-MISO
+SCK
 Text Label 4600 3000 2    50   ~ 0
 BIND-ISP
 Wire Wire Line
@@ -619,17 +619,17 @@ Wire Wire Line
 Wire Wire Line
 	3900 3200 4600 3200
 Text Label 4600 3100 2    50   ~ 0
-CE
+CH8
 Text Label 4600 3300 2    50   ~ 0
-CH6
+LED
 Wire Wire Line
 	3900 3300 4600 3300
 Text Label 4600 3400 2    50   ~ 0
-CH7
+CE
 Wire Wire Line
 	3900 3400 4600 3400
 Text Label 4600 3500 2    50   ~ 0
-CH8
+CH7
 $Comp
 L power:GND #PWR0117
 U 1 1 5B9D4B5A
@@ -787,17 +787,17 @@ Wire Wire Line
 Wire Wire Line
 	8050 3800 8800 3800
 Text Label 8050 1500 0    50   ~ 0
-CH1
+CH1-Rx
 Text Label 8050 1600 0    50   ~ 0
 CH2
 Text Label 8050 1700 0    50   ~ 0
-CH3-Rx
+CH3
 Text Label 8050 1800 0    50   ~ 0
-CH4-Tx
+CH4
 Text Label 8050 3500 0    50   ~ 0
 CH5
 Text Label 8050 3600 0    50   ~ 0
-CH6
+CH6-Tx
 Text Label 8050 3700 0    50   ~ 0
 CH7
 Text Label 8050 3800 0    50   ~ 0
@@ -816,7 +816,7 @@ $EndComp
 Wire Wire Line
 	3900 3500 4600 3500
 Text Label 4600 3200 2    50   ~ 0
-CH5
+CH2
 $Comp
 L power:PWR_FLAG #FLG0102
 U 1 1 5BA2DF27
@@ -854,4 +854,6 @@ F 3 "" H 10000 6100 50  0001 C CNN
 $EndComp
 Wire Wire Line
 	10000 6100 10000 6200
+Text Notes 1750 4950 0    50   ~ 0
+The following MCU pins can not be moved:\nCH3-Rx PIO0: ISP UART Rx (you can assign another RC channel though!)\nCH4-Tx PIO4: ISP UART Tx (you can assign another RC channel though!)\nBIND-ISP PIO12: ISP entry button\nXTALIN PIO8: crystal\nXTALIN PIO9: crystal
 $EndSCHEMATC
