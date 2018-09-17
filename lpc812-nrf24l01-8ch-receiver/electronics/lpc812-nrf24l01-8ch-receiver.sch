@@ -1,4 +1,5 @@
 EESchema Schematic File Version 4
+LIBS:lpc812-nrf24l01-8ch-receiver-cache
 EELAYER 26 0
 EELAYER END
 $Descr A4 11693 8268
@@ -22,17 +23,6 @@ F 1 "LPC812M101JDH20" H 3700 2500 50  0000 C CNN
 F 2 "Package_SO:TSSOP-20_4.4x6.5mm_P0.65mm" H 4200 3800 50  0001 C CNN
 F 3 "http://www.nxp.com/documents/data_sheet/LPC81XM.pdf" H 3200 2600 50  0001 C CNN
 	1    3200 3100
-	1    0    0    -1  
-$EndComp
-$Comp
-L RF:NRF24L01_Breakout U3
-U 1 1 5B9B4FAE
-P 6550 2000
-F 0 "U3" H 7028 1978 50  0000 L CNN
-F 1 "NRF24L01_Breakout" H 7028 1887 50  0000 L CNN
-F 2 "nordic-semiconductor:nrf24l01-E01-ML01IPX" H 6700 2600 50  0001 L CIN
-F 3 "http://www.nordicsemi.com/eng/content/download/2730/34105/file/nRF24L01_Product_Specification_v2_0.pdf" H 6550 1900 50  0001 C CNN
-	1    6550 2000
 	1    0    0    -1  
 $EndComp
 $Comp
@@ -69,25 +59,14 @@ F 3 "~" H 3550 1950 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L Device:C C2
-U 1 1 5B9B52DA
-P 2450 6500
-F 0 "C2" H 2565 6546 50  0000 L CNN
-F 1 "1u/16V" H 2565 6455 50  0000 L CNN
-F 2 "Capacitor_SMD:C_0805_2012Metric_Pad1.15x1.40mm_HandSolder" H 2488 6350 50  0001 C CNN
-F 3 "~" H 2450 6500 50  0001 C CNN
-	1    2450 6500
-	1    0    0    -1  
-$EndComp
-$Comp
 L Device:CP C3
 U 1 1 5B9B535A
-P 3200 6500
-F 0 "C3" H 3318 6546 50  0000 L CNN
-F 1 "CP" H 3318 6455 50  0000 L CNN
-F 2 "Capacitor_SMD:C_0805_2012Metric_Pad1.15x1.40mm_HandSolder" H 3238 6350 50  0001 C CNN
-F 3 "~" H 3200 6500 50  0001 C CNN
-	1    3200 6500
+P 2650 6500
+F 0 "C3" H 2768 6546 50  0000 L CNN
+F 1 "47u/6.3V" H 2650 6400 50  0000 L CNN
+F 2 "Capacitor_SMD:C_0805_2012Metric_Pad1.15x1.40mm_HandSolder" H 2688 6350 50  0001 C CNN
+F 3 "~" H 2650 6500 50  0001 C CNN
+	1    2650 6500
 	1    0    0    -1  
 $EndComp
 $Comp
@@ -269,12 +248,12 @@ $EndComp
 $Comp
 L power:VCC #PWR0101
 U 1 1 5B9B64E9
-P 3650 6100
-F 0 "#PWR0101" H 3650 5950 50  0001 C CNN
-F 1 "VCC" H 3667 6273 50  0000 C CNN
-F 2 "" H 3650 6100 50  0001 C CNN
-F 3 "" H 3650 6100 50  0001 C CNN
-	1    3650 6100
+P 3100 6100
+F 0 "#PWR0101" H 3100 5950 50  0001 C CNN
+F 1 "VCC" H 3117 6273 50  0000 C CNN
+F 2 "" H 3100 6100 50  0001 C CNN
+F 3 "" H 3100 6100 50  0001 C CNN
+	1    3100 6100
 	1    0    0    -1  
 $EndComp
 $Comp
@@ -300,47 +279,36 @@ F 3 "" H 1300 6750 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L power:GND #PWR0104
-U 1 1 5B9B6675
-P 2450 6750
-F 0 "#PWR0104" H 2450 6500 50  0001 C CNN
-F 1 "GND" H 2455 6577 50  0000 C CNN
-F 2 "" H 2450 6750 50  0001 C CNN
-F 3 "" H 2450 6750 50  0001 C CNN
-	1    2450 6750
-	1    0    0    -1  
-$EndComp
-$Comp
 L power:GND #PWR0105
 U 1 1 5B9B66AE
-P 3200 6750
-F 0 "#PWR0105" H 3200 6500 50  0001 C CNN
-F 1 "GND" H 3205 6577 50  0000 C CNN
-F 2 "" H 3200 6750 50  0001 C CNN
-F 3 "" H 3200 6750 50  0001 C CNN
-	1    3200 6750
+P 2650 6750
+F 0 "#PWR0105" H 2650 6500 50  0001 C CNN
+F 1 "GND" H 2655 6577 50  0000 C CNN
+F 2 "" H 2650 6750 50  0001 C CNN
+F 3 "" H 2650 6750 50  0001 C CNN
+	1    2650 6750
 	1    0    0    -1  
 $EndComp
 $Comp
 L Device:CP C5
 U 1 1 5B9B66E7
-P 3650 6500
-F 0 "C5" H 3768 6546 50  0000 L CNN
-F 1 "CP" H 3768 6455 50  0000 L CNN
-F 2 "Capacitor_SMD:C_0805_2012Metric_Pad1.15x1.40mm_HandSolder" H 3688 6350 50  0001 C CNN
-F 3 "~" H 3650 6500 50  0001 C CNN
-	1    3650 6500
+P 3100 6500
+F 0 "C5" H 3218 6546 50  0000 L CNN
+F 1 "47u/6.3V" H 3100 6400 50  0000 L CNN
+F 2 "Capacitor_SMD:C_0805_2012Metric_Pad1.15x1.40mm_HandSolder" H 3138 6350 50  0001 C CNN
+F 3 "~" H 3100 6500 50  0001 C CNN
+	1    3100 6500
 	1    0    0    -1  
 $EndComp
 $Comp
 L power:GND #PWR0106
 U 1 1 5B9B6739
-P 3650 6750
-F 0 "#PWR0106" H 3650 6500 50  0001 C CNN
-F 1 "GND" H 3655 6577 50  0000 C CNN
-F 2 "" H 3650 6750 50  0001 C CNN
-F 3 "" H 3650 6750 50  0001 C CNN
-	1    3650 6750
+P 3100 6750
+F 0 "#PWR0106" H 3100 6500 50  0001 C CNN
+F 1 "GND" H 3105 6577 50  0000 C CNN
+F 2 "" H 3100 6750 50  0001 C CNN
+F 3 "" H 3100 6750 50  0001 C CNN
+	1    3100 6750
 	1    0    0    -1  
 $EndComp
 $Comp
@@ -506,28 +474,19 @@ Connection ~ 1300 6250
 Wire Wire Line
 	1300 6250 1300 6350
 Wire Wire Line
-	2250 6250 2450 6250
+	2650 6650 2650 6750
 Wire Wire Line
-	2450 6250 2450 6350
+	3100 6650 3100 6750
 Wire Wire Line
-	2450 6650 2450 6750
+	2650 6250 2650 6350
 Wire Wire Line
-	3200 6650 3200 6750
+	2650 6250 3100 6250
 Wire Wire Line
-	3650 6650 3650 6750
+	3100 6250 3100 6350
+Connection ~ 2650 6250
 Wire Wire Line
-	2450 6250 3200 6250
-Wire Wire Line
-	3200 6250 3200 6350
-Connection ~ 2450 6250
-Wire Wire Line
-	3200 6250 3650 6250
-Wire Wire Line
-	3650 6250 3650 6350
-Connection ~ 3200 6250
-Wire Wire Line
-	3650 6100 3650 6250
-Connection ~ 3650 6250
+	3100 6100 3100 6250
+Connection ~ 3100 6250
 $Comp
 L power:GND #PWR0115
 U 1 1 5B9BF9CF
@@ -856,4 +815,17 @@ Wire Wire Line
 	10000 6100 10000 6200
 Text Notes 1750 4950 0    50   ~ 0
 The following MCU pins can not be moved:\nCH3-Rx PIO0: ISP UART Rx (you can assign another RC channel though!)\nCH4-Tx PIO4: ISP UART Tx (you can assign another RC channel though!)\nBIND-ISP PIO12: ISP entry button\nXTALIN PIO8: crystal\nXTALIN PIO9: crystal
+$Comp
+L nrf24l01_E01-ML01:NRF24L01_E01_ML01 U3
+U 1 1 5B9F4EE8
+P 6550 2000
+F 0 "U3" H 7027 1978 50  0000 L CNN
+F 1 "NRF24L01_E01_ML01" H 7027 1887 50  0000 L CNN
+F 2 "nordic-semiconductor:nrf24l01-E01-ML01IPX" H 6700 2600 50  0001 L CIN
+F 3 "http://www.nordicsemi.com/eng/content/download/2730/34105/file/nRF24L01_Product_Specification_v2_0.pdf" H 6550 1900 50  0001 C CNN
+	1    6550 2000
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	2250 6250 2650 6250
 $EndSCHEMATC
