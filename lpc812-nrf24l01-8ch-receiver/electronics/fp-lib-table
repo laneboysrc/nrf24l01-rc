@@ -1,3 +1,4 @@
 (fp_lib_table
   (lib (name nordic-semiconductor)(type KiCad)(uri ${KIPRJMOD}/nordic-semiconductor.pretty)(options "")(descr ""))
+  (lib (name tact-switch)(type KiCad)(uri ${KIPRJMOD}/tact-switch.pretty)(options "")(descr ""))
 )

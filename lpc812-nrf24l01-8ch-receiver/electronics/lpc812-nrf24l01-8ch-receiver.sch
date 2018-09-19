@@ -207,7 +207,7 @@ U 1 1 5B9B61E9
 P 7650 5300
 F 0 "SW1" V 7604 5448 50  0000 L CNN
 F 1 "BIND/ISP" V 7695 5448 50  0000 L CNN
-F 2 "Button_Switch_SMD:SW_SPST_FSMSM" H 7650 5500 50  0001 C CNN
+F 2 "tact-switch:Tact switch 6x4x3" H 7650 5500 50  0001 C CNN
 F 3 "" H 7650 5500 50  0001 C CNN
 	1    7650 5300
 	0    1    1    0   
@@ -521,7 +521,7 @@ Wire Wire Line
 Wire Wire Line
 	2500 2700 1900 2700
 Text Label 1900 2700 0    50   ~ 0
-CH1-Rx
+CH2-Rx
 Wire Wire Line
 	2500 2800 1900 2800
 Wire Wire Line
@@ -537,13 +537,13 @@ Wire Wire Line
 Wire Wire Line
 	2500 3400 1900 3400
 Text Label 1900 2800 0    50   ~ 0
-CH5
+CH6
 Text Label 1900 2900 0    50   ~ 0
 MOSI
 Text Label 1900 3000 0    50   ~ 0
 MISO
 Text Label 1900 3100 0    50   ~ 0
-CH6-Tx
+CH5-Tx
 Text Label 1900 3200 0    50   ~ 0
 IRQ
 Text Label 1900 3300 0    50   ~ 0
@@ -735,17 +735,17 @@ Wire Wire Line
 Wire Wire Line
 	8050 3800 8800 3800
 Text Label 8050 1500 0    50   ~ 0
-CH1-Rx
+CH1
 Text Label 8050 1600 0    50   ~ 0
-CH2
+CH2-Rx
 Text Label 8050 1700 0    50   ~ 0
 CH3
 Text Label 8050 1800 0    50   ~ 0
 CH4
 Text Label 8050 3500 0    50   ~ 0
-CH5
+CH5-Tx
 Text Label 8050 3600 0    50   ~ 0
-CH6-Tx
+CH6
 Text Label 8050 3700 0    50   ~ 0
 CH7
 Text Label 8050 3800 0    50   ~ 0
@@ -764,7 +764,7 @@ $EndComp
 Wire Wire Line
 	3900 3500 4600 3500
 Text Label 4600 3200 2    50   ~ 0
-CH2
+CH1
 $Comp
 L power:PWR_FLAG #FLG0102
 U 1 1 5BA2DF27
