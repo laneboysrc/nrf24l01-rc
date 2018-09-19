@@ -92,17 +92,6 @@ F 3 "~" H 6100 6550 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L Device:Crystal Y1
-U 1 1 5B9B560C
-P 5600 6250
-F 0 "Y1" H 5600 6518 50  0000 C CNN
-F 1 "16MHz" H 5600 6427 50  0000 C CNN
-F 2 "Crystal:Crystal_SMD_3225-4Pin_3.2x2.5mm_HandSoldering" H 5600 6250 50  0001 C CNN
-F 3 "~" H 5600 6250 50  0001 C CNN
-	1    5600 6250
-	-1   0    0    -1  
-$EndComp
-$Comp
 L Device:R_Pack04 RN1
 U 1 1 5B9B56F7
 P 9000 1600
@@ -828,4 +817,17 @@ F 3 "http://www.nordicsemi.com/eng/content/download/2730/34105/file/nRF24L01_Pro
 $EndComp
 Wire Wire Line
 	2250 6250 2650 6250
+$Comp
+L Device:Crystal_GND24 Y1
+U 1 1 5BA0EE7A
+P 5600 6250
+F 0 "Y1" H 5700 6450 50  0000 L CNN
+F 1 "12 MHz" H 5700 6050 50  0000 L CNN
+F 2 "Crystal:Crystal_SMD_3225-4Pin_3.2x2.5mm_HandSoldering" H 5600 6250 50  0001 C CNN
+F 3 "~" H 5600 6250 50  0001 C CNN
+	1    5600 6250
+	1    0    0    -1  
+$EndComp
+NoConn ~ 5600 6450
+NoConn ~ 5600 6050
 $EndSCHEMATC
