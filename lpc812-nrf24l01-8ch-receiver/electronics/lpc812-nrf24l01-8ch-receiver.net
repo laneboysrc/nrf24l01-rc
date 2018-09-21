@@ -1,7 +1,7 @@
 (export (version D)
   (design
     (source /home/laneboysrc/projects/nrf24le01-rc/lpc812-nrf24l01-8ch-receiver/electronics/lpc812-nrf24l01-8ch-receiver.sch)
-    (date "Wed 19 Sep 2018 08:14:57 PM")
+    (date "Fri 21 Sep 2018 07:53:27 PM")
     (tool "Eeschema 5.0.0-fee4fd1~66~ubuntu18.04.1")
     (sheet (number 1) (name /) (tstamps /)
       (title_block
@@ -170,7 +170,7 @@
       (tstamp 5B9F4EE8))
     (comp (ref Y1)
       (value "12 MHz")
-      (footprint Crystal:Crystal_SMD_3225-4Pin_3.2x2.5mm_HandSoldering)
+      (footprint Crystal:Crystal_SMD_2520-4Pin_2.5x2.0mm)
       (datasheet ~)
       (libsource (lib Device) (part Crystal_GND24) (description "Four pin crystal (GND on pins 2 and 4), e.g. in SMD package"))
       (sheetpath (names /) (tstamps /))
