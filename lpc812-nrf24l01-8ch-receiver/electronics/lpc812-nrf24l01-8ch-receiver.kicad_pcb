@@ -2,7 +2,7 @@
 
   (general
     (thickness 1.6)
-    (drawings 20)
+    (drawings 24)
     (tracks 208)
     (zones 0)
     (modules 23)
@@ -34,7 +34,7 @@
   )
 
   (setup
-    (last_trace_width 0.381)
+    (last_trace_width 0.2032)
     (user_trace_width 0.254)
     (user_trace_width 0.381)
     (user_trace_width 0.508)
@@ -1054,6 +1054,11 @@
       (net 18 /BIND-ISP))
     (pad 2 smd rect (at 3.9 0) (size 1.5 1.5) (layers F.Cu F.Paste F.Mask)
       (net 2 GND))
+    (model ${KISYS3DMOD}/Button_Switch_SMD.3dshapes/SW_SPST_FSMSM.step
+      (at (xyz 0 0 0))
+      (scale (xyz 1 1 1))
+      (rotate (xyz 0 0 0))
+    )
   )
 
   (module Crystal:Crystal_SMD_2520-4Pin_2.5x2.0mm (layer F.Cu) (tedit 5BA4E72F) (tstamp 5BA4EE21)
@@ -1101,6 +1106,10 @@
     )
   )
 
+  (gr_line (start 135.89 67.31) (end 133.731 67.31) (layer F.SilkS) (width 0.508) (tstamp 5BA8A31C))
+  (gr_line (start 128.27 67.31) (end 126.111 67.31) (layer F.SilkS) (width 0.508) (tstamp 5BA8A046))
+  (gr_line (start 128.397 74.93) (end 126.111 74.93) (layer F.SilkS) (width 0.508) (tstamp 5BA89FB4))
+  (gr_line (start 136.017 74.93) (end 133.731 74.93) (layer F.SilkS) (width 0.508) (tstamp 5BA89DA2))
   (gr_text . (at 121.80316 79.33182) (layer F.SilkS) (tstamp 5BA41E34)
     (effects (font (size 1.5 1.5) (thickness 0.3)))
   )
@@ -1381,7 +1390,7 @@
   (segment (start 127.736598 84.549715) (end 127.736598 85.1154) (width 0.254) (layer B.Cu) (net 32))
   (segment (start 127.736598 83.972394) (end 127.736598 84.549715) (width 0.254) (layer B.Cu) (net 32))
 
-  (zone (net 2) (net_name GND) (layer B.Cu) (tstamp 5BA3F172) (hatch edge 0.508)
+  (zone (net 2) (net_name GND) (layer B.Cu) (tstamp 5BA8A464) (hatch edge 0.508)
     (connect_pads (clearance 0.254))
     (min_thickness 0.254)
     (fill yes (arc_segments 16) (thermal_gap 0.254) (thermal_bridge_width 0.508))
@@ -1536,7 +1545,7 @@
       )
     )
   )
-  (zone (net 3) (net_name VCC) (layer F.Cu) (tstamp 5BA3F16F) (hatch edge 0.508)
+  (zone (net 3) (net_name VCC) (layer F.Cu) (tstamp 5BA8A461) (hatch edge 0.508)
     (connect_pads (clearance 0.254))
     (min_thickness 0.254)
     (fill yes (arc_segments 16) (thermal_gap 0.254) (thermal_bridge_width 0.508))
@@ -1584,7 +1593,7 @@
       )
     )
   )
-  (zone (net 1) (net_name VDD) (layer F.Cu) (tstamp 5BA3F175) (hatch edge 0.508)
+  (zone (net 1) (net_name VDD) (layer F.Cu) (tstamp 5BA8A45E) (hatch edge 0.508)
     (connect_pads (clearance 0.2032))
     (min_thickness 0.2032)
     (fill yes (arc_segments 16) (thermal_gap 0.254) (thermal_bridge_width 0.508))
