@@ -29,12 +29,12 @@
     (45 Margin user hide)
     (46 B.CrtYd user hide)
     (47 F.CrtYd user hide)
-    (48 B.Fab user hide)
+    (48 B.Fab user)
     (49 F.Fab user hide)
   )
 
   (setup
-    (last_trace_width 0.381)
+    (last_trace_width 0.2032)
     (user_trace_width 0.254)
     (user_trace_width 0.381)
     (user_trace_width 0.508)
@@ -62,7 +62,7 @@
     (pad_size 1.524 1.524)
     (pad_drill 0.762)
     (pad_to_mask_clearance 0.1016)
-    (aux_axis_origin 0 0)
+    (aux_axis_origin 118 88)
     (visible_elements FFFFFF7F)
     (pcbplotparams
       (layerselection 0x010fc_ffffffff)
