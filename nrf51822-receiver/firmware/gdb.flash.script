@@ -1,7 +1,0 @@
-target extended-remote /dev/ttyACM0
-monitor swdp_scan
-file _build/nrf51822-receiver.elf
-attach 1
-load
-detach
-quit
