@@ -12,7 +12,7 @@
 
 
 // ****************************************************************************
-// IO pins: (LPC812 in TSSOP16 package)
+// IO pins: (4ch version, LPC812 in TSSOP16 package)
 //
 // PIO0_0   (16, TDO, ISP-Rx)   CH3/Rx
 // PIO0_1   (9,  TDI)           NRF_SCK

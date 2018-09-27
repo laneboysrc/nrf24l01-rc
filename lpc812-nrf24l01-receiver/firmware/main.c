@@ -18,7 +18,7 @@
 
 
 #ifndef BAUDRATE
-    #define BAUDRATE 115200stickdata2ms
+    #define BAUDRATE 115200
 #endif
 
 

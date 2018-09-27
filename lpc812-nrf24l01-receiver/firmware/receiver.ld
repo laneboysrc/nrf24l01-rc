@@ -28,6 +28,8 @@ SECTIONS
     {
         _data = .;
         *(.survivors)       /* 80 bytes that survive reset in LPC81x */
+        *(.init*)
+        *(.fini*)
         *(.data*)
         . = ALIGN(4);
         _edata = .;
