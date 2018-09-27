@@ -539,13 +539,13 @@ Wire Wire Line
 Text Label 1900 2800 0    50   ~ 0
 CH6
 Text Label 1900 2900 0    50   ~ 0
-MOSI
+CSN
 Text Label 1900 3000 0    50   ~ 0
-MISO
+SCK
 Text Label 1900 3100 0    50   ~ 0
 CH5-Tx
 Text Label 1900 3200 0    50   ~ 0
-IRQ
+MOSI
 Text Label 1900 3300 0    50   ~ 0
 CH3
 Text Label 1900 3400 0    50   ~ 0
@@ -553,13 +553,13 @@ CH4
 Wire Wire Line
 	3900 2800 4600 2800
 Text Label 4600 2800 2    50   ~ 0
-CSN
+MISO
 Wire Wire Line
 	3900 2900 4600 2900
 Wire Wire Line
 	3900 3000 4600 3000
 Text Label 4600 2900 2    50   ~ 0
-SCK
+IRQ
 Text Label 4600 3000 2    50   ~ 0
 BIND-ISP
 Wire Wire Line
@@ -803,7 +803,7 @@ $EndComp
 Wire Wire Line
 	10000 6100 10000 6200
 Text Notes 1750 4950 0    50   ~ 0
-The following MCU pins can not be moved:\nCH3-Rx PIO0: ISP UART Rx (you can assign another RC channel though!)\nCH4-Tx PIO4: ISP UART Tx (you can assign another RC channel though!)\nBIND-ISP PIO12: ISP entry button\nXTALIN PIO8: crystal\nXTALIN PIO9: crystal
+The following MCU pins can not be moved:\nCH3-Rx PIO0: ISP UART Rx (you can assign another RC channel though!)\nCH4-Tx PIO4: ISP UART Tx (you can assign another RC channel though!)\nBIND-ISP PIO12: ISP entry button\nXTALIN PIO8: crystal\nXTALIN PIO9: crystal\nAttention with PIO10 and PIO11, they are open drain!
 $Comp
 L nrf24l01_E01-ML01:NRF24L01_E01_ML01 U3
 U 1 1 5B9F4EE8
