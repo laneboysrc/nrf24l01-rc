@@ -822,7 +822,7 @@ L Device:Crystal_GND24 Y1
 U 1 1 5BA0EE7A
 P 5600 6250
 F 0 "Y1" H 5700 6450 50  0000 L CNN
-F 1 "12 MHz" H 5700 6050 50  0000 L CNN
+F 1 "16MHz" H 5700 6050 50  0000 L CNN
 F 2 "Crystal:Crystal_SMD_2520-4Pin_2.5x2.0mm" H 5600 6250 50  0001 C CNN
 F 3 "~" H 5600 6250 50  0001 C CNN
 	1    5600 6250
@@ -830,4 +830,6 @@ F 3 "~" H 5600 6250 50  0001 C CNN
 $EndComp
 NoConn ~ 5600 6450
 NoConn ~ 5600 6050
+Text Notes 4800 7350 0    50   ~ 0
+Note: even though the crystal is 16 MHz\nthe LPC812 system clock is 12 MHz.
 $EndSCHEMATC
