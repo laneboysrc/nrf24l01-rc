@@ -32,6 +32,12 @@ void MRT_irq_handler(void);
 // Global flag that is true for one mainloop every __SYSTICK_IN_MS
 bool systick;
 
+// Global flag indicating 8-channel hardware based on TSSOP20 version
+bool is8channel;
+
+uint32_t gpio_mask_led = (1 << GPIO_4CH_BIT_LED);
+uint32_t gpio_mask_nrf_ce = (1 << GPIO_4CH_BIT_NRF_CE);
+
 static volatile uint32_t systick_count;
 
 
@@ -103,6 +109,12 @@ static void init_hardware(void)
 #error Clock initialization code expexts __SYSTEM_CLOCK to be set to 1200000
 #endif
 
+
+    if (is8channel) {
+        gpio_mask_led = (1 << GPIO_8CH_BIT_LED);
+    }
+
+
     // Set flash wait-states to 1 system clock
     LPC_FLASHCTRL->FLASHCFG = 0;
 
@@ -166,40 +178,41 @@ static void init_hardware(void)
     // Enable hardware inputs and outputs
     LPC_SWM->PINASSIGN0 = (0xff << 24) |
                           (0xff << 16) |
-                          (0xff << 8) |                 // UART0_RX
-                          (GPIO_BIT_UART_TX << 0);      // UART0_TX
+                          (0xff << 8) |                     // UART0_RX
+                          (GPIO_BIT_TX << 0);               // UART0_TX
 
-    LPC_SWM->PINASSIGN3 = (GPIO_BIT_NRF_SCK << 24) |    // SPI0_SCK
+    LPC_SWM->PINASSIGN3 = (GPIO_4CH_BIT_NRF_SCK << 24) |    // SPI0_SCK
                           (0xff << 16) |
                           (0xff << 8) |
                           (0xff << 0);
 
     LPC_SWM->PINASSIGN4 = (0xff << 24) |
-                          (GPIO_BIT_NRF_CSN << 16) |    // SPI0_SSEL
-                          (GPIO_BIT_NRF_MISO << 8) |    // SPI0_MISO
-                          (GPIO_BIT_NRF_MOSI << 0);     // SPI0_MOSI
+                          (GPIO_4CH_BIT_NRF_CSN << 16) |    // SPI0_SSEL
+                          (GPIO_4CH_BIT_NRF_MISO << 8) |    // SPI0_MISO
+                          (GPIO_4CH_BIT_NRF_MOSI << 0);     // SPI0_MOSI
 
-    LPC_SWM->PINASSIGN6 = (GPIO_BIT_CH1 << 24) |        // CTOUT_0
+    LPC_SWM->PINASSIGN6 = (GPIO_4CH_BIT_CH1 << 24) |        // CTOUT_0
                           (0xff << 16) |
                           (0xff << 8) |
                           (0xff << 0);
 
     LPC_SWM->PINASSIGN7 = (0xff << 24) |
                           (0xff << 16) |
-                          (GPIO_BIT_CH3 << 8) |         // CTOUT_2
-                          (GPIO_BIT_CH2 << 0);          // CTOUT_1
+                          (GPIO_4CH_BIT_CH3 << 8) |         // CTOUT_2
+                          (GPIO_4CH_BIT_CH2 << 0);          // CTOUT_1
 
     // Configure outputs
-    LPC_GPIO_PORT->DIR0 |= (1 << GPIO_BIT_NRF_SCK) |
-                          (1 << GPIO_BIT_NRF_MOSI) |
-                          (1 << GPIO_BIT_NRF_CSN) |
-                          (1 << GPIO_BIT_NRF_CE) |
-                          (1 << GPIO_BIT_CH1) |
-                          (1 << GPIO_BIT_CH2) |
-                          (1 << GPIO_BIT_CH3) |
-                          (1 << GPIO_BIT_LED);
-    GPIO_NRF_CE = 0;
-    GPIO_LED = 0;
+    LPC_GPIO_PORT->DIR0 = (1 << GPIO_4CH_BIT_NRF_SCK) |
+                          (1 << GPIO_4CH_BIT_NRF_MOSI) |
+                          (1 << GPIO_4CH_BIT_NRF_CSN) |
+                          (1 << GPIO_4CH_BIT_NRF_CE) |
+                          (1 << GPIO_4CH_BIT_CH1) |
+                          (1 << GPIO_4CH_BIT_CH2) |
+                          (1 << GPIO_4CH_BIT_CH3) |
+                          (1 << GPIO_4CH_BIT_LED);
+
+    // CE = 0; LED on
+    LPC_GPIO_PORT->CLR0 = gpio_mask_led | gpio_mask_nrf_ce;
 
 
     // ------------------------
@@ -260,7 +273,7 @@ static void init_hardware(void)
 
     // ------------------------
     // Configure the exernal interrupt from the NRF chip
-    LPC_SYSCON->PINTSEL[0] = GPIO_BIT_NRF_IRQ;  // PIO0_10 (NRF_IRQ) on PININT0
+    LPC_SYSCON->PINTSEL[0] = GPIO_4CH_BIT_NRF_IRQ;  // PIO0_10 (NRF_IRQ) on PININT0
     LPC_PIN_INT->IENF = (1 << 0);               // Enable falling edge on PININT0
 
 
@@ -367,6 +380,9 @@ void delay_us(uint32_t microseconds)
 // ****************************************************************************
 int main(void)
 {
+    // is8channel gets set if MCU is LPC812M101JDH20 (20 pin TSSSOP version)
+    is8channel = (LPC_SYSCON->DEVICE_ID == 0x00008122);
+
     init_hardware();
     init_uart0(BAUDRATE);
     init_spi();

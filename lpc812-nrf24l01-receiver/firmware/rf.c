@@ -155,7 +155,7 @@ uint8_t rf_get_status(void)
 // ****************************************************************************
 void rf_set_ce(void)
 {
-    GPIO_NRF_CE = 1;
+    LPC_GPIO_PORT->SET0 = gpio_mask_nrf_ce;
 
     // Data sheet page 24: Delay from CE positive edge to CSN low: 4us
     // To ensure that we always delay for 4us.
@@ -166,7 +166,7 @@ void rf_set_ce(void)
 // ****************************************************************************
 void rf_clear_ce(void)
 {
-    GPIO_NRF_CE = 0;
+    LPC_GPIO_PORT->CLR0 = gpio_mask_nrf_ce;
 }
 
 

@@ -30,7 +30,7 @@
 #define BUTTON_PRESSED 0
 #define BUTTON_RELEASED 1
 
-#define LED_ON 0
+
 
 
 extern bool systick;
@@ -504,10 +504,10 @@ static void process_bind_button(void)
         return;
     }
 
-    new_button_state = GPIO_BIND;
+    new_button_state = LPC_GPIO_PORT->W0[GPIO_BIT_BIND];
 
     if (isp_timeout_active && (bind_button_timer == 0)) {
-        GPIO_LED = ~LED_ON;
+        LPC_GPIO_PORT->SET0 = gpio_mask_led;      // LED off
 #ifndef NO_DEBUG
         uart0_send_cstring("Launching ISP!\n");
 #endif
@@ -543,7 +543,7 @@ static void process_led(void)
     if (blinking) {
         if (blink_timer == 0) {
             blink_timer = blink_timer_reload_value;
-            GPIO_LED = ~GPIO_LED;
+            LPC_GPIO_PORT->NOT0 = gpio_mask_led;     // Toggle the LED
         }
     }
 
@@ -552,11 +552,9 @@ static void process_led(void)
     }
     old_led_state = led_state;
 
-    GPIO_LED = 0;
-
     switch (led_state) {
         case LED_STATE_RECEIVING:
-            GPIO_LED = LED_ON;
+            LPC_GPIO_PORT->CLR0 = gpio_mask_led;  // LED on
             blinking = false;
             break;
 
