@@ -5,10 +5,10 @@ EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
 Sheet 1 1
-Title ""
-Date ""
-Rev ""
-Comp ""
+Title "LPC812 / nRF24L01P based 8-channel receiver"
+Date "2018-09-29"
+Rev "1"
+Comp "LANE Boys RC"
 Comment1 ""
 Comment2 ""
 Comment3 ""
@@ -803,7 +803,7 @@ $EndComp
 Wire Wire Line
 	10000 6100 10000 6200
 Text Notes 1750 4950 0    50   ~ 0
-The following MCU pins can not be moved:\nCH3-Rx PIO0: ISP UART Rx (you can assign another RC channel though!)\nCH4-Tx PIO4: ISP UART Tx (you can assign another RC channel though!)\nBIND-ISP PIO12: ISP entry button\nXTALIN PIO8: crystal\nXTALIN PIO9: crystal\nAttention with PIO10 and PIO11, they are open drain!
+The following MCU pins can not be moved:\nCH3-Rx PIO0: ISP UART Rx (you can assign another RC channel though!)\nCH4-Tx PIO4: ISP UART Tx (you can assign another RC channel though!)\nBIND-ISP PIO12: ISP entry button\nXTALIN PIO8: crystal\nXTALIN PIO9: crystal\nAttention with PIO10 and PIO11, they are open drain! (Use them as input)
 $Comp
 L nrf24l01_E01-ML01:NRF24L01_E01_ML01 U3
 U 1 1 5B9F4EE8
@@ -822,7 +822,7 @@ L Device:Crystal_GND24 Y1
 U 1 1 5BA0EE7A
 P 5600 6250
 F 0 "Y1" H 5700 6450 50  0000 L CNN
-F 1 "16MHz" H 5700 6050 50  0000 L CNN
+F 1 "12MHz" H 5700 6050 50  0000 L CNN
 F 2 "Crystal:Crystal_SMD_2520-4Pin_2.5x2.0mm" H 5600 6250 50  0001 C CNN
 F 3 "~" H 5600 6250 50  0001 C CNN
 	1    5600 6250
@@ -830,6 +830,10 @@ F 3 "~" H 5600 6250 50  0001 C CNN
 $EndComp
 NoConn ~ 5600 6450
 NoConn ~ 5600 6050
-Text Notes 4800 7350 0    50   ~ 0
-Note: even though the crystal is 16 MHz\nthe LPC812 system clock is 12 MHz.
+Text Notes 4800 7500 0    50   ~ 0
+Note: the 8ch version uses a 12 MHz crystal,\nwhile the 4ch version uses a 16 MHz crystal \n(because that was what we had in stock) and \nthe PLL to arrive at 12 MHz.\nBoth run at 12 MHz system clock.
+Text Notes 2600 7250 0    50   ~ 0
+2x Tantalum-Polymer for buffering \nin case of poor RC power supply
+Text Notes 7400 6100 0    50   ~ 0
+Short-press for BIND function\nLong-press to invoke ISP for programming
 $EndSCHEMATC
