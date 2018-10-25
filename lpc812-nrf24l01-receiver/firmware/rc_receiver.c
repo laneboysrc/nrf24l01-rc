@@ -208,10 +208,10 @@ static void restart_packet_receiving(void)
     }
     else {
         rf_set_payload_size(DATA_PIPE_0, PAYLOAD_SIZE);
-        // Disable dynamic payout size on all pipes
-        rf_set_dynpd(0);
-        // Disable all dynamic features
-        rf_set_feature(0);
+        // // Disable dynamic payout size on all pipes
+        // rf_set_dynpd(0);
+        // // Disable all dynamic features
+        // rf_set_feature(0);
     }
 
     rf_set_rx_address(DATA_PIPE_0, ADDRESS_WIDTH, model_address);
@@ -560,6 +560,7 @@ static void process_receiving(void)
     if (binding) {
         return;
     }
+
 
     // ================================
     // Process failsafe only if we ever got a successsful stick data payload

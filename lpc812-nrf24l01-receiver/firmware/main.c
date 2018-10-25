@@ -115,6 +115,7 @@ static void init_hardware(void)
 
     if (is8channel) {
         gpio_mask_led = (1 << GPIO_8CH_BIT_LED);
+        gpio_mask_nrf_ce = (1 << GPIO_8CH_BIT_NRF_CE);
     }
 
 

@@ -34,6 +34,36 @@ void load_persistent_storage(uint8_t *data)
     for (i = 0; i < NUMBER_OF_PERSISTENT_ELEMENTS; i++) {
         data[i] = persistent_data[i];
     }
+
+    // M05 test data
+    // data[0] = 0xeb;
+    // data[1] = 0x5d;
+    // data[2] = 0xb8;
+    // data[3] = 0xd5;
+    // data[4] = 0x07;
+
+    // data[5] = 5;
+    // data[6] = 6;
+    // data[7] = 7;
+    // data[8] = 8;
+    // data[9] = 9;
+    // data[10] = 10;
+    // data[11] = 11;
+    // data[12] = 12;
+    // data[13] = 13;
+    // data[14] = 14;
+    // data[15] = 15;
+    // data[16] = 16;
+    // data[17] = 17;
+    // data[18] = 18;
+    // data[19] = 19;
+    // data[20] = 20;
+    // data[21] = 21;
+    // data[22] = 22;
+    // data[23] = 23;
+    // data[24] = 24;
+
+    // data[25] = 0xaa;
 }
 
 
