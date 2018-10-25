@@ -54,7 +54,8 @@ static unsigned int led_state;
 static unsigned int blink_timer;
 static unsigned int bind_button_timer;
 
-static uint8_t payload[PAYLOAD_SIZE];
+static uint8_t payload[RF_MAX_BUFFER_LENGTH];
+static uint8_t payload_width;
 
 static uint8_t failsafe_enabled;
 static uint16_t failsafe[NUMBER_OF_CHANNELS];
@@ -189,6 +190,8 @@ static void restart_packet_receiving(void)
     rf_set_address_width(ADDRESS_WIDTH);
     rf_set_data_rate(DATA_RATE_250K);
     rf_set_data_pipes(DATA_PIPE_0, NO_AUTO_ACKNOWLEDGE);
+
+    // FIXME: set timer to 500ns for 8ch, 750ns for 3/4ch protocol
 
     if (rx_protocol == PROTOCOL_8CH) {
         // Enable dynamic payload length
@@ -421,58 +424,8 @@ static void process_binding(void)
 
 
 // ****************************************************************************
-static void process_receiving(void)
+static void process_4ch_receiving(void)
 {
-    // ================================
-    if (binding) {
-        return;
-    }
-
-    // ================================
-    // Process failsafe only if we ever got a successsful stick data payload
-    // after reset.
-    //
-    // This way the servo outputs stay off until we got successful stick
-    // data, so the servos do not got to the failsafe point after power up
-    // in case the transmitter is not on yet.
-    if (successful_stick_data) {
-        if (failsafe_timer == 0) {
-            uint8_t i;
-
-            for (i = 0; i < NUMBER_OF_CHANNELS; i++) {
-                channels[i] = failsafe[i];
-            }
-            output_pulses();
-
-            led_state = LED_STATE_FAILSAFE;
-        }
-    }
-
-
-    // ================================
-    if (perform_hop_requested) {
-        perform_hop_requested = false;
-        ++hops_without_packet;
-
-
-        if (hops_without_packet > MAX_HOP_WITHOUT_PACKET) {
-            restart_packet_receiving();
-        }
-        else {
-            rf_clear_ce();
-            hop_index = (hop_index + 1) % NUMBER_OF_HOP_CHANNELS;
-            rf_set_channel(hop_data[hop_index]);
-            rf_set_ce();
-        }
-    }
-
-
-    // ================================
-    if (!rf_int_fired) {
-        return;
-    }
-    rf_int_fired = false;
-
     while (!rf_is_rx_fifo_emtpy()) {
         rf_read_fifo(payload, PAYLOAD_SIZE);
     }
@@ -532,6 +485,113 @@ static void process_receiving(void)
             // like the HKR3000 and XR3100 do.
             initialize_failsafe();
         }
+    }
+}
+
+
+// ****************************************************************************
+static void process_8ch_receiving(void)
+{
+    while (!rf_is_rx_fifo_emtpy()) {
+        payload_width = rf_read_payload_width();
+        rf_read_fifo(payload, payload_width);
+    }
+    rf_clear_irq(RX_RD);
+
+    if (payload_width != 13) {
+        return;
+    }
+
+#ifndef NO_DEBUG
+    if (hops_without_packet > 1) {
+        uart0_send_uint32(hops_without_packet);
+        uart0_send_linefeed();
+    }
+#endif
+
+    restart_hop_timer();
+
+
+    // ================================
+    // payload[0] is 0x57 for stick data
+    if (payload[0] == stickdata_packetid) {
+        // FIXME: decode and store stickdata
+
+        if (!successful_stick_data) {
+            LPC_SCT->CTRL_H &= ~(1u << 2);      // Start the SCTimer H
+        }
+        successful_stick_data = true;
+
+        failsafe_timer = FAILSAFE_TIMEOUT;
+        led_state = LED_STATE_RECEIVING;
+    }
+    // ================================
+    // payload[7] is 0xac for failsafe data
+    else if (payload[0] == failsafe_packetid) {
+        failsafe_enabled = true;
+        // FIXME: decode and store failsafe
+
+    }
+}
+
+// ****************************************************************************
+static void process_receiving(void)
+{
+    // ================================
+    if (binding) {
+        return;
+    }
+
+    // ================================
+    // Process failsafe only if we ever got a successsful stick data payload
+    // after reset.
+    //
+    // This way the servo outputs stay off until we got successful stick
+    // data, so the servos do not got to the failsafe point after power up
+    // in case the transmitter is not on yet.
+    if (successful_stick_data) {
+        if (failsafe_timer == 0) {
+            uint8_t i;
+
+            for (i = 0; i < NUMBER_OF_CHANNELS; i++) {
+                channels[i] = failsafe[i];
+            }
+            output_pulses();
+
+            led_state = LED_STATE_FAILSAFE;
+        }
+    }
+
+
+    // ================================
+    if (perform_hop_requested) {
+        perform_hop_requested = false;
+        ++hops_without_packet;
+
+
+        if (hops_without_packet > MAX_HOP_WITHOUT_PACKET) {
+            restart_packet_receiving();
+        }
+        else {
+            rf_clear_ce();
+            hop_index = (hop_index + 1) % NUMBER_OF_HOP_CHANNELS;
+            rf_set_channel(hop_data[hop_index]);
+            rf_set_ce();
+        }
+    }
+
+
+    // ================================
+    if (!rf_int_fired) {
+        return;
+    }
+    rf_int_fired = false;
+
+    if (rx_protocol == PROTOCOL_8CH) {
+        process_8ch_receiving();
+    }
+    else {
+        process_4ch_receiving();
     }
 }
 

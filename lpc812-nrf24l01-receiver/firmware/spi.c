@@ -26,9 +26,6 @@
 // ****************************************************************************
 void init_spi(void)
 {
-    // FIXME: check datasheet page 53..55 regarding timings
-    // LPC_SPI->DLY  = (0x2 << 0) | (0x2 << 4) | (0x5 << 12);
-
     // nRF24L01+ datasheet page 50: maximum data rate of 10Mbps
     // To have some margin, we use 2 MHz SPI clock.
     LPC_SPI->DIV = (__SYSTEM_CLOCK / 2000000) - 1;
