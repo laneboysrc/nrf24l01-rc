@@ -65,11 +65,8 @@ Again we have to round by adding BAUDRATE * 16 / 2 to the nominator:
     BRGVAL = (U_PCLK + (BAUDRATE * 16 / 2)) / (BAUDRATE * 16) - 1
 
 */
-#ifdef USE_IRC
+
 #define UART_CLOCK __SYSTEM_CLOCK
-#else
-#define UART_CLOCK 48000000     // 16 MHz crystal frequency x 3 (PLL)
-#endif
 
 #define MAX_BAUDRATE ((uint64_t)115200)
 #define DIV ((uint64_t)256)

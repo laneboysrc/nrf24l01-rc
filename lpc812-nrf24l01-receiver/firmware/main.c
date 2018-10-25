@@ -150,27 +150,51 @@ static void init_hardware(void)
     LPC_IOCON->PIO0_8 = 0;              // Turn pull-up off
     LPC_IOCON->PIO0_9 = 0;
     LPC_SWM->PINENABLE0 = 0xffffffcf;
-    LPC_SYSCON->SYSOSCCTRL = (1 << 1);  // 15..25 MHz range
-    LPC_SYSCON->PDRUNCFG &= ~(1 << 5);  // Enable the system oscillator
-    delay_us(600);
 
-    LPC_SYSCON->PDRUNCFG &= ~(1 << 7);          // Enable the PLL
-    LPC_SYSCON->SYSPLLCLKSEL = 0x1;             // PLL input is the crystal oscillator
-    LPC_SYSCON->SYSPLLCLKUEN = 0;               // Toggle PLL-enable
-    LPC_SYSCON->SYSPLLCLKUEN = 1;
+    if (is8channel) {
+        // A 12 MHz crystal is used on 8-channel hardware.
+        // Directly used as system clock
+        LPC_SYSCON->SYSOSCCTRL = (0 << 1);          // 1..20 MHz range
 
-    // Set the PLL to 16Mhz * 3 / 4 = 12 Mhz
-    LPC_SYSCON->SYSPLLCTRL = (0x2 << 0);        // M = 3
+        LPC_SYSCON->PDRUNCFG &= ~(1 << 5);          // Enable the system oscillator
+        delay_us(600);
 
-    while (!(LPC_SYSCON->SYSPLLSTAT & 1)) {     // Wait for PLL lock
-        ;
+        LPC_SYSCON->SYSPLLCLKSEL = 0x1;             // PLL input is the crystal oscillator
+        LPC_SYSCON->SYSPLLCLKUEN = 0;               // Toggle PLL-enable
+        LPC_SYSCON->SYSPLLCLKUEN = 1;
+
+        // LPC_SYSCON->SYSAHBCLKDIV = 1;               // Divide clock output by 1 for 12 MHz system clock
+
+        LPC_SYSCON->MAINCLKSEL = 0x1;               // Use the PLL clock input as main clock
+        LPC_SYSCON->MAINCLKUEN = 0;                 // Toggle CLK-enable
+        LPC_SYSCON->MAINCLKUEN = 1;
     }
+    else {
+        // A 16 MHz crystal is used on 4-channel hardware, so we use the PLL
+        // to make 48 MHz, then divide by 4 for 12 MHz system clock
 
-    LPC_SYSCON->SYSAHBCLKDIV = 4;               // Divide 48 MHz PLL output by 4 for 12 MHz system clock
+        LPC_SYSCON->SYSOSCCTRL = (1 << 1);          // 15..25 MHz range
+        LPC_SYSCON->PDRUNCFG &= ~(1 << 5);          // Enable the system oscillator
+        delay_us(600);
 
-    LPC_SYSCON->MAINCLKSEL = 0x3;               // Use the PLL clock output as main clock
-    LPC_SYSCON->MAINCLKUEN = 0;                 // Toggle CLK-enable
-    LPC_SYSCON->MAINCLKUEN = 1;
+        LPC_SYSCON->PDRUNCFG &= ~(1 << 7);          // Enable the PLL
+        LPC_SYSCON->SYSPLLCLKSEL = 0x1;             // PLL input is the crystal oscillator
+        LPC_SYSCON->SYSPLLCLKUEN = 0;               // Toggle PLL-enable
+        LPC_SYSCON->SYSPLLCLKUEN = 1;
+
+        // Set the PLL to 16Mhz * 3 / 4 = 12 Mhz
+        LPC_SYSCON->SYSPLLCTRL = (0x2 << 5) | (0x2 << 0); // P = 4, M = 3
+
+        while (!(LPC_SYSCON->SYSPLLSTAT & 1)) {     // Wait for PLL lock
+            ;
+        }
+
+        // LPC_SYSCON->SYSAHBCLKDIV = 4;               // Divide 48 MHz PLL output by 4 for 12 MHz system clock
+
+        LPC_SYSCON->MAINCLKSEL = 0x3;               // Use the PLL clock output as main clock
+        LPC_SYSCON->MAINCLKUEN = 0;                 // Toggle CLK-enable
+        LPC_SYSCON->MAINCLKUEN = 1;
+    }
 #endif
 
 
