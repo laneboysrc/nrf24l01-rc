@@ -26,6 +26,7 @@ void SysTick_handler(void);
 void PININT0_irq_handler(void);
 void SCT_irq_handler(void);
 void MRT_irq_handler(void);
+void switch_gpio_according_rx_protocol(rx_protocol_t rx_protocol);
 
 
 
@@ -387,14 +388,17 @@ static void init_hardware_final(void)
 
 
 // ****************************************************************************
-void switch_between_ch4_and_uart_tx(ch4_tx_mode_t mode)
+void switch_gpio_according_rx_protocol(rx_protocol_t protocol)
 {
 #ifndef NO_DEBUG
+    // FIXME: implement 8ch handling
+    // FIXME: turn off TX output on both 4ch and 8ch hardware
+
     if (is8channel) {
         return;
     }
 
-    if (mode == CH4_TX_MODE_CH4) {
+    if (protocol == PROTOCOL_4CH) {
         LPC_SWM->PINASSIGN0 |= (0xff << 0);                 // disable UART0_TX
 
         // Enable CTOUT_3 without disturbing the other settings

@@ -83,6 +83,9 @@
 
 #define NO_AUTO_ACKNOWLEDGE 0
 
+#define EN_DYN_ACK      (1 << 0)
+#define EN_ACK_PAY      (1 << 1)
+#define EN_DPL          (1 << 2)
 
 //******************************************************************************
 void rf_enable_clock(void);
@@ -95,6 +98,7 @@ uint8_t rf_get_status(void);
 bool rf_is_rx_fifo_emtpy(void);
 bool rf_is_tx_fifo_full(void);
 void rf_read_fifo(uint8_t *buffer, size_t byte_count);
+uint8_t rf_read_payload_width(void);
 void rf_flush_rx_fifo(void);
 void rf_flush_tx_fifo(void);
 
@@ -113,4 +117,5 @@ uint8_t rf_get_address_width(void);
 void rf_set_data_pipes(uint8_t pipes, uint8_t auto_acknowledge_pipes);
 void rf_set_payload_size(uint8_t pipes, uint8_t payload_size);
 void rf_set_rx_address(uint8_t pipe, uint8_t address_width, const uint8_t address[]);
-
+void rf_set_dynpd(uint8_t pipes);
+void rf_set_feature(uint8_t feature_list);

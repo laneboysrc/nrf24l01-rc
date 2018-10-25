@@ -232,6 +232,18 @@ void rf_read_fifo(uint8_t *buffer, size_t byte_count)
 
 
 // ****************************************************************************
+// Read RX payload width for the top R_RX_PAYLOAD in the RX FIFO
+// ****************************************************************************
+uint8_t rf_read_payload_width(void)
+{
+    uint8_t payload_width;
+
+    rf_read_command_buffer(R_RX_PL_WID, 1, &payload_width);
+    return payload_width;
+}
+
+
+// ****************************************************************************
 void rf_flush_rx_fifo(void)
 {
     rf_command(FLUSH_RX);
@@ -475,3 +487,27 @@ void rf_enable_receiver(void)
     }
 }
 
+
+// ****************************************************************************
+// Enable dynamic payload length for one or more pipes.
+//
+// pipes
+//  DATA_PIPE_0..5, multiple values or'ed for all enabled pipes
+// ****************************************************************************
+void rf_set_dynpd(uint8_t pipes)
+{
+    rf_write_register(DYNPD, pipes);
+}
+
+
+// ****************************************************************************
+// Enable features like dynamic ack, dynamic ack payload length, and dynamic
+// payload length.
+//
+// feature_list
+//  or'ed value comprising of EN_DPL, EN_ACK_PAY and EN_DYN_ACK as needed
+// ****************************************************************************
+void rf_set_feature(uint8_t feature_list)
+{
+    rf_write_register(FEATURE, feature_list);
+}

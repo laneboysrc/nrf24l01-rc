@@ -7,14 +7,16 @@
 #include <rf.h>
 #include <uart0.h>
 
-#define PROTOCOL_3CH 0xaa
-#define PROTOCOL_4CH 0xab
-#define PROTOCOL_8CH 0xac
 
 #define STICKDATA_PACKETID_3CH 0x55
 #define FAILSAFE_PACKETID_3CH 0xaa
+
 #define STICKDATA_PACKETID_4CH 0x56
 #define FAILSAFE_PACKETID_4CH 0xab
+
+#define STICKDATA_PACKETID_8CH 0x57
+#define FAILSAFE_PACKETID_8CH 0xac
+
 
 #define PAYLOAD_SIZE 10
 #define ADDRESS_WIDTH 5
@@ -38,9 +40,8 @@
 #define BUTTON_RELEASED 1
 
 
-
-
 extern bool systick;
+extern void switch_gpio_according_rx_protocol(rx_protocol_t rx_protocol);
 
 
 uint16_t channels[NUMBER_OF_CHANNELS];
@@ -76,6 +77,8 @@ static uint8_t bind_storage_area[NUMBER_OF_PERSISTENT_ELEMENTS] __attribute__ ((
 static uint8_t stickdata_packetid;
 static uint8_t failsafe_packetid;
 
+static rx_protocol_t rx_protocol;
+
 
 // ****************************************************************************
 // static void print_payload(void)
@@ -106,7 +109,7 @@ static void output_pulses(void)
 {
     int i;
 
-    for (i = 0; i < NUMBER_OF_CHANNELS; i++) {
+    for (i = 0; i < 4; i++) {
         LPC_SCT->MATCHREL[i + 1].H = channels[i];
     }
 }
@@ -174,9 +177,6 @@ static void restart_hop_timer(void)
 // ****************************************************************************
 static void restart_packet_receiving(void)
 {
-    // FIXME: differentiate between 3/4ch and 8ch protocols and
-    // reconfigure nRF24 accordingly
-
     stop_hop_timer();
 
     rf_clear_ce();
@@ -184,9 +184,25 @@ static void restart_packet_receiving(void)
     hops_without_packet = 0;
     perform_hop_requested = false;
 
+    rf_set_crc(CRC_2_BYTES);
+    rf_set_irq_source(RX_RD);
+    rf_set_address_width(ADDRESS_WIDTH);
     rf_set_data_rate(DATA_RATE_250K);
     rf_set_data_pipes(DATA_PIPE_0, NO_AUTO_ACKNOWLEDGE);
-    rf_set_payload_size(DATA_PIPE_0, PAYLOAD_SIZE);
+
+    if (rx_protocol == PROTOCOL_8CH) {
+        // Enable dynamic payload length
+        rf_set_feature(EN_DPL);
+        // Enable dynamic payload length on pipe 0
+        rf_set_dynpd(DATA_PIPE_0);
+    }
+    else {
+        rf_set_payload_size(DATA_PIPE_0, PAYLOAD_SIZE);
+        // Disable dynamic payout size on all pipes
+        rf_set_dynpd(0);
+        // Disable all dynamic features
+        rf_set_feature(0);
+    }
 
     rf_set_rx_address(DATA_PIPE_0, ADDRESS_WIDTH, model_address);
     rf_set_channel(hop_data[0]);
@@ -212,23 +228,29 @@ static void parse_bind_data(void)
     }
 
 
-    if (bind_storage_area[PROTOCOLID_INDEX] == PROTOCOL_4CH) {
-        stickdata_packetid = STICKDATA_PACKETID_4CH;
-        failsafe_packetid = FAILSAFE_PACKETID_4CH;
+    rx_protocol = bind_storage_area[PROTOCOLID_INDEX];
 
-        switch_between_ch4_and_uart_tx(CH4_TX_MODE_CH4);
-    }
-    if (bind_storage_area[PROTOCOLID_INDEX] == PROTOCOL_8CH) {
-        // FIXME: implement 8ch handling
-        // FIXME: turn off TX output on both 4ch and 8ch hardware
-        switch_between_ch4_and_uart_tx(CH4_TX_MODE_CH4);
-    }
-    else {
-        stickdata_packetid = STICKDATA_PACKETID_3CH;
-        failsafe_packetid = FAILSAFE_PACKETID_3CH;
+    switch (rx_protocol) {
+        default:
+            rx_protocol = PROTOCOL_3CH;
+            // fall through
+        case PROTOCOL_3CH:
+            stickdata_packetid = STICKDATA_PACKETID_3CH;
+            failsafe_packetid = FAILSAFE_PACKETID_3CH;
+            break;
 
-        switch_between_ch4_and_uart_tx(CH4_TX_MODE_TX);
+        case PROTOCOL_4CH:
+            stickdata_packetid = STICKDATA_PACKETID_4CH;
+            failsafe_packetid = FAILSAFE_PACKETID_4CH;
+            break;
+
+        case PROTOCOL_8CH:
+            stickdata_packetid = STICKDATA_PACKETID_8CH;
+            failsafe_packetid = FAILSAFE_PACKETID_8CH;
+            break;
     }
+
+    switch_gpio_according_rx_protocol(rx_protocol);
 }
 
 
@@ -289,6 +311,8 @@ static void process_binding(void)
 #endif
 
         // FIXME: support 8CH binding with different RF parameters
+        // We need to toggle periodically between the two variants, and latch
+        // onto them once any matching packet is received
 
         rf_clear_ce();
         // Set special address 12h 23h 23h 45h 78h
@@ -628,10 +652,6 @@ void init_receiver(void)
     rf_enable_clock();
     rf_clear_ce();
     rf_enable_receiver();
-
-    rf_set_crc(CRC_2_BYTES);
-    rf_set_irq_source(RX_RD);
-    rf_set_address_width(ADDRESS_WIDTH);
 
     restart_packet_receiving();
 
