@@ -39,7 +39,7 @@ OBJCOPY := $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)objcopy
 
 MKDIR_P = mkdir -p
 FLASH_TOOL := lpc81x_isp.py --wait --run --flash
-TERMINAL_PROGRAM := miniterm.py -p /dev/ttyUSB0 -b 115200 --echo
+TERMINAL_PROGRAM := miniterm /dev/ttyUSB0 115200 --echo
 
 
 # FIXME: make sure we can do without that tool!
@@ -80,9 +80,9 @@ CFLAGS += -D__SYSTEM_CLOCK=$(SYSTEM_CLOCK)
 
 # CFLAGS += -DNO_DEBUG
 # CFLAGS += -DBAUDRATE=38400
-CFLAGS += -DENABLE_PREPROCESSOR_OUTPUT
+# CFLAGS += -DENABLE_PREPROCESSOR_OUTPUT
 #CLFAGS += -DEXTENDED_PREPROCESSOR_OUTPUT
-#CFLAGS += -DUSE_IRC
+CFLAGS += -DUSE_IRC
 
 LDFLAGS := $(CPU_FLAGS)
 LDFLAGS += -mthumb -mcpu=cortex-m0plus -mlittle-endian

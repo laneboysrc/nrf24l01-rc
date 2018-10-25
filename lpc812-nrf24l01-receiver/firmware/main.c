@@ -31,6 +31,7 @@ void MRT_irq_handler(void);
 
 // Global flag that is true for one mainloop every __SYSTICK_IN_MS
 bool systick;
+volatile uint32_t milliseconds;
 
 // Global flag indicating 8-channel hardware based on TSSOP20 version
 bool is8channel;
@@ -59,6 +60,7 @@ static void service_systick(void)
     }
 
     systick = true;
+    milliseconds += __SYSTICK_IN_MS;
 
     // Disable the SysTick interrupt. Use memory barriers to ensure that no
     // interrupt is pending in the pipeline.
@@ -209,7 +211,7 @@ static void init_hardware(void)
                           (1 << GPIO_4CH_BIT_CH1) |
                           (1 << GPIO_4CH_BIT_CH2) |
                           (1 << GPIO_4CH_BIT_CH3) |
-                          (1 << GPIO_4CH_BIT_LED);
+                          gpio_mask_led;
 
     // CE = 0; LED on
     LPC_GPIO_PORT->CLR0 = gpio_mask_led | gpio_mask_nrf_ce;
@@ -344,8 +346,20 @@ void invoke_ISP(void)
 {
     unsigned int param[5];
 
-    // Release RX pin for UART function and make it an input
+    // Turn on the clock for SWM
+    LPC_SYSCON->SYSAHBCLKCTRL |= (1 << 7);
+
+    // Release all special function pins
+    LPC_SWM->PINASSIGN0 = 0xffffffff;
+    LPC_SWM->PINASSIGN1 = 0xffffffff;
+    LPC_SWM->PINASSIGN2 = 0xffffffff;
+    LPC_SWM->PINASSIGN3 = 0xffffffff;
+    LPC_SWM->PINASSIGN4 = 0xffffffff;
+    LPC_SWM->PINASSIGN5 = 0xffffffff;
+    LPC_SWM->PINASSIGN6 = 0xffffffff;
     LPC_SWM->PINASSIGN7 = 0xffffffff;
+
+    // Make the RX pin an input
     LPC_GPIO_PORT->DIR0 &= ~(1 << 0);
 
     // Disable the watchdog through power-down of the watchdog osc
@@ -400,7 +414,7 @@ int main(void)
     uart0_send_cstring("Receiver initialized\n");
 #endif
 
-    while (1) {
+    for (;;) {
         service_systick();
         process_receiver();
 

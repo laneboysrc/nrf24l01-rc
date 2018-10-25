@@ -81,3 +81,4 @@ void invoke_ISP(void);
 void delay_us(uint32_t microseconds);
 
 extern bool is8channel;
+extern volatile uint32_t milliseconds;
