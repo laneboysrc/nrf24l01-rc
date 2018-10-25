@@ -7,7 +7,12 @@
 #include <rf.h>
 #include <uart0.h>
 
-
+#define PROTOCOL_3CH 0xaa
+#define PROTOCOL_4CH 0xab
+#define STICKDATA_PACKETID_3CH 0x55
+#define FAILSAFE_PACKETID_3CH 0xaa
+#define STICKDATA_PACKETID_4CH 0x56
+#define FAILSAFE_PACKETID_4CH 0xab
 
 #define PAYLOAD_SIZE 10
 #define ADDRESS_WIDTH 5
@@ -63,8 +68,11 @@ static bool binding = false;
 static unsigned int bind_timer;
 static const uint8_t BIND_CHANNEL = 0x51;
 static const uint8_t BIND_ADDRESS[ADDRESS_WIDTH] = {0x12, 0x23, 0x23, 0x45, 0x78};
-static uint8_t bind_storage_area[ADDRESS_WIDTH + NUMBER_OF_HOP_CHANNELS] __attribute__ ((aligned (4)));
+static uint8_t bind_storage_area[NUMBER_OF_PERSISTENT_ELEMENTS] __attribute__ ((aligned (4)));
+#define PROTOCOLID_INDEX (sizeof(bind_storage_area)-1)
 
+static uint8_t stickdata_packetid;
+static uint8_t failsafe_packetid;
 
 
 // ****************************************************************************
@@ -164,6 +172,9 @@ static void restart_hop_timer(void)
 // ****************************************************************************
 static void restart_packet_receiving(void)
 {
+    // FIXME: differentiate between 3/4ch and 8ch protocols and
+    // reconfigure nRF24 accordingly
+
     stop_hop_timer();
 
     rf_clear_ce();
@@ -190,6 +201,17 @@ static void parse_bind_data(void)
 
     for (i = 0; i < NUMBER_OF_HOP_CHANNELS; i++) {
         hop_data[i] = bind_storage_area[ADDRESS_WIDTH + i];
+    }
+
+
+    // FIXME: do necessary hardware reconfiguration
+    if (bind_storage_area[PROTOCOLID_INDEX] != PROTOCOL_4CH) {
+        stickdata_packetid = STICKDATA_PACKETID_3CH;
+        failsafe_packetid = FAILSAFE_PACKETID_3CH;
+    }
+    else {
+        stickdata_packetid = STICKDATA_PACKETID_4CH;
+        failsafe_packetid = FAILSAFE_PACKETID_4CH;
     }
 }
 
@@ -284,18 +306,21 @@ static void process_binding(void)
     switch (bind_state) {
         case 0:
             if (payload[0] == 0xff) {
-                if (payload[1] == 0xaa) {
-                    if (payload[2] == 0x55) {
-                        checksum = 0;
-                        for (i = 0; i < 5; i++) {
-                            uint8_t payload_byte;
+                if (((payload[1] == 0xaa) && (payload[2] == 0x55)) ||
+                    ((payload[1] == 0xab) && (payload[2] == 0x56))) {
 
-                            payload_byte = payload[3 + i];
-                            bind_storage_area[i] = payload_byte;
-                            checksum += payload_byte;
-                        }
-                        bind_state = 1;
+                    // Save the protocol identifier (PROTOCOL_3CH=0xaa or PROTOCOL_4CH=0xab)
+                    bind_storage_area[PROTOCOLID_INDEX] = payload[1];
+
+                    checksum = 0;
+                    for (i = 0; i < 5; i++) {
+                        uint8_t payload_byte;
+
+                        payload_byte = payload[3 + i];
+                        bind_storage_area[i] = payload_byte;
+                        checksum += payload_byte;
                     }
+                    bind_state = 1;
                 }
             }
             break;
@@ -370,7 +395,7 @@ static void process_receiving(void)
     // in case the transmitter is not on yet.
     if (successful_stick_data) {
         if (failsafe_timer == 0) {
-            int i;
+            uint8_t i;
 
             for (i = 0; i < NUMBER_OF_CHANNELS; i++) {
                 channels[i] = failsafe[i];
@@ -423,10 +448,11 @@ static void process_receiving(void)
 
     // ================================
     // payload[7] is 0x55 for stick data
-    if (payload[7] == 0x55) {   // Stick data
+    if (payload[7] == stickdata_packetid) {
         channels[0] = stickdata2ms((payload[1] << 8) + payload[0]);
         channels[1] = stickdata2ms((payload[3] << 8) + payload[2]);
         channels[2] = stickdata2ms((payload[5] << 8) + payload[4]);
+        channels[3] = stickdata2ms((payload[9] << 8) + payload[6]);
         output_pulses();
 
         // Save raw received data for the pre-processor to output, so someone
@@ -450,13 +476,14 @@ static void process_receiving(void)
     }
     // ================================
     // payload[7] is 0xaa for failsafe data
-    else if (payload[7] == 0xaa) {
+    else if (payload[7] == failsafe_packetid) {
         // payload[8]: 0x5a if enabled, 0x5b if disabled
         if (payload[8] == 0x5a) {
             failsafe_enabled = true;
             failsafe[0] = stickdata2ms((payload[1] << 8) + payload[0]);
             failsafe[1] = stickdata2ms((payload[3] << 8) + payload[2]);
             failsafe[2] = stickdata2ms((payload[5] << 8) + payload[4]);
+            failsafe[3] = stickdata2ms((payload[9] << 8) + payload[6]);
         }
         else {
             // If failsafe is disabled use default values of 1500ms, just

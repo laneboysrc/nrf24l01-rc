@@ -163,8 +163,6 @@ static void init_hardware(void)
         LPC_SYSCON->SYSPLLCLKUEN = 0;               // Toggle PLL-enable
         LPC_SYSCON->SYSPLLCLKUEN = 1;
 
-        // LPC_SYSCON->SYSAHBCLKDIV = 1;               // Divide clock output by 1 for 12 MHz system clock
-
         LPC_SYSCON->MAINCLKSEL = 0x1;               // Use the PLL clock input as main clock
         LPC_SYSCON->MAINCLKUEN = 0;                 // Toggle CLK-enable
         LPC_SYSCON->MAINCLKUEN = 1;
@@ -189,8 +187,6 @@ static void init_hardware(void)
             ;
         }
 
-        // LPC_SYSCON->SYSAHBCLKDIV = 4;               // Divide 48 MHz PLL output by 4 for 12 MHz system clock
-
         LPC_SYSCON->MAINCLKSEL = 0x3;               // Use the PLL clock output as main clock
         LPC_SYSCON->MAINCLKUEN = 0;                 // Toggle CLK-enable
         LPC_SYSCON->MAINCLKUEN = 1;
@@ -207,35 +203,75 @@ static void init_hardware(void)
                           (0xff << 8) |                     // UART0_RX
                           (GPIO_BIT_TX << 0);               // UART0_TX
 
-    LPC_SWM->PINASSIGN3 = (GPIO_4CH_BIT_NRF_SCK << 24) |    // SPI0_SCK
-                          (0xff << 16) |
-                          (0xff << 8) |
-                          (0xff << 0);
+    if (is8channel) {
+        // 8ch pin configuration
+        LPC_SWM->PINASSIGN3 = (GPIO_8CH_BIT_NRF_SCK << 24) |    // SPI0_SCK
+                              (0xff << 16) |
+                              (0xff << 8) |
+                              (0xff << 0);
 
-    LPC_SWM->PINASSIGN4 = (0xff << 24) |
-                          (GPIO_4CH_BIT_NRF_CSN << 16) |    // SPI0_SSEL
-                          (GPIO_4CH_BIT_NRF_MISO << 8) |    // SPI0_MISO
-                          (GPIO_4CH_BIT_NRF_MOSI << 0);     // SPI0_MOSI
+        LPC_SWM->PINASSIGN4 = (0xff << 24) |
+                              (GPIO_8CH_BIT_NRF_CSN << 16) |    // SPI0_SSEL
+                              (GPIO_8CH_BIT_NRF_MISO << 8) |    // SPI0_MISO
+                              (GPIO_8CH_BIT_NRF_MOSI << 0);     // SPI0_MOSI
 
-    LPC_SWM->PINASSIGN6 = (GPIO_4CH_BIT_CH1 << 24) |        // CTOUT_0
-                          (0xff << 16) |
-                          (0xff << 8) |
-                          (0xff << 0);
+        LPC_SWM->PINASSIGN6 = (GPIO_8CH_BIT_CH1 << 24) |        // CTOUT_0
+                              (0xff << 16) |
+                              (0xff << 8) |
+                              (0xff << 0);
 
-    LPC_SWM->PINASSIGN7 = (0xff << 24) |
-                          (0xff << 16) |
-                          (GPIO_4CH_BIT_CH3 << 8) |         // CTOUT_2
-                          (GPIO_4CH_BIT_CH2 << 0);          // CTOUT_1
+        LPC_SWM->PINASSIGN7 = (0xff << 24) |
+                              (GPIO_8CH_BIT_CH4 << 16) |        // CTOUT_3
+                              (GPIO_8CH_BIT_CH3 << 8) |         // CTOUT_2
+                              (GPIO_8CH_BIT_CH2 << 0);          // CTOUT_1
 
-    // Configure outputs
-    LPC_GPIO_PORT->DIR0 = (1 << GPIO_4CH_BIT_NRF_SCK) |
-                          (1 << GPIO_4CH_BIT_NRF_MOSI) |
-                          (1 << GPIO_4CH_BIT_NRF_CSN) |
-                          (1 << GPIO_4CH_BIT_NRF_CE) |
-                          (1 << GPIO_4CH_BIT_CH1) |
-                          (1 << GPIO_4CH_BIT_CH2) |
-                          (1 << GPIO_4CH_BIT_CH3) |
-                          gpio_mask_led;
+        // Configure outputs
+        LPC_GPIO_PORT->DIR0 = (1 << GPIO_8CH_BIT_NRF_SCK) |
+                              (1 << GPIO_8CH_BIT_NRF_MOSI) |
+                              (1 << GPIO_8CH_BIT_NRF_CSN) |
+                              (1 << GPIO_8CH_BIT_NRF_CE) |
+                              (1 << GPIO_8CH_BIT_CH1) |
+                              (1 << GPIO_8CH_BIT_CH2) |
+                              (1 << GPIO_8CH_BIT_CH3) |
+                              (1 << GPIO_8CH_BIT_CH4) |
+                              (1 << GPIO_8CH_BIT_CH5) |
+                              (1 << GPIO_8CH_BIT_CH6) |
+                              (1 << GPIO_8CH_BIT_CH7) |
+                              (1 << GPIO_8CH_BIT_CH8) |
+                              (1 << GPIO_8CH_BIT_LED);
+    }
+    else {
+        // 4ch pin configuration
+        LPC_SWM->PINASSIGN3 = (GPIO_4CH_BIT_NRF_SCK << 24) |    // SPI0_SCK
+                              (0xff << 16) |
+                              (0xff << 8) |
+                              (0xff << 0);
+
+        LPC_SWM->PINASSIGN4 = (0xff << 24) |
+                              (GPIO_4CH_BIT_NRF_CSN << 16) |    // SPI0_SSEL
+                              (GPIO_4CH_BIT_NRF_MISO << 8) |    // SPI0_MISO
+                              (GPIO_4CH_BIT_NRF_MOSI << 0);     // SPI0_MOSI
+
+        LPC_SWM->PINASSIGN6 = (GPIO_4CH_BIT_CH1 << 24) |        // CTOUT_0
+                              (0xff << 16) |
+                              (0xff << 8) |
+                              (0xff << 0);
+
+        LPC_SWM->PINASSIGN7 = (0xff << 24) |
+                              (0xff << 16) |                    // CTOUT_3
+                              (GPIO_4CH_BIT_CH3 << 8) |         // CTOUT_2
+                              (GPIO_4CH_BIT_CH2 << 0);          // CTOUT_1
+
+        // Configure outputs
+        LPC_GPIO_PORT->DIR0 = (1 << GPIO_4CH_BIT_NRF_SCK) |
+                              (1 << GPIO_4CH_BIT_NRF_MOSI) |
+                              (1 << GPIO_4CH_BIT_NRF_CSN) |
+                              (1 << GPIO_4CH_BIT_NRF_CE) |
+                              (1 << GPIO_4CH_BIT_CH1) |
+                              (1 << GPIO_4CH_BIT_CH2) |
+                              (1 << GPIO_4CH_BIT_CH3) |
+                              (1 << GPIO_4CH_BIT_LED);
+    }
 
     // CE = 0; LED on
     LPC_GPIO_PORT->CLR0 = gpio_mask_led | gpio_mask_nrf_ce;
@@ -249,13 +285,14 @@ static void init_hardware(void)
     // The timer is running at 1.3 MHz clock (750ns resolution).
     // The repeat frequency is 15ms (a multiple of the on-air packet repeat
     // rate).
-    // The 3 servo pulses are generated with MATCH registers 1..3. and
-    // corresponding timer outputs 0..2.
-    // MATCH register 0 is used for auto-reload of the timer period.
+    // Up to 4 servo pulses are generated with MATCH/EVENT registers 1..4 and
+    // corresponding timer outputs 0..3.
+    // MATCH/EVENT register 0 is used for auto-reload of the timer period.
     //
     // Timer L is used for frequency hopping. It is configured as a simple
-    // auto-reload that fires an interrupt in regular intervals, using event[4].
+    // auto-reload that fires an interrupt in regular intervals, using EVENT[5].
     // The rc_receiver.c takes care of setting the counter and limit values.
+    //
     LPC_SCT->CONFIG = (1 << 18) |                   // Auto-limit on counter H
                       (1 << 17);                    // Auto-limit on counter L
 
@@ -265,41 +302,46 @@ static void init_hardware(void)
     LPC_SCT->MATCHREL[1].H = SERVO_PULSE_CENTER * 4 / 3; // Servo pulse 1.5 ms intially
     LPC_SCT->MATCHREL[2].H = SERVO_PULSE_CENTER * 4 / 3;
     LPC_SCT->MATCHREL[3].H = SERVO_PULSE_CENTER * 4 / 3;
+    LPC_SCT->MATCHREL[4].H = SERVO_PULSE_CENTER * 4 / 3;
 
-    // All 4 events are setup in the same way:
+    // Set up the events that the match registers triggerr.
+    // All 5 events are setup in the same way:
     // Event happens in all states; Match register of the same number;
     // Match counter H, Match condition only.
-    for (i = 0; i < 4; i++) {
+    for (i = 0; i < 5; i++) {
         LPC_SCT->EVENT[i].STATE = 0xFFFF;           // Event happens in all states
         LPC_SCT->EVENT[i].CTRL = (i << 0) |         // Match register
                                  (1 << 4) |         // Select H counter
                                  (0x1 << 12);       // Match condition only
     }
 
-    // All servo outputs will be set with timer reload event 0
+    // All servo outputs will be SET with timer reload event 0, and CLEARED
+    // with the indivual servo pulse time EVENTs
     LPC_SCT->OUT[0].SET = (1u << 0);
     LPC_SCT->OUT[1].SET = (1u << 0);
     LPC_SCT->OUT[2].SET = (1u << 0);
+    LPC_SCT->OUT[3].SET = (1u << 0);
 
     LPC_SCT->OUT[0].CLR = (1u << 1);                // Event 1 will clear CTOUT_0
     LPC_SCT->OUT[1].CLR = (1u << 2);                // Event 2 will clear CTOUT_1
     LPC_SCT->OUT[2].CLR = (1u << 3);                // Event 3 will clear CTOUT_2
+    LPC_SCT->OUT[3].CLR = (1u << 4);                // Event 4 will clear CTOUT_3
 
     // We don't start the timer here but only after receiving the first
     // valid stick data package.
 
     LPC_SCT->CTRL_L |= (1 << 3) | (1 << 2) |        // Reset and Halt Counter L
         (((__SYSTEM_CLOCK / 1000000) - 1) << 5);    // PRE_L[12:5] = divide for 1 MHz
-    LPC_SCT->EVENT[4].STATE = 0xFFFF;               // Event happens in all states
-    LPC_SCT->EVENT[4].CTRL = (0 << 0) |             // Match register
+    LPC_SCT->EVENT[5].STATE = 0xFFFF;               // Event happens in all states
+    LPC_SCT->EVENT[5].CTRL = (0 << 0) |             // Match register
                              (0 << 4) |             // Select counter L
                              (0x1 << 12);           // Match condition only
-    LPC_SCT->EVEN |= (1 << 4);                      // Event 4 generates an interrupt
+    LPC_SCT->EVEN |= (1 << 5);                      // Event 5 generates an interrupt
 
 
     // ------------------------
     // Configure the exernal interrupt from the NRF chip
-    LPC_SYSCON->PINTSEL[0] = GPIO_4CH_BIT_NRF_IRQ;  // PIO0_10 (NRF_IRQ) on PININT0
+    LPC_SYSCON->PINTSEL[0] = is8channel ? GPIO_8CH_BIT_NRF_IRQ : GPIO_4CH_BIT_NRF_IRQ; // NRF_IRQ on PININT0
     LPC_PIN_INT->IENF = (1 << 0);               // Enable falling edge on PININT0
 
 
@@ -330,8 +372,8 @@ static void init_hardware(void)
 // ****************************************************************************
 static void init_hardware_final(void)
 {
-    // Turn off peripheral clock for IOCON and SWM to preserve power
-    LPC_SYSCON->SYSAHBCLKCTRL &= ~((1 << 18) | (1 << 7));
+    // Turn off peripheral clock for IOCON to preserve power
+    LPC_SYSCON->SYSAHBCLKCTRL &= ~(1 << 18);
 
     NVIC_EnableIRQ(PININT0_IRQn);
     NVIC_EnableIRQ(SCT_IRQn);
@@ -349,9 +391,9 @@ void PININT0_irq_handler(void)
 // ****************************************************************************
 void SCT_irq_handler(void)
 {
-    // Clear the Event 4 flag. It is the only one we've set up to trigger
+    // Clear the Event 5 flag. It is the only one we've set up to trigger
     // an interrupt so no need to check other flags.
-    LPC_SCT->EVFLAG = (1 << 4);
+    LPC_SCT->EVFLAG = (1 << 5);
     hop_timer_handler();
 }
 
@@ -370,9 +412,6 @@ void invoke_ISP(void)
 {
     unsigned int param[5];
 
-    // Turn on the clock for SWM
-    LPC_SYSCON->SYSAHBCLKCTRL |= (1 << 7);
-
     // Release all special function pins
     LPC_SWM->PINASSIGN0 = 0xffffffff;
     LPC_SWM->PINASSIGN1 = 0xffffffff;
@@ -382,8 +421,9 @@ void invoke_ISP(void)
     LPC_SWM->PINASSIGN5 = 0xffffffff;
     LPC_SWM->PINASSIGN6 = 0xffffffff;
     LPC_SWM->PINASSIGN7 = 0xffffffff;
+    LPC_SWM->PINASSIGN8 = 0xffffffff;
 
-    // Make the RX pin an input
+    // Make the ISP RX pin an input
     LPC_GPIO_PORT->DIR0 &= ~(1 << 0);
 
     // Disable the watchdog through power-down of the watchdog osc
