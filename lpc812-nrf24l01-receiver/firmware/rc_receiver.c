@@ -9,6 +9,8 @@
 
 #define PROTOCOL_3CH 0xaa
 #define PROTOCOL_4CH 0xab
+#define PROTOCOL_8CH 0xac
+
 #define STICKDATA_PACKETID_3CH 0x55
 #define FAILSAFE_PACKETID_3CH 0xaa
 #define STICKDATA_PACKETID_4CH 0x56
@@ -181,8 +183,14 @@ static void restart_packet_receiving(void)
     hop_index = 0;
     hops_without_packet = 0;
     perform_hop_requested = false;
+
+    rf_set_data_rate(DATA_RATE_250K);
+    rf_set_data_pipes(DATA_PIPE_0, NO_AUTO_ACKNOWLEDGE);
+    rf_set_payload_size(DATA_PIPE_0, PAYLOAD_SIZE);
+
     rf_set_rx_address(DATA_PIPE_0, ADDRESS_WIDTH, model_address);
     rf_set_channel(hop_data[0]);
+
     rf_flush_rx_fifo();
     rf_clear_irq(RX_RD);
     rf_int_fired = false;
@@ -204,14 +212,22 @@ static void parse_bind_data(void)
     }
 
 
-    // FIXME: do necessary hardware reconfiguration
-    if (bind_storage_area[PROTOCOLID_INDEX] != PROTOCOL_4CH) {
-        stickdata_packetid = STICKDATA_PACKETID_3CH;
-        failsafe_packetid = FAILSAFE_PACKETID_3CH;
-    }
-    else {
+    if (bind_storage_area[PROTOCOLID_INDEX] == PROTOCOL_4CH) {
         stickdata_packetid = STICKDATA_PACKETID_4CH;
         failsafe_packetid = FAILSAFE_PACKETID_4CH;
+
+        switch_between_ch4_and_uart_tx(CH4_TX_MODE_CH4);
+    }
+    if (bind_storage_area[PROTOCOLID_INDEX] == PROTOCOL_8CH) {
+        // FIXME: implement 8ch handling
+        // FIXME: turn off TX output on both 4ch and 8ch hardware
+        switch_between_ch4_and_uart_tx(CH4_TX_MODE_CH4);
+    }
+    else {
+        stickdata_packetid = STICKDATA_PACKETID_3CH;
+        failsafe_packetid = FAILSAFE_PACKETID_3CH;
+
+        switch_between_ch4_and_uart_tx(CH4_TX_MODE_TX);
     }
 }
 
@@ -271,6 +287,8 @@ static void process_binding(void)
 #ifndef NO_DEBUG
         uart0_send_cstring("Starting bind procedure\n");
 #endif
+
+        // FIXME: support 8CH binding with different RF parameters
 
         rf_clear_ce();
         // Set special address 12h 23h 23h 45h 78h
@@ -613,10 +631,7 @@ void init_receiver(void)
 
     rf_set_crc(CRC_2_BYTES);
     rf_set_irq_source(RX_RD);
-    rf_set_data_rate(DATA_RATE_250K);
-    rf_set_data_pipes(DATA_PIPE_0, NO_AUTO_ACKNOWLEDGE);
     rf_set_address_width(ADDRESS_WIDTH);
-    rf_set_payload_size(DATA_PIPE_0, PAYLOAD_SIZE);
 
     restart_packet_receiving();
 

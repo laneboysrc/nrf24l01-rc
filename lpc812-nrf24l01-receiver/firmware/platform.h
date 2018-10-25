@@ -82,3 +82,10 @@ void delay_us(uint32_t microseconds);
 
 extern bool is8channel;
 extern volatile uint32_t milliseconds;
+
+typedef enum {
+    CH4_TX_MODE_CH4,
+    CH4_TX_MODE_TX
+} ch4_tx_mode_t;
+
+extern void switch_between_ch4_and_uart_tx(ch4_tx_mode_t mode);

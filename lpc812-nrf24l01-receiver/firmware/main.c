@@ -198,13 +198,13 @@ static void init_hardware(void)
     // IO configuration
 
     // Enable hardware inputs and outputs
-    LPC_SWM->PINASSIGN0 = (0xff << 24) |
-                          (0xff << 16) |
-                          (0xff << 8) |                     // UART0_RX
-                          (GPIO_BIT_TX << 0);               // UART0_TX
-
     if (is8channel) {
         // 8ch pin configuration
+        LPC_SWM->PINASSIGN0 = (0xff << 24) |
+                              (0xff << 16) |
+                              (0xff << 8) |                     // UART0_RX
+                              (GPIO_BIT_TX << 0);               // UART0_TX
+
         LPC_SWM->PINASSIGN3 = (GPIO_8CH_BIT_NRF_SCK << 24) |    // SPI0_SCK
                               (0xff << 16) |
                               (0xff << 8) |
@@ -242,6 +242,11 @@ static void init_hardware(void)
     }
     else {
         // 4ch pin configuration
+        LPC_SWM->PINASSIGN0 = (0xff << 24) |
+                              (0xff << 16) |
+                              (0xff << 8) |                     // UART0_RX
+                              (GPIO_BIT_TX << 0);               // UART0_TX
+
         LPC_SWM->PINASSIGN3 = (GPIO_4CH_BIT_NRF_SCK << 24) |    // SPI0_SCK
                               (0xff << 16) |
                               (0xff << 8) |
@@ -258,7 +263,7 @@ static void init_hardware(void)
                               (0xff << 0);
 
         LPC_SWM->PINASSIGN7 = (0xff << 24) |
-                              (0xff << 16) |                    // CTOUT_3
+                              (0xff << 16) |                    // CTOUT_3 (by default we enable the UART output!)
                               (GPIO_4CH_BIT_CH3 << 8) |         // CTOUT_2
                               (GPIO_4CH_BIT_CH2 << 0);          // CTOUT_1
 
@@ -270,6 +275,7 @@ static void init_hardware(void)
                               (1 << GPIO_4CH_BIT_CH1) |
                               (1 << GPIO_4CH_BIT_CH2) |
                               (1 << GPIO_4CH_BIT_CH3) |
+                              (1 << GPIO_4CH_BIT_CH4) |
                               (1 << GPIO_4CH_BIT_LED);
     }
 
@@ -377,6 +383,36 @@ static void init_hardware_final(void)
 
     NVIC_EnableIRQ(PININT0_IRQn);
     NVIC_EnableIRQ(SCT_IRQn);
+}
+
+
+// ****************************************************************************
+void switch_between_ch4_and_uart_tx(ch4_tx_mode_t mode)
+{
+#ifndef NO_DEBUG
+    if (is8channel) {
+        return;
+    }
+
+    if (mode == CH4_TX_MODE_CH4) {
+        LPC_SWM->PINASSIGN0 |= (0xff << 0);                 // disable UART0_TX
+
+        // Enable CTOUT_3 without disturbing the other settings
+        LPC_SWM->PINASSIGN7 |= (0xff << 16);
+        LPC_SWM->PINASSIGN7 &= (0xff << 24) |
+                               (GPIO_4CH_BIT_CH4 << 16) |
+                               (0xff << 8) |
+                               (0xff << 0);
+    }
+    else {
+        LPC_SWM->PINASSIGN7 |= (0xff << 16);                // disable CTOUT_3
+
+        LPC_SWM->PINASSIGN0 = (0xff << 24) |
+                              (0xff << 16) |
+                              (0xff << 8) |
+                              (GPIO_BIT_TX << 0);           // enable UART0_TX
+    }
+#endif
 }
 
 
