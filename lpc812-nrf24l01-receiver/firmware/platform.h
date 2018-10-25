@@ -27,8 +27,8 @@
 // PIO0_7                       14  CH1               17  CH4
 // PIO0_8   (XTALIN)            11  XTALIN            14  XTALIN
 // PIO0_9   (XTALOUT)           10  XTALOUT           13  XTALOUT
-// PIO0_10  (Open drain)        8   NRF_MISO          9   NRF_MISO
-// PIO0_11  (Open drain)        7   NRF_IRQ           8   NRF_IRQ
+// PIO0_10  (Open drain)        8   NRF_IRQ           9   NRF_MISO
+// PIO0_11  (Open drain)        7   NRF_MISO          8   NRF_IRQ
 // PIO0_12  (ISP-entry)         2   ISP/BIND          3   ISP/BIND
 // PIO0_13                      1   NRF_CE            2   CH8
 // PIO0_14                                            20  CH1
@@ -69,8 +69,8 @@
 #define GPIO_8CH_BIT_NRF_SCK 3
 #define GPIO_8CH_BIT_NRF_MOSI 5
 #define GPIO_8CH_BIT_NRF_CSN 2
-#define GPIO_8CH_BIT_NRF_MISO 11
-#define GPIO_8CH_BIT_NRF_IRQ 10
+#define GPIO_8CH_BIT_NRF_MISO 10
+#define GPIO_8CH_BIT_NRF_IRQ 11
 #define GPIO_8CH_BIT_NRF_CE 16
 
 extern uint32_t gpio_mask_led;
