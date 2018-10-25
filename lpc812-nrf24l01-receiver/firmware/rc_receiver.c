@@ -117,13 +117,20 @@ static void output_pulses(void)
 
 
 // ****************************************************************************
-static uint16_t stickdata2ms(uint16_t stickdata)
+static uint16_t stickdata2timer(uint16_t stickdata)
 {
     uint32_t ms;
 
     // ms = (0xffff - stickdata) * 3 / 4;
     ms = (0xffff - stickdata);
     return ms & 0xffff;
+}
+
+
+// ****************************************************************************
+static uint16_t stickdata2timer8ch(uint16_t stickdata)
+{
+    return (476 * 2) + stickdata;
 }
 
 
@@ -444,10 +451,10 @@ static void process_4ch_receiving(void)
     // ================================
     // payload[7] is 0x55 for stick data
     if (payload[7] == stickdata_packetid) {
-        channels[0] = stickdata2ms((payload[1] << 8) + payload[0]);
-        channels[1] = stickdata2ms((payload[3] << 8) + payload[2]);
-        channels[2] = stickdata2ms((payload[5] << 8) + payload[4]);
-        channels[3] = stickdata2ms((payload[9] << 8) + payload[6]);
+        channels[0] = stickdata2timer((payload[1] << 8) + payload[0]);
+        channels[1] = stickdata2timer((payload[3] << 8) + payload[2]);
+        channels[2] = stickdata2timer((payload[5] << 8) + payload[4]);
+        channels[3] = stickdata2timer((payload[9] << 8) + payload[6]);
         output_pulses();
 
         // Save raw received data for the pre-processor to output, so someone
@@ -475,10 +482,10 @@ static void process_4ch_receiving(void)
         // payload[8]: 0x5a if enabled, 0x5b if disabled
         if (payload[8] == 0x5a) {
             failsafe_enabled = true;
-            failsafe[0] = stickdata2ms((payload[1] << 8) + payload[0]);
-            failsafe[1] = stickdata2ms((payload[3] << 8) + payload[2]);
-            failsafe[2] = stickdata2ms((payload[5] << 8) + payload[4]);
-            failsafe[3] = stickdata2ms((payload[9] << 8) + payload[6]);
+            failsafe[0] = stickdata2timer((payload[1] << 8) + payload[0]);
+            failsafe[1] = stickdata2timer((payload[3] << 8) + payload[2]);
+            failsafe[2] = stickdata2timer((payload[5] << 8) + payload[4]);
+            failsafe[3] = stickdata2timer((payload[9] << 8) + payload[6]);
         }
         else {
             // If failsafe is disabled use default values of 1500ms, just
@@ -511,11 +518,17 @@ static void process_8ch_receiving(void)
 
     restart_hop_timer();
 
-
     // ================================
     // payload[0] is 0x57 for stick data
     if (payload[0] == stickdata_packetid) {
-        // FIXME: decode and store stickdata
+        channels[0] = stickdata2timer8ch(((payload[9] & 0x0f) << 8) + payload[1]);
+        channels[1] = stickdata2timer8ch(((payload[9] & 0xf0) << 4) + payload[2]);
+        channels[2] = stickdata2timer8ch(((payload[10] & 0x0f) << 8) + payload[3]);
+        channels[3] = stickdata2timer8ch(((payload[10] & 0xf0) << 4) + payload[4]);
+        channels[4] = stickdata2timer8ch(((payload[11] & 0x0f) << 8) + payload[5]);
+        channels[5] = stickdata2timer8ch(((payload[11] & 0xf0) << 4) + payload[6]);
+        channels[6] = stickdata2timer8ch(((payload[12] & 0x0f) << 8) + payload[7]);
+        channels[7] = stickdata2timer8ch(((payload[12] & 0xf0) << 4) + payload[8]);
 
         if (!successful_stick_data) {
             LPC_SCT->CTRL_H &= ~(1u << 2);      // Start the SCTimer H
@@ -529,8 +542,14 @@ static void process_8ch_receiving(void)
     // payload[7] is 0xac for failsafe data
     else if (payload[0] == failsafe_packetid) {
         failsafe_enabled = true;
-        // FIXME: decode and store failsafe
-
+        failsafe[0] = stickdata2timer8ch(((payload[9] & 0x0f) << 8) + payload[1]);
+        failsafe[1] = stickdata2timer8ch(((payload[9] & 0xf0) << 4) + payload[2]);
+        failsafe[2] = stickdata2timer8ch(((payload[10] & 0x0f) << 8) + payload[3]);
+        failsafe[3] = stickdata2timer8ch(((payload[10] & 0xf0) << 4) + payload[4]);
+        failsafe[4] = stickdata2timer8ch(((payload[11] & 0x0f) << 8) + payload[5]);
+        failsafe[5] = stickdata2timer8ch(((payload[11] & 0xf0) << 4) + payload[6]);
+        failsafe[6] = stickdata2timer8ch(((payload[12] & 0x0f) << 8) + payload[7]);
+        failsafe[7] = stickdata2timer8ch(((payload[12] & 0xf0) << 4) + payload[8]);
     }
 }
 
