@@ -220,15 +220,15 @@ static void init_hardware(void)
                               (GPIO_8CH_BIT_NRF_MISO << 8) |    // SPI0_MISO
                               (GPIO_8CH_BIT_NRF_MOSI << 0);     // SPI0_MOSI
 
-        // LPC_SWM->PINASSIGN6 = (GPIO_8CH_BIT_CH1 << 24) |        // CTOUT_0
-        //                       (0xff << 16) |
-        //                       (0xff << 8) |
-        //                       (0xff << 0);
+        LPC_SWM->PINASSIGN6 = (GPIO_8CH_BIT_CH1 << 24) |        // CTOUT_0
+                              (0xff << 16) |
+                              (0xff << 8) |
+                              (0xff << 0);
 
-        // LPC_SWM->PINASSIGN7 = (0xff << 24) |
-        //                       (GPIO_8CH_BIT_CH4 << 16) |        // CTOUT_3
-        //                       (GPIO_8CH_BIT_CH3 << 8) |         // CTOUT_2
-        //                       (GPIO_8CH_BIT_CH2 << 0);          // CTOUT_1
+        LPC_SWM->PINASSIGN7 = (0xff << 24) |
+                              (GPIO_8CH_BIT_CH4 << 16) |        // CTOUT_3
+                              (GPIO_8CH_BIT_CH3 << 8) |         // CTOUT_2
+                              (GPIO_8CH_BIT_CH2 << 0);          // CTOUT_1
 
         // Configure outputs
         LPC_GPIO_PORT->DIR0 = (1 << GPIO_8CH_BIT_NRF_SCK) |
@@ -299,13 +299,6 @@ static void init_hardware(void)
     // Up to 4 servo pulses are generated with MATCH/EVENT registers 1..4 and
     // corresponding timer outputs 0..3.
     // MATCH/EVENT register 0 is used for auto-reload of the timer period.
-    //
-    // Timer L is used for frequency hopping. It is configured as a simple
-    // auto-reload that fires an interrupt in regular intervals, using EVENT[5].
-    // The rc_receiver.c takes care of setting the counter and limit values.
-    //
-    LPC_SCT->CONFIG = (1 << 18) |                   // Auto-limit on counter H
-                      (1 << 17);                    // Auto-limit on counter L
 
     LPC_SCT->CTRL_H |= (1 << 3) |                   // Clear the counter H
         (((__SYSTEM_CLOCK / 1333333) - 1) << 5);    // PRE_H[12:5] = divide for 750ns clock
@@ -315,16 +308,30 @@ static void init_hardware(void)
     LPC_SCT->MATCHREL[3].H = SERVO_PULSE_CENTER * 4 / 3;
     LPC_SCT->MATCHREL[4].H = SERVO_PULSE_CENTER * 4 / 3;
 
-    // Set up the events that the match registers triggerr.
+    // Set up the events that the match registers trigger. EVENT[0] is for the
+    // servo pulse period, EVENTS[1..4] for 4 servo channel outputs.
     // All 5 events are setup in the same way:
-    // Event happens in all states; Match register of the same number;
-    // Match counter H, Match condition only.
+    //    - Event happens in all states
+    //    - Match register of the same number
+    //    - HEVENT: Match counter H
+    //    - COMBMODE: Match condition only
     for (i = 0; i < 5; i++) {
         LPC_SCT->EVENT[i].STATE = 0xFFFF;           // Event happens in all states
         LPC_SCT->EVENT[i].CTRL = (i << 0) |         // Match register
                                  (1 << 4) |         // Select H counter
                                  (0x1 << 12);       // Match condition only
     }
+    LPC_SCT->LIMIT_H = (1u << 0);                   // EVENT0 limits (resets) the counter
+
+
+    // 8-channel multiplexing
+    //
+    // All 4 channel events are triggering an interrupt. Whenever an event fires,
+    // we load the corresponding MATCHREL with the value for the other servo
+    // channel, and CTOUT with the port number of that other servo channel.
+    // The next EVENT0 reseting the timer will output the other channel and
+    // the cycle repeats.
+
 
     // All servo outputs will be SET with timer reload event 0, and CLEARED
     // with the indivual servo pulse time EVENTs
@@ -341,13 +348,20 @@ static void init_hardware(void)
     // We don't start the timer here but only after receiving the first
     // valid stick data package.
 
+
+
+    // Timer L is used for frequency hopping. It is configured as a simple
+    // auto-reload that fires an interrupt in regular intervals, using EVENT[5].
+    // The rc_receiver.c takes care of setting the counter and limit values.
+
     LPC_SCT->CTRL_L |= (1 << 3) | (1 << 2) |        // Reset and Halt Counter L
         (((__SYSTEM_CLOCK / 1000000) - 1) << 5);    // PRE_L[12:5] = divide for 1 MHz
     LPC_SCT->EVENT[5].STATE = 0xFFFF;               // Event happens in all states
     LPC_SCT->EVENT[5].CTRL = (0 << 0) |             // Match register
                              (0 << 4) |             // Select counter L
                              (0x1 << 12);           // Match condition only
-    LPC_SCT->EVEN |= (1 << 5);                      // Event 5 generates an interrupt
+    LPC_SCT->LIMIT_L = (1u << 5);                   // EVENT[5] limits (resets) the counter
+    LPC_SCT->EVEN |= (1u << 5);                     // EVENT[5] generates an interrupt
 
 
     // ------------------------
@@ -462,10 +476,10 @@ void PININT0_irq_handler(void)
 // ****************************************************************************
 void SCT_irq_handler(void)
 {
-    // Clear the Event 5 flag. It is the only one we've set up to trigger
-    // an interrupt so no need to check other flags.
-    LPC_SCT->EVFLAG = (1 << 5);
-    hop_timer_handler();
+    if (LPC_SCT->EVFLAG & (1 << 5)) {
+        LPC_SCT->EVFLAG = (1 << 5);
+        hop_timer_handler();
+    }
 }
 
 
