@@ -27,17 +27,23 @@
 
 #define FAILSAFE_TIMEOUT (640 / __SYSTICK_IN_MS)
 #define BIND_TIMEOUT (5000 / __SYSTICK_IN_MS)
+#define BIND_SWAP_TIMEOUT (50 / __SYSTICK_IN_MS)
 #define ISP_TIMEOUT (3000 / __SYSTICK_IN_MS)
 #define BLINK_TIME_FAILSAFE (320 / __SYSTICK_IN_MS)
 #define BLINK_TIME_BINDING (50 / __SYSTICK_IN_MS)
 
-#define LED_STATE_IDLE 0
-#define LED_STATE_RECEIVING 1
-#define LED_STATE_FAILSAFE 2
-#define LED_STATE_BINDING 3
+
 
 #define BUTTON_PRESSED 0
 #define BUTTON_RELEASED 1
+
+typedef enum {
+    LED_STATE_UNKNOWN,
+    LED_STATE_IDLE,
+    LED_STATE_RECEIVING,
+    LED_STATE_FAILSAFE,
+    LED_STATE_BINDING,
+} led_state_t;
 
 
 extern bool systick;
@@ -48,14 +54,14 @@ uint16_t channels[NUMBER_OF_CHANNELS];
 uint16_t raw_data[2];
 bool successful_stick_data = false;
 
-
 static bool rf_int_fired = false;
-static unsigned int led_state;
+
+static led_state_t led_state;
+
 static unsigned int blink_timer;
 static unsigned int bind_button_timer;
 
 static uint8_t payload[RF_MAX_BUFFER_LENGTH];
-static uint8_t payload_width;
 
 static uint8_t failsafe_enabled;
 static uint16_t failsafe[NUMBER_OF_CHANNELS];
@@ -70,6 +76,7 @@ static uint8_t hop_data[NUMBER_OF_HOP_CHANNELS];
 static bool binding_requested = false;
 static bool binding = false;
 static unsigned int bind_timer;
+static unsigned int bind_swap_timer;
 static const uint8_t BIND_CHANNEL = 0x51;
 static const uint8_t BIND_ADDRESS[ADDRESS_WIDTH] = {0x12, 0x23, 0x23, 0x45, 0x78};
 static uint8_t bind_storage_area[NUMBER_OF_PERSISTENT_ELEMENTS] __attribute__ ((aligned (4)));
@@ -208,10 +215,10 @@ static void restart_packet_receiving(void)
     }
     else {
         rf_set_payload_size(DATA_PIPE_0, PAYLOAD_SIZE);
-        // // Disable dynamic payout size on all pipes
-        // rf_set_dynpd(0);
-        // // Disable all dynamic features
-        // rf_set_feature(0);
+        // Disable dynamic payout size on all pipes
+        rf_set_dynpd(0);
+        // Disable all dynamic features
+        rf_set_feature(0);
     }
 
     rf_set_rx_address(DATA_PIPE_0, ADDRESS_WIDTH, model_address);
@@ -300,8 +307,15 @@ static void binding_done(void)
 // ****************************************************************************
 static void process_binding(void)
 {
-    static unsigned int bind_state;
+    static enum {
+        BIND_STATE_4CH_1,
+        BIND_STATE_4CH_2,
+        BIND_STATE_4CH_3,
+        BIND_STATE_4CH_4,
+        BIND_STATE_8CH,
+    } bind_state;
     static uint16_t checksum;
+    uint8_t payload_width = PAYLOAD_SIZE;
     int i;
 
     // ================================
@@ -313,23 +327,13 @@ static void process_binding(void)
         binding_requested = false;
         led_state = LED_STATE_BINDING;
         binding = true;
-        bind_state = 0;
+        bind_state = BIND_STATE_4CH_1;
         bind_timer = BIND_TIMEOUT;
+        bind_swap_timer = 0;
 
 #ifndef NO_DEBUG
         uart0_send_cstring("Starting bind procedure\n");
 #endif
-
-        // FIXME: support 8CH binding with different RF parameters
-        // We need to toggle periodically between the two variants, and latch
-        // onto them once any matching packet is received
-
-        rf_clear_ce();
-        // Set special address 12h 23h 23h 45h 78h
-        rf_set_rx_address(0, ADDRESS_WIDTH, BIND_ADDRESS);
-        // Set special channel 0x51
-        rf_set_channel(BIND_CHANNEL);
-        rf_set_ce();
         return;
     }
 
@@ -345,18 +349,60 @@ static void process_binding(void)
 
 
     // ================================
+    // Every 50ms we toggle between the 3/4ch bind mode and 8ch bind mode.
+    // We only do that if we haven't received one of the 3/4ch bind packets
+    // yet (multiple bind packets are combined to form bind data)
+    if (bind_swap_timer == 0) {
+        bind_swap_timer = BIND_SWAP_TIMEOUT;
+
+        if (bind_state == BIND_STATE_4CH_1) {
+            bind_state = BIND_STATE_8CH;
+            // Set special address 12h 23h 23h 45h 78h
+            rf_set_rx_address(0, ADDRESS_WIDTH, BIND_ADDRESS);
+            // Set special channel 0x51
+            rf_set_channel(BIND_CHANNEL);
+
+            rf_set_data_rate(DATA_RATE_2M);
+            // Enable dynamic payload length
+            rf_set_feature(EN_DPL);
+            // Enable dynamic payload length on pipe 0
+            rf_set_dynpd(DATA_PIPE_0);
+            rf_set_ce();
+        }
+        else if (bind_state == BIND_STATE_8CH) {
+            bind_state = BIND_STATE_4CH_1;
+
+            rf_clear_ce();
+            // Set special address 12h 23h 23h 45h 78h
+            rf_set_rx_address(0, ADDRESS_WIDTH, BIND_ADDRESS);
+            // Set special channel 0x51
+            rf_set_channel(BIND_CHANNEL);
+
+            rf_set_data_rate(DATA_RATE_250K);
+            rf_set_payload_size(DATA_PIPE_0, PAYLOAD_SIZE);
+            // Disable dynamic payout size on all pipes
+            rf_set_dynpd(0);
+            // Disable all dynamic features
+            rf_set_feature(0);
+            rf_set_ce();
+        }
+    }
+
+
+    // ================================
     if (!rf_int_fired) {
         return;
     }
     rf_int_fired = false;
 
     while (!rf_is_rx_fifo_emtpy()) {
-        rf_read_fifo(payload, PAYLOAD_SIZE);
+        payload_width = rf_read_payload_width();
+        rf_read_fifo(payload, payload_width);
     }
     rf_clear_irq(RX_RD);
 
     switch (bind_state) {
-        case 0:
+        case BIND_STATE_4CH_1:
             if (payload[0] == 0xff) {
                 if (((payload[1] == 0xaa) && (payload[2] == 0x55)) ||
                     ((payload[1] == 0xab) && (payload[2] == 0x56))) {
@@ -372,38 +418,38 @@ static void process_binding(void)
                         bind_storage_area[i] = payload_byte;
                         checksum += payload_byte;
                     }
-                    bind_state = 1;
+                    bind_state = BIND_STATE_4CH_2;
                 }
             }
             break;
 
-        case 1:
+        case BIND_STATE_4CH_2:
             if (payload[0] == (checksum & 0xff)) {
                 if (payload[1] == (checksum >> 8)) {
                     if (payload[2] == 0) {
                         for (i = 0; i < 7; i++) {
                             bind_storage_area[5 + i] = payload[3 + i];
                         }
-                        bind_state = 2;
+                        bind_state = BIND_STATE_4CH_3;
                     }
                 }
             }
             break;
 
-        case 2:
+        case BIND_STATE_4CH_3:
             if (payload[0] == (checksum & 0xff)) {
                 if (payload[1] == (checksum >> 8)) {
                     if (payload[2] == 1) {
                         for (i = 0; i < 7; i++) {
                             bind_storage_area[12 + i] = payload[3 + i];
                         }
-                        bind_state = 3;
+                        bind_state = BIND_STATE_4CH_4;
                     }
                 }
             }
             break;
 
-        case 3:
+        case BIND_STATE_4CH_4:
             if (payload[0] == (checksum & 0xff)) {
                 if (payload[1] == (checksum >> 8)) {
                     if (payload[2] == 2) {
@@ -414,7 +460,12 @@ static void process_binding(void)
                         save_persistent_storage(bind_storage_area);
                         parse_bind_data();
 #ifndef NO_DEBUG
-                        uart0_send_cstring("Bind successful\n");
+                        if (rx_protocol == PROTOCOL_3CH) {
+                            uart0_send_cstring("Bind successful (3ch)\n");
+                        }
+                        else {
+                            uart0_send_cstring("Bind successful (4ch)\n");
+                        }
 #endif
                         binding_done();
                         return;
@@ -423,8 +474,24 @@ static void process_binding(void)
             }
             break;
 
+        case BIND_STATE_8CH:
+            if (payload_width == 27) {
+                if ((payload[0] == 0xac) && (payload[1] == 0x57)) {
+                    for (i = 0; i < 25; i++) {
+                        bind_storage_area[i] = payload[2 + i];
+                    }
+                    save_persistent_storage(bind_storage_area);
+                    parse_bind_data();
+#ifndef NO_DEBUG
+                    uart0_send_cstring("Bind successful (8ch)\n");
+#endif
+                    binding_done();
+                }
+            }
+            break;
+
         default:
-            bind_state = 0;
+            bind_state = BIND_STATE_4CH_1;
             break;
     }
 }
@@ -499,6 +566,8 @@ static void process_4ch_receiving(void)
 // ****************************************************************************
 static void process_8ch_receiving(void)
 {
+    uint8_t payload_width = 0;
+
     while (!rf_is_rx_fifo_emtpy()) {
         payload_width = rf_read_payload_width();
         rf_read_fifo(payload, payload_width);
@@ -560,7 +629,6 @@ static void process_receiving(void)
     if (binding) {
         return;
     }
-
 
     // ================================
     // Process failsafe only if we ever got a successsful stick data payload
@@ -631,6 +699,10 @@ static void process_systick(void)
         --bind_timer;
     }
 
+    if (bind_swap_timer) {
+        --bind_swap_timer;
+    }
+
     if (bind_button_timer) {
         --bind_button_timer;
     }
@@ -684,7 +756,7 @@ static void process_bind_button(void)
 // ****************************************************************************
 static void process_led(void)
 {
-    static unsigned int old_led_state = 0xffffffff;
+    static led_state_t old_led_state = LED_STATE_UNKNOWN;
     static bool blinking;
     static unsigned int blink_timer_reload_value;
 
@@ -712,6 +784,7 @@ static void process_led(void)
             blinking = true;
             break;
 
+        case LED_STATE_UNKNOWN:
         case LED_STATE_IDLE:
         case LED_STATE_FAILSAFE:
         default:
