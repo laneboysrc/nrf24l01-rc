@@ -1,3 +1,3 @@
 (sym_lib_table
-  (lib (name nrf24l01_E01-ML01)(type Legacy)(uri /home/laneboysrc/projects/nrf24le01-rc/lpc812-nrf24l01-8ch-receiver/electronics/nrf24l01_E01-ML01.lib)(options "")(descr ""))
+  (lib (name nrf24l01_E01-ML01)(type Legacy)(uri ${KIPRJMOD}/nrf24l01_E01-ML01.lib)(options "")(descr ""))
 )
