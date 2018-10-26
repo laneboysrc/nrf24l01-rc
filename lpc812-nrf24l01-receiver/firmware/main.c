@@ -202,10 +202,13 @@ static void init_hardware(void)
     // Enable hardware inputs and outputs
     if (is8channel) {
         // 8ch pin configuration
+#ifndef NO_DEBUG
+        // When debug is active we enable the UART output on CH5
         LPC_SWM->PINASSIGN0 = (0xff << 24) |
                               (0xff << 16) |
                               (0xff << 8) |                     // UART0_RX
                               (GPIO_BIT_TX << 0);               // UART0_TX
+#endif
 
         LPC_SWM->PINASSIGN3 = (GPIO_8CH_BIT_NRF_SCK << 24) |    // SPI0_SCK
                               (0xff << 16) |
@@ -217,15 +220,15 @@ static void init_hardware(void)
                               (GPIO_8CH_BIT_NRF_MISO << 8) |    // SPI0_MISO
                               (GPIO_8CH_BIT_NRF_MOSI << 0);     // SPI0_MOSI
 
-        LPC_SWM->PINASSIGN6 = (GPIO_8CH_BIT_CH1 << 24) |        // CTOUT_0
-                              (0xff << 16) |
-                              (0xff << 8) |
-                              (0xff << 0);
+        // LPC_SWM->PINASSIGN6 = (GPIO_8CH_BIT_CH1 << 24) |        // CTOUT_0
+        //                       (0xff << 16) |
+        //                       (0xff << 8) |
+        //                       (0xff << 0);
 
-        LPC_SWM->PINASSIGN7 = (0xff << 24) |
-                              (GPIO_8CH_BIT_CH4 << 16) |        // CTOUT_3
-                              (GPIO_8CH_BIT_CH3 << 8) |         // CTOUT_2
-                              (GPIO_8CH_BIT_CH2 << 0);          // CTOUT_1
+        // LPC_SWM->PINASSIGN7 = (0xff << 24) |
+        //                       (GPIO_8CH_BIT_CH4 << 16) |        // CTOUT_3
+        //                       (GPIO_8CH_BIT_CH3 << 8) |         // CTOUT_2
+        //                       (GPIO_8CH_BIT_CH2 << 0);          // CTOUT_1
 
         // Configure outputs
         LPC_GPIO_PORT->DIR0 = (1 << GPIO_8CH_BIT_NRF_SCK) |
@@ -392,30 +395,57 @@ static void init_hardware_final(void)
 void switch_gpio_according_rx_protocol(rx_protocol_t protocol)
 {
 #ifndef NO_DEBUG
-    // FIXME: implement 8ch handling
-    // FIXME: turn off TX output on both 4ch and 8ch hardware
-
     if (is8channel) {
+        // 8ch hardware
+        switch (protocol) {
+            case PROTOCOL_8CH:
+                // Disable UART0_TX
+                LPC_SWM->PINASSIGN0 |= (0xff << 0);
+                break;
+
+            case PROTOCOL_3CH:
+            case PROTOCOL_4CH:
+            default:
+                // Enable UART0_TX
+                // Since the TX pin is on (unused) CH5 we can use it as
+                // preprocessor output regardless weather the protocol is 3ch
+                // or 4ch
+                LPC_SWM->PINASSIGN0 = (0xff << 24) |
+                                      (0xff << 16) |
+                                      (0xff << 8) |
+                                      (GPIO_BIT_TX << 0);
+                break;
+        }
+
         return;
     }
 
-    if (protocol == PROTOCOL_4CH) {
-        LPC_SWM->PINASSIGN0 |= (0xff << 0);                 // disable UART0_TX
+    // 4ch hardware
+    switch (protocol) {
+        case PROTOCOL_4CH:
+        case PROTOCOL_8CH:
+            // Disable UART0_TX
+            LPC_SWM->PINASSIGN0 |= (0xff << 0);
 
-        // Enable CTOUT_3 without disturbing the other settings
-        LPC_SWM->PINASSIGN7 |= (0xff << 16);
-        LPC_SWM->PINASSIGN7 &= (0xff << 24) |
-                               (GPIO_4CH_BIT_CH4 << 16) |
-                               (0xff << 8) |
-                               (0xff << 0);
-    }
-    else {
-        LPC_SWM->PINASSIGN7 |= (0xff << 16);                // disable CTOUT_3
+            // Enable CH4 on CTOUT_3 without disturbing the other settings
+            LPC_SWM->PINASSIGN7 |= (0xff << 16);
+            LPC_SWM->PINASSIGN7 &= (0xff << 24) |
+                                   (GPIO_4CH_BIT_CH4 << 16) |
+                                   (0xff << 8) |
+                                   (0xff << 0);
+            break;
 
-        LPC_SWM->PINASSIGN0 = (0xff << 24) |
-                              (0xff << 16) |
-                              (0xff << 8) |
-                              (GPIO_BIT_TX << 0);           // enable UART0_TX
+        case PROTOCOL_3CH:
+        default:
+            // Disable CTOUT_3 (CH4)
+            LPC_SWM->PINASSIGN7 |= (0xff << 16);
+
+            // enable UART0_TX
+            LPC_SWM->PINASSIGN0 = (0xff << 24) |
+                                  (0xff << 16) |
+                                  (0xff << 8) |
+                                  (GPIO_BIT_TX << 0);
+            break;
     }
 #endif
 }
