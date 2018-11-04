@@ -117,6 +117,12 @@ static void output_pulses(void)
 {
     int i;
 
+    // For the 4ch hardware output the pulses directly (first 4 channels
+    // only), for the 8ch hardware the multiplexing will write the values
+    if (is8channel && rx_protocol == PROTOCOL_8CH) {
+        return;
+    }
+
     for (i = 0; i < 4; i++) {
         LPC_SCT->MATCHREL[i + 1].H = channels[i];
     }
@@ -244,7 +250,6 @@ static void parse_bind_data(void)
         hop_data[i] = bind_storage_area[ADDRESS_WIDTH + i];
     }
 
-
     rx_protocol = bind_storage_area[PROTOCOLID_INDEX];
 
     switch (rx_protocol) {
@@ -254,11 +259,45 @@ static void parse_bind_data(void)
         case PROTOCOL_3CH:
             stickdata_packetid = STICKDATA_PACKETID_3CH;
             failsafe_packetid = FAILSAFE_PACKETID_3CH;
+
+            // The timer is running at 1.3 MHz clock (750ns resolution).
+            // The repeat frequency is 10ms (a multiple of the on-air packet repeat
+            // rate).
+            LPC_SCT->CTRL_H = (1 << 3) |                    // Clear the counter H
+                (((__SYSTEM_CLOCK / 1333333) - 1) << 5);    // PRE_H[12:5] = divide for 750ns clock
+            LPC_SCT->MATCHREL[0].H = (10000 * 4 / 3) - 1;   // 10 ms servo pulse repeat time
+            LPC_SCT->MATCHREL[1].H = SERVO_PULSE_CENTER * 4 / 3; // Servo pulse 1.5 ms intially
+            LPC_SCT->MATCHREL[2].H = SERVO_PULSE_CENTER * 4 / 3;
+            LPC_SCT->MATCHREL[3].H = SERVO_PULSE_CENTER * 4 / 3;
+            LPC_SCT->MATCHREL[4].H = SERVO_PULSE_CENTER * 4 / 3;
+
+            LPC_SCT->EVEN &= ~((1u << 1) |  // EVENT[1..4] DON'T generate an interrupt
+                               (1u << 2) |
+                               (1u << 3) |
+                               (1u << 4));
             break;
 
         case PROTOCOL_4CH:
             stickdata_packetid = STICKDATA_PACKETID_4CH;
             failsafe_packetid = FAILSAFE_PACKETID_4CH;
+
+            // The timer is running at 1.3 MHz clock (750ns resolution).
+            // The repeat frequency is 10ms (a multiple of the on-air packet repeat
+            // rate).
+            LPC_SCT->CTRL_H = (1 << 3) |
+                (((__SYSTEM_CLOCK / 1333333) - 1) << 5);
+            // 10 ms servo pulse repeat time
+            LPC_SCT->MATCHREL[0].H = (10000 * 4 / 3) - 1;
+            // Servo pulse 1.5 ms intially
+            LPC_SCT->MATCHREL[1].H = SERVO_PULSE_CENTER * 4 / 3;
+            LPC_SCT->MATCHREL[2].H = SERVO_PULSE_CENTER * 4 / 3;
+            LPC_SCT->MATCHREL[3].H = SERVO_PULSE_CENTER * 4 / 3;
+            LPC_SCT->MATCHREL[4].H = SERVO_PULSE_CENTER * 4 / 3;
+
+            LPC_SCT->EVEN &= ~((1u << 1) |  // EVENT[1..4] DON'T generate an interrupt
+                               (1u << 2) |
+                               (1u << 3) |
+                               (1u << 4));
             break;
 
         case PROTOCOL_8CH:
@@ -268,6 +307,7 @@ static void parse_bind_data(void)
     }
 
     switch_gpio_according_rx_protocol(rx_protocol);
+    successful_stick_data = false;
 }
 
 
@@ -602,6 +642,7 @@ static void process_8ch_receiving(void)
         channels[5] = stickdata2timer8ch(((payload[11] & 0xf0) << 4) + payload[6]);
         channels[6] = stickdata2timer8ch(((payload[12] & 0x0f) << 8) + payload[7]);
         channels[7] = stickdata2timer8ch(((payload[12] & 0xf0) << 4) + payload[8]);
+        output_pulses();
 
         if (!successful_stick_data) {
             LPC_SCT->CTRL_H &= ~(1u << 2);      // Start the SCTimer H
@@ -838,4 +879,82 @@ void rf_interrupt_handler(void)
 void hop_timer_handler(void)
 {
     perform_hop_requested = true;
+}
+
+
+// ****************************************************************************
+void servo_pulse_timer_handler(void)
+{
+    static uint8_t flipped = 0;
+    static bool ch1to4 = true;
+
+    if (!is8channel || (rx_protocol != PROTOCOL_8CH)) {
+        return;
+    }
+
+    if (LPC_SCT->EVFLAG & (1u << 1)) {
+        LPC_SCT->EVFLAG = (1u << 1);
+        flipped |= (1u << 0);
+
+        // CTOUT_0
+        if (ch1to4) {
+            LPC_SWM->PINASSIGN6 = (LPC_SWM->PINASSIGN6 & 0x00ffffff) | (GPIO_8CH_BIT_CH1 << 24);
+            LPC_SCT->MATCHREL[1].H = channels[0];
+        }
+        else {
+            LPC_SWM->PINASSIGN6 = (LPC_SWM->PINASSIGN6 & 0x00ffffff) | (GPIO_8CH_BIT_CH5 << 24);
+            LPC_SCT->MATCHREL[1].H = channels[2];
+        }
+    }
+
+    if (LPC_SCT->EVFLAG & (1u << 2)) {
+        LPC_SCT->EVFLAG = (1u << 2);
+        flipped |= (1u << 1);
+
+        // CTOUT_1
+        if (ch1to4) {
+            LPC_SWM->PINASSIGN7 = (LPC_SWM->PINASSIGN7 & 0xffffff00) | (GPIO_8CH_BIT_CH2 << 0);
+            LPC_SCT->MATCHREL[2].H = channels[1];
+        }
+        else {
+            LPC_SWM->PINASSIGN7 = (LPC_SWM->PINASSIGN7 & 0xffffff00) | (GPIO_8CH_BIT_CH6 << 0);
+            LPC_SCT->MATCHREL[2].H = channels[5];
+        }
+    }
+
+    if (LPC_SCT->EVFLAG & (1u << 3)) {
+        LPC_SCT->EVFLAG = (1u << 3);
+        flipped |= (1u << 2);
+
+        // CTOUT_2
+        if (ch1to4) {
+            LPC_SWM->PINASSIGN7 = (LPC_SWM->PINASSIGN7 & 0xffff00ff) | (GPIO_8CH_BIT_CH3 << 8);
+            LPC_SCT->MATCHREL[3].H = channels[2];
+        }
+        else {
+            LPC_SWM->PINASSIGN7 = (LPC_SWM->PINASSIGN7 & 0xffff00ff) | (GPIO_8CH_BIT_CH7 << 8);
+            LPC_SCT->MATCHREL[3].H = channels[6];
+        }
+    }
+
+    if (LPC_SCT->EVFLAG & (1u << 4)) {
+        LPC_SCT->EVFLAG = (1u << 4);
+        flipped |= (1u << 3);
+
+        //  CTOUT_3
+        if (ch1to4) {
+            LPC_SWM->PINASSIGN7 = (LPC_SWM->PINASSIGN7 & 0xff00ffff) | (GPIO_8CH_BIT_CH4 << 16);
+            LPC_SCT->MATCHREL[4].H = channels[3];
+        }
+        else {
+            LPC_SWM->PINASSIGN7 = (LPC_SWM->PINASSIGN7 & 0xff00ffff) | (GPIO_8CH_BIT_CH8 << 16);
+            LPC_SCT->MATCHREL[4].H = channels[7];
+        }
+    }
+
+    // If all 4 channels have been processed, progress to the next 8
+    if (flipped == 0x0f) {
+        flipped = 0;
+        ch1to4 = !ch1to4;
+    }
 }

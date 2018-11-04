@@ -293,20 +293,9 @@ static void init_hardware(void)
     //
     // Timer H is used for the servo outputs, setting the servo pins
     // on timer reload and clearing them when a match condition occurs.
-    // The timer is running at 1.3 MHz clock (750ns resolution).
-    // The repeat frequency is 15ms (a multiple of the on-air packet repeat
-    // rate).
     // Up to 4 servo pulses are generated with MATCH/EVENT registers 1..4 and
     // corresponding timer outputs 0..3.
     // MATCH/EVENT register 0 is used for auto-reload of the timer period.
-
-    LPC_SCT->CTRL_H |= (1 << 3) |                   // Clear the counter H
-        (((__SYSTEM_CLOCK / 1333333) - 1) << 5);    // PRE_H[12:5] = divide for 750ns clock
-    LPC_SCT->MATCHREL[0].H = (10000 * 4 / 3) - 1;   // 10 ms servo pulse repeat time
-    LPC_SCT->MATCHREL[1].H = SERVO_PULSE_CENTER * 4 / 3; // Servo pulse 1.5 ms intially
-    LPC_SCT->MATCHREL[2].H = SERVO_PULSE_CENTER * 4 / 3;
-    LPC_SCT->MATCHREL[3].H = SERVO_PULSE_CENTER * 4 / 3;
-    LPC_SCT->MATCHREL[4].H = SERVO_PULSE_CENTER * 4 / 3;
 
     // Set up the events that the match registers trigger. EVENT[0] is for the
     // servo pulse period, EVENTS[1..4] for 4 servo channel outputs.
@@ -344,10 +333,6 @@ static void init_hardware(void)
     LPC_SCT->OUT[1].CLR = (1u << 2);                // Event 2 will clear CTOUT_1
     LPC_SCT->OUT[2].CLR = (1u << 3);                // Event 3 will clear CTOUT_2
     LPC_SCT->OUT[3].CLR = (1u << 4);                // Event 4 will clear CTOUT_3
-
-    // We don't start the timer here but only after receiving the first
-    // valid stick data package.
-
 
 
     // Timer L is used for frequency hopping. It is configured as a simple
@@ -408,13 +393,77 @@ static void init_hardware_final(void)
 // ****************************************************************************
 void switch_gpio_according_rx_protocol(rx_protocol_t protocol)
 {
-#ifndef NO_DEBUG
+    if (is8channel && (protocol == PROTOCOL_8CH)) {
+      // The timer is running at 2 MHz clock (500ns resolution).
+      // The repeat frequency is 5ms because we process 2 sets of 4 servo
+      // outputs.
+      LPC_SCT->CTRL_H = (1 << 3) | (1 << 2) |
+          (((__SYSTEM_CLOCK / 2000000) - 1) << 5);
+      // 10 ms servo pulse repeat time
+      LPC_SCT->MATCHREL[0].H = (5000 * 2) - 1;
+      // Servo pulse 1.5 ms intially
+      LPC_SCT->MATCHREL[1].H = SERVO_PULSE_CENTER * 2;
+      LPC_SCT->MATCHREL[2].H = SERVO_PULSE_CENTER * 2;
+      LPC_SCT->MATCHREL[3].H = SERVO_PULSE_CENTER * 2;
+      LPC_SCT->MATCHREL[4].H = SERVO_PULSE_CENTER * 2;
+
+      LPC_SCT->EVEN |= (1u << 1) |                   // EVENT[1..4] generate an interrupt
+                       (1u << 2) |
+                       (1u << 3) |
+                       (1u << 4);
+    }
+    else {
+      // The timer is running at 1.3 MHz clock (750ns resolution).
+      // The repeat frequency is 10ms (a multiple of the on-air packet repeat
+      // rate).
+      LPC_SCT->CTRL_H = (1 << 3) | (1 << 2) |
+          (((__SYSTEM_CLOCK / 1333333) - 1) << 5);
+      // 10 ms servo pulse repeat time
+      LPC_SCT->MATCHREL[0].H = (10000 * 4 / 3) - 1;
+      // Servo pulse 1.5 ms intially
+      LPC_SCT->MATCHREL[1].H = SERVO_PULSE_CENTER * 4 / 3;
+      LPC_SCT->MATCHREL[2].H = SERVO_PULSE_CENTER * 4 / 3;
+      LPC_SCT->MATCHREL[3].H = SERVO_PULSE_CENTER * 4 / 3;
+      LPC_SCT->MATCHREL[4].H = SERVO_PULSE_CENTER * 4 / 3;
+
+      LPC_SCT->EVEN &= ~((1u << 1) |  // EVENT[1..4] DON'T generate an interrupt
+                         (1u << 2) |
+                         (1u << 3) |
+                         (1u << 4));
+
+      if (is8channel) {
+        LPC_SWM->PINASSIGN6 = (GPIO_8CH_BIT_CH1 << 24) |        // CTOUT_0
+                              (0xff << 16) |
+                              (0xff << 8) |
+                              (0xff << 0);
+
+        LPC_SWM->PINASSIGN7 = (0xff << 24) |
+                              (GPIO_8CH_BIT_CH4 << 16) |        // CTOUT_3
+                              (GPIO_8CH_BIT_CH3 << 8) |         // CTOUT_2
+                              (GPIO_8CH_BIT_CH2 << 0);          // CTOUT_1
+      }
+      else {
+        LPC_SWM->PINASSIGN6 = (GPIO_4CH_BIT_CH1 << 24) |        // CTOUT_0
+                              (0xff << 16) |
+                              (0xff << 8) |
+                              (0xff << 0);
+
+        LPC_SWM->PINASSIGN7 = (0xff << 24) |
+                              (0xff << 16) |                    // CTOUT_3 (by default we enable the UART output!)
+                              (GPIO_4CH_BIT_CH3 << 8) |         // CTOUT_2
+                              (GPIO_4CH_BIT_CH2 << 0);          // CTOUT_1
+      }
+    }
+
+
     if (is8channel) {
         // 8ch hardware
         switch (protocol) {
             case PROTOCOL_8CH:
+#ifdef NO_DEBUG
                 // Disable UART0_TX
                 LPC_SWM->PINASSIGN0 |= (0xff << 0);
+#endif
                 break;
 
             case PROTOCOL_3CH:
@@ -438,15 +487,13 @@ void switch_gpio_according_rx_protocol(rx_protocol_t protocol)
     switch (protocol) {
         case PROTOCOL_4CH:
         case PROTOCOL_8CH:
+#ifdef NO_DEBUG
             // Disable UART0_TX
             LPC_SWM->PINASSIGN0 |= (0xff << 0);
 
             // Enable CH4 on CTOUT_3 without disturbing the other settings
-            LPC_SWM->PINASSIGN7 |= (0xff << 16);
-            LPC_SWM->PINASSIGN7 &= (0xff << 24) |
-                                   (GPIO_4CH_BIT_CH4 << 16) |
-                                   (0xff << 8) |
-                                   (0xff << 0);
+            LPC_SWM->PINASSIGN7 = (LPC_SWM->PINASSIGN7 & 0xff00ffff) | (GPIO_4CH_BIT_CH4 << 16);
+#endif
             break;
 
         case PROTOCOL_3CH:
@@ -461,7 +508,7 @@ void switch_gpio_according_rx_protocol(rx_protocol_t protocol)
                                   (GPIO_BIT_TX << 0);
             break;
     }
-#endif
+
 }
 
 
@@ -476,9 +523,15 @@ void PININT0_irq_handler(void)
 // ****************************************************************************
 void SCT_irq_handler(void)
 {
-    if (LPC_SCT->EVFLAG & (1 << 5)) {
-        LPC_SCT->EVFLAG = (1 << 5);
+    if (LPC_SCT->EVFLAG & (1u << 5)) {
+        LPC_SCT->EVFLAG = (1u << 5);
         hop_timer_handler();
+    }
+
+    // Events 1..4 for 8ch multiplexing
+    if (LPC_SCT->EVFLAG & ((1u << 1) | (1u << 2) | (1u << 3) | (1u << 4))) {
+      // Note: flags are cleared within the function!
+      servo_pulse_timer_handler();
     }
 }
 
