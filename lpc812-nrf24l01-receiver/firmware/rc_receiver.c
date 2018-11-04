@@ -259,45 +259,11 @@ static void parse_bind_data(void)
         case PROTOCOL_3CH:
             stickdata_packetid = STICKDATA_PACKETID_3CH;
             failsafe_packetid = FAILSAFE_PACKETID_3CH;
-
-            // The timer is running at 1.3 MHz clock (750ns resolution).
-            // The repeat frequency is 10ms (a multiple of the on-air packet repeat
-            // rate).
-            LPC_SCT->CTRL_H = (1 << 3) |                    // Clear the counter H
-                (((__SYSTEM_CLOCK / 1333333) - 1) << 5);    // PRE_H[12:5] = divide for 750ns clock
-            LPC_SCT->MATCHREL[0].H = (10000 * 4 / 3) - 1;   // 10 ms servo pulse repeat time
-            LPC_SCT->MATCHREL[1].H = SERVO_PULSE_CENTER * 4 / 3; // Servo pulse 1.5 ms intially
-            LPC_SCT->MATCHREL[2].H = SERVO_PULSE_CENTER * 4 / 3;
-            LPC_SCT->MATCHREL[3].H = SERVO_PULSE_CENTER * 4 / 3;
-            LPC_SCT->MATCHREL[4].H = SERVO_PULSE_CENTER * 4 / 3;
-
-            LPC_SCT->EVEN &= ~((1u << 1) |  // EVENT[1..4] DON'T generate an interrupt
-                               (1u << 2) |
-                               (1u << 3) |
-                               (1u << 4));
             break;
 
         case PROTOCOL_4CH:
             stickdata_packetid = STICKDATA_PACKETID_4CH;
             failsafe_packetid = FAILSAFE_PACKETID_4CH;
-
-            // The timer is running at 1.3 MHz clock (750ns resolution).
-            // The repeat frequency is 10ms (a multiple of the on-air packet repeat
-            // rate).
-            LPC_SCT->CTRL_H = (1 << 3) |
-                (((__SYSTEM_CLOCK / 1333333) - 1) << 5);
-            // 10 ms servo pulse repeat time
-            LPC_SCT->MATCHREL[0].H = (10000 * 4 / 3) - 1;
-            // Servo pulse 1.5 ms intially
-            LPC_SCT->MATCHREL[1].H = SERVO_PULSE_CENTER * 4 / 3;
-            LPC_SCT->MATCHREL[2].H = SERVO_PULSE_CENTER * 4 / 3;
-            LPC_SCT->MATCHREL[3].H = SERVO_PULSE_CENTER * 4 / 3;
-            LPC_SCT->MATCHREL[4].H = SERVO_PULSE_CENTER * 4 / 3;
-
-            LPC_SCT->EVEN &= ~((1u << 1) |  // EVENT[1..4] DON'T generate an interrupt
-                               (1u << 2) |
-                               (1u << 3) |
-                               (1u << 4));
             break;
 
         case PROTOCOL_8CH:
