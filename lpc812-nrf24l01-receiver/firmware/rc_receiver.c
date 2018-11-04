@@ -477,9 +477,13 @@ static void process_binding(void)
         case BIND_STATE_8CH:
             if (payload_width == 27) {
                 if ((payload[0] == 0xac) && (payload[1] == 0x57)) {
+                    // Save the protocol identifier
+                    bind_storage_area[PROTOCOLID_INDEX] = PROTOCOL_8CH;
+
                     for (i = 0; i < 25; i++) {
                         bind_storage_area[i] = payload[2 + i];
                     }
+
                     save_persistent_storage(bind_storage_area);
                     parse_bind_data();
 #ifndef NO_DEBUG
