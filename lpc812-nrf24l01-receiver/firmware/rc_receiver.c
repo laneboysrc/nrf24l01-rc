@@ -869,7 +869,7 @@ void servo_pulse_timer_handler(void)
         }
         else {
             LPC_SWM->PINASSIGN6 = (LPC_SWM->PINASSIGN6 & 0x00ffffff) | (GPIO_8CH_BIT_CH5 << 24);
-            LPC_SCT->MATCHREL[1].H = channels[2];
+            LPC_SCT->MATCHREL[1].H = channels[4];
         }
     }
 
