@@ -393,6 +393,10 @@ static void init_hardware_final(void)
 // ****************************************************************************
 void switch_gpio_according_rx_protocol(rx_protocol_t protocol)
 {
+  // HaLt the counter. This is required before changing bits in the
+  // CTRL register other than HALT or STOP.
+   LPC_SCT->CTRL_H = (1 << 2);
+
     if (is8channel && (protocol == PROTOCOL_8CH)) {
       // The timer is running at 2 MHz clock (500ns resolution).
       // The repeat frequency is 5ms because we process 2 sets of 4 servo
