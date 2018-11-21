@@ -510,10 +510,12 @@ static void process_binding(void)
 // ****************************************************************************
 static void process_4ch_receiving(void)
 {
+#ifndef SIMULATE_RF_DATA
     while (!rf_is_rx_fifo_emtpy()) {
         rf_read_fifo(payload, PAYLOAD_SIZE);
     }
     rf_clear_irq(RX_RD);
+#endif
 
 #ifndef NO_DEBUG
     if (hops_without_packet > 1) {
@@ -576,6 +578,7 @@ static void process_4ch_receiving(void)
 // ****************************************************************************
 static void process_8ch_receiving(void)
 {
+#ifndef SIMULATE_RF_DATA
     uint8_t payload_width = 0;
 
     while (!rf_is_rx_fifo_emtpy()) {
@@ -587,6 +590,7 @@ static void process_8ch_receiving(void)
     if (payload_width != 13) {
         return;
     }
+#endif
 
 #ifndef NO_DEBUG
     if (hops_without_packet > 1) {
@@ -805,6 +809,98 @@ static void process_led(void)
     }
 }
 
+#ifdef SIMULATE_RF_DATA
+// ****************************************************************************
+#define CHANNEL_100_PERCENT 10000
+#define CHANNEL_CENTER 0
+#define CHANNEL_N100_PERCENT -10000
+
+// Exactly the same function as we use in the rc-headless-transmitter
+static uint16_t channel_to_stickdata(int32_t ch)
+{
+    int32_t pulse_ns;
+/*
+    Desired us range:
+        476         1000       1500    2000     2523
+
+    ns with reference to 476 us minimum:
+        0           524000       1024000    1524000    2048000
+
+    Translated 12 bit values:
+        0           1048       2048    2048     4095
+
+    => 12 bit value = ns / 500
+*/
+
+    pulse_ns = ch * 500 * 1000 / CHANNEL_100_PERCENT;
+    pulse_ns += 1500 * 1000;
+    pulse_ns -= 476 * 1000;
+
+    if (pulse_ns < 0) {
+        pulse_ns = 0;
+    }
+
+    pulse_ns /= 500;
+    return (uint16_t)pulse_ns;
+}
+
+static void process_rf_simulation(void)
+{
+    static uint32_t next_rf_packet_time = 1000;
+
+    if (rx_protocol != PROTOCOL_8CH) {
+        rx_protocol = PROTOCOL_8CH;
+        stickdata_packetid = STICKDATA_PACKETID_8CH;
+        failsafe_packetid = FAILSAFE_PACKETID_8CH;
+        switch_gpio_according_rx_protocol(rx_protocol);
+        successful_stick_data = false;
+    }
+
+    if (milliseconds >= next_rf_packet_time) {
+        static int32_t ch[8] = {CHANNEL_N100_PERCENT, 0, 7500, -2500, 0, CHANNEL_100_PERCENT, 5000, -5000};
+        uint16_t stick_data;
+
+        next_rf_packet_time += 100;
+
+        payload[0] = STICKDATA_PACKETID_8CH;
+
+        stick_data = channel_to_stickdata(ch[0]);
+        payload[1] = stick_data;
+        payload[9] = stick_data >> 8;
+
+        stick_data = channel_to_stickdata(ch[1]);
+        payload[2] = stick_data;
+        payload[9] |= (stick_data >> 4) & 0xf0;
+
+        stick_data = channel_to_stickdata(ch[2]);
+        payload[3] = stick_data;
+        payload[10] = stick_data >> 8;
+
+        stick_data = channel_to_stickdata(ch[3]);
+        payload[4] = stick_data;
+        payload[10] |= (stick_data >> 4) & 0xf0;
+
+        stick_data = channel_to_stickdata(ch[4]);
+        payload[5] = stick_data;
+        payload[11] = stick_data >> 8;
+
+        stick_data = channel_to_stickdata(ch[5]);
+        payload[6] = stick_data;
+        payload[11] |= (stick_data >> 4) & 0xf0;
+
+        stick_data = channel_to_stickdata(ch[6]);
+        payload[7] = stick_data;
+        payload[12] = stick_data >> 8;
+
+        stick_data = channel_to_stickdata(ch[7]);
+        payload[8] = stick_data;
+        payload[12] |= (stick_data >> 4) & 0xf0;
+
+        rf_int_fired = true;
+    }
+}
+#endif
+
 
 // ****************************************************************************
 void init_receiver(void)
@@ -820,12 +916,22 @@ void init_receiver(void)
     restart_packet_receiving();
 
     led_state = LED_STATE_IDLE;
+
+#ifdef SIMULATE_RF_DATA
+#ifndef NO_DEBUG
+    uart0_send_cstring("RF SIMULATION ACTIVE!\n");
+#endif
+#endif
 }
 
 
 // ****************************************************************************
 void process_receiver(void)
 {
+#ifdef SIMULATE_RF_DATA
+    process_rf_simulation();
+#endif
+
     process_systick();
     process_bind_button();
     process_binding();
@@ -858,9 +964,9 @@ void servo_pulse_timer_handler(void)
         return;
     }
 
-    if (LPC_SCT->EVFLAG & (1u << 1)) {
-        LPC_SCT->EVFLAG = (1u << 1);
-        flipped |= (1u << 0);
+    if (LPC_SCT->EVFLAG & (1 << 1)) {
+        LPC_SCT->EVFLAG = (1 << 1);
+        flipped |= (1 << 0);
 
         // CTOUT_0
         if (ch1to4) {
@@ -873,9 +979,9 @@ void servo_pulse_timer_handler(void)
         }
     }
 
-    if (LPC_SCT->EVFLAG & (1u << 2)) {
-        LPC_SCT->EVFLAG = (1u << 2);
-        flipped |= (1u << 1);
+    if (LPC_SCT->EVFLAG & (1 << 2)) {
+        LPC_SCT->EVFLAG = (1 << 2);
+        flipped |= (1 << 1);
 
         // CTOUT_1
         if (ch1to4) {
@@ -888,9 +994,9 @@ void servo_pulse_timer_handler(void)
         }
     }
 
-    if (LPC_SCT->EVFLAG & (1u << 3)) {
-        LPC_SCT->EVFLAG = (1u << 3);
-        flipped |= (1u << 2);
+    if (LPC_SCT->EVFLAG & (1 << 3)) {
+        LPC_SCT->EVFLAG = (1 << 3);
+        flipped |= (1 << 2);
 
         // CTOUT_2
         if (ch1to4) {
@@ -903,9 +1009,9 @@ void servo_pulse_timer_handler(void)
         }
     }
 
-    if (LPC_SCT->EVFLAG & (1u << 4)) {
-        LPC_SCT->EVFLAG = (1u << 4);
-        flipped |= (1u << 3);
+    if (LPC_SCT->EVFLAG & (1 << 4)) {
+        LPC_SCT->EVFLAG = (1 << 4);
+        flipped |= (1 << 3);
 
         //  CTOUT_3
         if (ch1to4) {

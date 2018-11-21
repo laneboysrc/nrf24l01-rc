@@ -393,70 +393,75 @@ static void init_hardware_final(void)
 // ****************************************************************************
 void switch_gpio_according_rx_protocol(rx_protocol_t protocol)
 {
-  // HaLt the counter. This is required before changing bits in the
-  // CTRL register other than HALT or STOP.
-   LPC_SCT->CTRL_H = (1 << 2);
+    // HaLt the counter. This is required before changing bits in the
+    // CTRL register other than HALT or STOP.
+    LPC_SCT->CTRL_H = (1 << 2);
 
     if (is8channel && (protocol == PROTOCOL_8CH)) {
-      // The timer is running at 2 MHz clock (500ns resolution).
-      // The repeat frequency is 5ms because we process 2 sets of 4 servo
-      // outputs.
-      LPC_SCT->CTRL_H = (1 << 3) | (1 << 2) |
+        // The timer is running at 2 MHz clock (500ns resolution).
+        LPC_SCT->CTRL_H = (1 << 3) | (1 << 2) |
           (((__SYSTEM_CLOCK / 2000000) - 1) << 5);
-      // 10 ms servo pulse repeat time
-      LPC_SCT->MATCHREL[0].H = (5000 * 2) - 1;
-      // Servo pulse 1.5 ms intially
-      LPC_SCT->MATCHREL[1].H = SERVO_PULSE_CENTER * 2;
-      LPC_SCT->MATCHREL[2].H = SERVO_PULSE_CENTER * 2;
-      LPC_SCT->MATCHREL[3].H = SERVO_PULSE_CENTER * 2;
-      LPC_SCT->MATCHREL[4].H = SERVO_PULSE_CENTER * 2;
 
-      LPC_SCT->EVEN |= (1u << 1) |                   // EVENT[1..4] generate an interrupt
-                       (1u << 2) |
-                       (1u << 3) |
-                       (1u << 4);
-    }
-    else {
-      // The timer is running at 1.3 MHz clock (750ns resolution).
-      // The repeat frequency is 10ms (a multiple of the on-air packet repeat
-      // rate).
-      LPC_SCT->CTRL_H = (1 << 3) | (1 << 2) |
-          (((__SYSTEM_CLOCK / 1333333) - 1) << 5);
-      // 10 ms servo pulse repeat time
-      LPC_SCT->MATCHREL[0].H = (10000 * 4 / 3) - 1;
-      // Servo pulse 1.5 ms intially
-      LPC_SCT->MATCHREL[1].H = SERVO_PULSE_CENTER * 4 / 3;
-      LPC_SCT->MATCHREL[2].H = SERVO_PULSE_CENTER * 4 / 3;
-      LPC_SCT->MATCHREL[3].H = SERVO_PULSE_CENTER * 4 / 3;
-      LPC_SCT->MATCHREL[4].H = SERVO_PULSE_CENTER * 4 / 3;
+        // The repeat frequency is 5ms because we process 2 sets of 4 servo
+        // outputs.
+        LPC_SCT->MATCHREL[0].H = (5000 * 2) - 1;
 
-      LPC_SCT->EVEN &= ~((1u << 1) |  // EVENT[1..4] DON'T generate an interrupt
+        // Servo pulse 1.5 ms intially
+        LPC_SCT->MATCHREL[1].H = SERVO_PULSE_CENTER * 2;
+        LPC_SCT->MATCHREL[2].H = SERVO_PULSE_CENTER * 2;
+        LPC_SCT->MATCHREL[3].H = SERVO_PULSE_CENTER * 2;
+        LPC_SCT->MATCHREL[4].H = SERVO_PULSE_CENTER * 2;
+
+        // EVENT[1..4] generate an interrupt
+        LPC_SCT->EVEN |= (1u << 1) |
                          (1u << 2) |
                          (1u << 3) |
-                         (1u << 4));
+                         (1u << 4);
+    }
+    else {
+        // The timer is running at 1.3 MHz clock (750ns resolution).
+        // The repeat frequency is 10ms (a multiple of the on-air packet repeat
+        // rate).
+        LPC_SCT->CTRL_H = (1 << 3) | (1 << 2) |
+          (((__SYSTEM_CLOCK / 1333333) - 1) << 5);
 
-      if (is8channel) {
-        LPC_SWM->PINASSIGN6 = (GPIO_8CH_BIT_CH1 << 24) |        // CTOUT_0
-                              (0xff << 16) |
-                              (0xff << 8) |
-                              (0xff << 0);
+        // 10 ms servo pulse repeat time
+        LPC_SCT->MATCHREL[0].H = (10000 * 4 / 3) - 1;
 
-        LPC_SWM->PINASSIGN7 = (0xff << 24) |
-                              (GPIO_8CH_BIT_CH4 << 16) |        // CTOUT_3
-                              (GPIO_8CH_BIT_CH3 << 8) |         // CTOUT_2
-                              (GPIO_8CH_BIT_CH2 << 0);          // CTOUT_1
-      }
-      else {
-        LPC_SWM->PINASSIGN6 = (GPIO_4CH_BIT_CH1 << 24) |        // CTOUT_0
-                              (0xff << 16) |
-                              (0xff << 8) |
-                              (0xff << 0);
+        // Servo pulse 1.5 ms intially
+        LPC_SCT->MATCHREL[1].H = SERVO_PULSE_CENTER * 4 / 3;
+        LPC_SCT->MATCHREL[2].H = SERVO_PULSE_CENTER * 4 / 3;
+        LPC_SCT->MATCHREL[3].H = SERVO_PULSE_CENTER * 4 / 3;
+        LPC_SCT->MATCHREL[4].H = SERVO_PULSE_CENTER * 4 / 3;
 
-        LPC_SWM->PINASSIGN7 = (0xff << 24) |
-                              (0xff << 16) |                    // CTOUT_3 (by default we enable the UART output!)
-                              (GPIO_4CH_BIT_CH3 << 8) |         // CTOUT_2
-                              (GPIO_4CH_BIT_CH2 << 0);          // CTOUT_1
-      }
+        // EVENT[1..4] DON'T generate an interrupt
+        LPC_SCT->EVEN &= ~((1u << 1) |
+                           (1u << 2) |
+                           (1u << 3) |
+                           (1u << 4));
+
+        if (is8channel) {
+            LPC_SWM->PINASSIGN6 = (GPIO_8CH_BIT_CH1 << 24) |        // CTOUT_0
+                                  (0xff << 16) |
+                                  (0xff << 8) |
+                                  (0xff << 0);
+
+            LPC_SWM->PINASSIGN7 = (0xff << 24) |
+                                  (GPIO_8CH_BIT_CH4 << 16) |        // CTOUT_3
+                                  (GPIO_8CH_BIT_CH3 << 8) |         // CTOUT_2
+                                  (GPIO_8CH_BIT_CH2 << 0);          // CTOUT_1
+        }
+        else {
+            LPC_SWM->PINASSIGN6 = (GPIO_4CH_BIT_CH1 << 24) |        // CTOUT_0
+                                  (0xff << 16) |
+                                  (0xff << 8) |
+                                  (0xff << 0);
+
+            LPC_SWM->PINASSIGN7 = (0xff << 24) |
+                                  (0xff << 16) |                    // CTOUT_3 (by default we enable the UART output!)
+                                  (GPIO_4CH_BIT_CH3 << 8) |         // CTOUT_2
+                                  (GPIO_4CH_BIT_CH2 << 0);          // CTOUT_1
+        }
     }
 
 
