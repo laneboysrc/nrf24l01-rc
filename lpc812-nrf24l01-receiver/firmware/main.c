@@ -220,15 +220,15 @@ static void init_hardware(void)
                               (GPIO_8CH_BIT_NRF_MISO << 8) |    // SPI0_MISO
                               (GPIO_8CH_BIT_NRF_MOSI << 0);     // SPI0_MOSI
 
-        LPC_SWM->PINASSIGN6 = (GPIO_8CH_BIT_CH1 << 24) |        // CTOUT_0
-                              (0xff << 16) |
-                              (0xff << 8) |
-                              (0xff << 0);
-
-        LPC_SWM->PINASSIGN7 = (0xff << 24) |
-                              (GPIO_8CH_BIT_CH4 << 16) |        // CTOUT_3
-                              (GPIO_8CH_BIT_CH3 << 8) |         // CTOUT_2
-                              (GPIO_8CH_BIT_CH2 << 0);          // CTOUT_1
+        // Make all servo outputs High initially
+        LPC_GPIO_PORT->SET0 = (1 << GPIO_8CH_BIT_CH1) |
+                              (1 << GPIO_8CH_BIT_CH2) |
+                              (1 << GPIO_8CH_BIT_CH3) |
+                              (1 << GPIO_8CH_BIT_CH4) |
+                              (1 << GPIO_8CH_BIT_CH5) |
+                              (1 << GPIO_8CH_BIT_CH6) |
+                              (1 << GPIO_8CH_BIT_CH7) |
+                              (1 << GPIO_8CH_BIT_CH8);
 
         // Configure outputs
         LPC_GPIO_PORT->DIR0 = (1 << GPIO_8CH_BIT_NRF_SCK) |
@@ -262,15 +262,11 @@ static void init_hardware(void)
                               (GPIO_4CH_BIT_NRF_MISO << 8) |    // SPI0_MISO
                               (GPIO_4CH_BIT_NRF_MOSI << 0);     // SPI0_MOSI
 
-        LPC_SWM->PINASSIGN6 = (GPIO_4CH_BIT_CH1 << 24) |        // CTOUT_0
-                              (0xff << 16) |
-                              (0xff << 8) |
-                              (0xff << 0);
-
-        LPC_SWM->PINASSIGN7 = (0xff << 24) |
-                              (0xff << 16) |                    // CTOUT_3 (by default we enable the UART output!)
-                              (GPIO_4CH_BIT_CH3 << 8) |         // CTOUT_2
-                              (GPIO_4CH_BIT_CH2 << 0);          // CTOUT_1
+        // Make all servo outputs High initially
+        LPC_GPIO_PORT->SET0 = (1 << GPIO_4CH_BIT_CH1) |
+                              (1 << GPIO_4CH_BIT_CH2) |
+                              (1 << GPIO_4CH_BIT_CH3) |
+                              (1 << GPIO_4CH_BIT_CH4);
 
         // Configure outputs
         LPC_GPIO_PORT->DIR0 = (1 << GPIO_4CH_BIT_NRF_SCK) |
@@ -290,7 +286,10 @@ static void init_hardware(void)
 
     // ------------------------
     // Configure SCTimer globally for two 16-bit counters
-    //
+    LPC_SCT->CONFIG = 0;
+    LPC_SCT->CTRL_H |= (1 << 3) | (1 << 2);         // Reset and Halt Counter H
+    LPC_SCT->CTRL_L |= (1 << 3) | (1 << 2);         // Reset and Halt Counter L
+
     // Timer H is used for the servo outputs, setting the servo pins
     // on timer reload and clearing them when a match condition occurs.
     // Up to 4 servo pulses are generated with MATCH/EVENT registers 1..4 and
@@ -310,8 +309,12 @@ static void init_hardware(void)
                                  (1 << 4) |         // Select H counter
                                  (0x1 << 12);       // Match condition only
     }
-    LPC_SCT->LIMIT_H = (1u << 0);                   // EVENT0 limits (resets) the counter
+    LPC_SCT->LIMIT_H = (1 << 0);                    // EVENT0 limits (resets) the counter
 
+    LPC_SCT->OUTPUT = (1 << 0) |                    // Force all timer outputs initially High
+                      (1 << 1) |
+                      (1 << 2) |
+                      (1 << 3);
 
     // 8-channel multiplexing
     //
@@ -324,15 +327,15 @@ static void init_hardware(void)
 
     // All servo outputs will be SET with timer reload event 0, and CLEARED
     // with the indivual servo pulse time EVENTs
-    LPC_SCT->OUT[0].SET = (1u << 0);
-    LPC_SCT->OUT[1].SET = (1u << 0);
-    LPC_SCT->OUT[2].SET = (1u << 0);
-    LPC_SCT->OUT[3].SET = (1u << 0);
+    LPC_SCT->OUT[0].SET = (1 << 0);
+    LPC_SCT->OUT[1].SET = (1 << 0);
+    LPC_SCT->OUT[2].SET = (1 << 0);
+    LPC_SCT->OUT[3].SET = (1 << 0);
 
-    LPC_SCT->OUT[0].CLR = (1u << 1);                // Event 1 will clear CTOUT_0
-    LPC_SCT->OUT[1].CLR = (1u << 2);                // Event 2 will clear CTOUT_1
-    LPC_SCT->OUT[2].CLR = (1u << 3);                // Event 3 will clear CTOUT_2
-    LPC_SCT->OUT[3].CLR = (1u << 4);                // Event 4 will clear CTOUT_3
+    LPC_SCT->OUT[0].CLR = (1 << 1);                 // Event 1 will clear CTOUT_0
+    LPC_SCT->OUT[1].CLR = (1 << 2);                 // Event 2 will clear CTOUT_1
+    LPC_SCT->OUT[2].CLR = (1 << 3);                 // Event 3 will clear CTOUT_2
+    LPC_SCT->OUT[3].CLR = (1 << 4);                 // Event 4 will clear CTOUT_3
 
 
     // Timer L is used for frequency hopping. It is configured as a simple

@@ -970,10 +970,12 @@ void servo_pulse_timer_handler(void)
 
         // CTOUT_0
         if (ch1to4) {
+            LPC_GPIO_PORT->CLR0 = (1 << GPIO_8CH_BIT_CH5);
             LPC_SWM->PINASSIGN6 = (LPC_SWM->PINASSIGN6 & 0x00ffffff) | (GPIO_8CH_BIT_CH1 << 24);
             LPC_SCT->MATCHREL[1].H = channels[0];
         }
         else {
+            LPC_GPIO_PORT->CLR0 = (1 << GPIO_8CH_BIT_CH1);
             LPC_SWM->PINASSIGN6 = (LPC_SWM->PINASSIGN6 & 0x00ffffff) | (GPIO_8CH_BIT_CH5 << 24);
             LPC_SCT->MATCHREL[1].H = channels[4];
         }
@@ -985,10 +987,12 @@ void servo_pulse_timer_handler(void)
 
         // CTOUT_1
         if (ch1to4) {
+            LPC_GPIO_PORT->CLR0 = (1 << GPIO_8CH_BIT_CH6);
             LPC_SWM->PINASSIGN7 = (LPC_SWM->PINASSIGN7 & 0xffffff00) | (GPIO_8CH_BIT_CH2 << 0);
             LPC_SCT->MATCHREL[2].H = channels[1];
         }
         else {
+            LPC_GPIO_PORT->CLR0 = (1 << GPIO_8CH_BIT_CH2);
             LPC_SWM->PINASSIGN7 = (LPC_SWM->PINASSIGN7 & 0xffffff00) | (GPIO_8CH_BIT_CH6 << 0);
             LPC_SCT->MATCHREL[2].H = channels[5];
         }
@@ -1000,10 +1004,12 @@ void servo_pulse_timer_handler(void)
 
         // CTOUT_2
         if (ch1to4) {
+            LPC_GPIO_PORT->CLR0 = (1 << GPIO_8CH_BIT_CH7);
             LPC_SWM->PINASSIGN7 = (LPC_SWM->PINASSIGN7 & 0xffff00ff) | (GPIO_8CH_BIT_CH3 << 8);
             LPC_SCT->MATCHREL[3].H = channels[2];
         }
         else {
+            LPC_GPIO_PORT->CLR0 = (1 << GPIO_8CH_BIT_CH3);
             LPC_SWM->PINASSIGN7 = (LPC_SWM->PINASSIGN7 & 0xffff00ff) | (GPIO_8CH_BIT_CH7 << 8);
             LPC_SCT->MATCHREL[3].H = channels[6];
         }
@@ -1015,10 +1021,12 @@ void servo_pulse_timer_handler(void)
 
         //  CTOUT_3
         if (ch1to4) {
+            LPC_GPIO_PORT->CLR0 = (1 << GPIO_8CH_BIT_CH8);
             LPC_SWM->PINASSIGN7 = (LPC_SWM->PINASSIGN7 & 0xff00ffff) | (GPIO_8CH_BIT_CH4 << 16);
             LPC_SCT->MATCHREL[4].H = channels[3];
         }
         else {
+            LPC_GPIO_PORT->CLR0 = (1 << GPIO_8CH_BIT_CH4);
             LPC_SWM->PINASSIGN7 = (LPC_SWM->PINASSIGN7 & 0xff00ffff) | (GPIO_8CH_BIT_CH8 << 16);
             LPC_SCT->MATCHREL[4].H = channels[7];
         }
