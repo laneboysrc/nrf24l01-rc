@@ -183,11 +183,13 @@ static void init_hardware(void)
         LPC_SYSCON->SYSPLLCLKUEN = 1;
 
         // Set the PLL to 16Mhz * 3 / 4 = 12 Mhz
-        LPC_SYSCON->SYSPLLCTRL = (0x2 << 5) | (0x2 << 0); // P = 4, M = 3
+        LPC_SYSCON->SYSPLLCTRL = (0x2 << 0);        // M = 3
 
         while (!(LPC_SYSCON->SYSPLLSTAT & 1)) {     // Wait for PLL lock
             ;
         }
+
+        LPC_SYSCON->SYSAHBCLKDIV = 4;               // Divide 48 MHz PLL output by 4 for 12 MHz system clock
 
         LPC_SYSCON->MAINCLKSEL = 0x3;               // Use the PLL clock output as main clock
         LPC_SYSCON->MAINCLKUEN = 0;                 // Toggle CLK-enable
