@@ -182,7 +182,7 @@ static void init_hardware(void)
         LPC_SYSCON->SYSPLLCLKUEN = 0;               // Toggle PLL-enable
         LPC_SYSCON->SYSPLLCLKUEN = 1;
 
-        // Set the PLL to 16Mhz * 3 / 4 = 12 Mhz
+        // Set the PLL to 16Mhz * 3 = 48 Mhz
         LPC_SYSCON->SYSPLLCTRL = (0x2 << 0);        // M = 3
 
         while (!(LPC_SYSCON->SYSPLLSTAT & 1)) {     // Wait for PLL lock
