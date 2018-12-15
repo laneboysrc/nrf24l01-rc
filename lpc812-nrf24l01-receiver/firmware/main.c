@@ -407,9 +407,11 @@ void switch_gpio_according_rx_protocol(rx_protocol_t protocol)
         LPC_SCT->CTRL_H = (1 << 3) | (1 << 2) |
           (((__SYSTEM_CLOCK / 2000000) - 1) << 5);
 
-        // The repeat frequency is 5ms because we process 2 sets of 4 servo
-        // outputs.
-        LPC_SCT->MATCHREL[0].H = (5000 * 2) - 1;
+        // The repeat frequency is 8ms, leading to a pulse repeat rate of 16ms
+        // because we process 2 sets of 4 servo outputs.
+        // NOTE: Hitec HS65-HB don't work well with 10ms repeat rate, but fine
+        // with 16 or above
+        LPC_SCT->MATCHREL[0].H = (8000 * 2) - 1;
 
         // Servo pulse 1.5 ms intially
         LPC_SCT->MATCHREL[1].H = SERVO_PULSE_CENTER * 2;
